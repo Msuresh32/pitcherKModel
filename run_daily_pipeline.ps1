@@ -1,5 +1,9 @@
-$python    = "C:\Users\Mani Suresh\anaconda3\python.exe"
-$dir       = "C:\Users\Mani Suresh\Downloads\Pitcher-Model"
+# Set PYTHON_PATH to your Python executable if it is not on your system PATH.
+# Examples:
+#   $python = "C:\Users\YourName\anaconda3\python.exe"
+#   $python = "C:\Python311\python.exe"
+$python    = if ($env:PYTHON_PATH) { $env:PYTHON_PATH } else { "python" }
+$dir       = $PSScriptRoot
 $today     = Get-Date -Format "yyyy-MM-dd"
 $yesterday = (Get-Date).AddDays(-1).ToString("yyyy-MM-dd")
 $log       = "$dir\logs\pipeline_$today.log"

@@ -1,259 +1,166 @@
-# MLB Pitcher Prop Prediction MVP
+# MLB Pitcher Strikeout Props Model
 
-Baseline Python repo for pitcher strikeouts, walks, and hits allowed props.
+Ensemble model (60% Poisson GLM + 40% XGBoost Poisson) that projects MLB pitcher strikeout totals, computes edge against market lines, and flags +EV bets daily.
 
-**Current research focus:** pitcher strikeouts. The strikeout-only workflow, active
-files, feature inventory, and next commands are organized in
-[`docs/STRIKEOUTS.md`](docs/STRIKEOUTS.md).
+**2026 live results:** 335 settled bets · 179W/156L · +9.0% ROI  
+**2025 backtest:** 770 bets · 374W/396L · +2.4% ROI
 
-The MVP trains on 2022-2024 MLB pitcher game logs, backtests on 2025, and generates daily projections for probable pitchers. It is intentionally simple: rolling pitcher stats, opponent/team features, one model per prop, optional odds-line backtesting, and CSV export.
+---
 
-## Project Structure
+## Quick Start
 
-```text
-data/
-  raw/             # downloaded/source data
-  processed/       # model-ready datasets and predictions
-  odds/            # optional prop lines / prices
-  exports/         # daily picks
-notebooks/         # exploration
-src/
-  data/            # loading and MLB data source adapters
-  features/        # feature engineering
-  models/          # training and prediction
-  backtesting/     # 2025 evaluation and bet simulation
-  odds/            # fair odds, EV, Kelly helpers
-  export/          # CSV / Google Sheets export hooks
-config/            # YAML configs
-scripts/           # command-line workflows
-```
-
-## Setup
+### 1. Clone and install
 
 ```bash
+git clone https://github.com/Msuresh32/pitcherKModel.git
+cd pitcherKModel
 python -m venv .venv
-.venv\Scripts\activate
+.venv\Scripts\activate        # Windows
+# source .venv/bin/activate   # Mac/Linux
 pip install -r requirements.txt
 ```
 
-The first data source is MLB's public Stats API. The ingestion script pulls schedules, boxscores, starter pitching lines, and probable pitchers into normalized CSVs. If the API is unavailable, place normalized CSVs in `data/raw/` and point config values to those files.
+### 2. Add your API key
 
-## Expected Data
+Create a `.env` file in the project root:
 
-The modeling pipeline expects pitcher game logs with at least:
-
-```text
-game_date, pitcher_id, pitcher_name, team, opponent, is_home,
-strikeouts, walks, hits_allowed, innings_pitched
+```
+ODDS_API_KEY=your_key_here
 ```
 
-Optional odds CSVs should include:
+Get a free key at [the-odds-api.com](https://the-odds-api.com). The free tier gives ~500 requests/month which covers daily use.
 
-```text
-game_date, pitcher_id, market, line, over_odds, under_odds
-```
-
-Where `market` is one of:
-
-```text
-strikeouts, walks, hits_allowed
-```
-
-American odds are expected for `over_odds` and `under_odds`.
-
-## Commands
-
-Fetch starter pitcher game logs for training/backtesting:
+### 3. Fetch historical data (one-time setup)
 
 ```bash
-python scripts/fetch_mlb_data.py logs --config config/config.yaml --start 2022-01-01 --end 2025-12-31
+# Pitcher game logs 2022-2025
+python scripts/fetch_mlb_data.py logs --start 2022-01-01 --end 2025-12-31
+
+# Opponent batting logs
+python scripts/fetch_mlb_data.py extras --start 2022-01-01 --end 2025-12-31
+
+# Batter-level logs (for lineup matchup features)
+python scripts/fetch_mlb_data.py batters --start 2022-01-01 --end 2025-12-31 --max-workers 4
+
+# Statcast pitch quality
+python scripts/fetch_statcast.py --start 2022-01-01 --end 2025-12-31
+
+# Park factors
+python scripts/fetch_park_factors.py --start-year 2021 --end-year 2025 --rolling 3
 ```
 
-The `team` and `opponent` fields are MLB team IDs so historical logs and probable-pitcher rows join consistently.
-Pitcher logs also include pitch count, strikes, and batters faced when fetched with the current script.
-
-Fetch team batting game logs for opponent-strength features:
+### 4. Train the model
 
 ```bash
-python scripts/fetch_mlb_data.py batting --config config/config.yaml --start 2022-01-01 --end 2025-12-31
+python scripts/train.py
 ```
 
-Fetch game context logs for handedness, park, weather, umpire, and lineup-handedness features:
+Trains on 2022-2024 data. Takes ~5-10 minutes. Saves models to `data/processed/models/`.
+
+### 5. Run today's slate
 
 ```bash
-python scripts/fetch_mlb_data.py context --config config/config.yaml --start 2022-01-01 --end 2025-12-31
+# Fetch today's probable pitchers
+python scripts/fetch_probables_daily.py
+
+# Fetch current odds
+python scripts/fetch_odds_daily.py
+
+# Generate projections + flag bets with edge >= 7%
+python scripts/project_daily.py
+
+# Build dashboard
+python generate_dashboard.py
+# Open dashboard.html in your browser
 ```
 
-Faster combined fetch for both files:
+---
 
-```bash
-python scripts/fetch_mlb_data.py extras --config config/config.yaml --start 2022-01-01 --end 2025-12-31
-```
+## Daily Automation (Windows Task Scheduler)
 
-Fetch batter-level game logs for lineup aggregate K/BB/hit features:
+The script `run_daily_pipeline.ps1` runs the full pipeline automatically each morning:
+1. Resolves yesterday's picks (fetches game logs, records W/L)
+2. Fetches today's probable pitchers
+3. Fetches today's odds
+4. Runs projections and saves the picks log
+5. Regenerates the dashboard
 
-```bash
-python scripts/fetch_mlb_data.py batters --config config/config.yaml --start 2022-01-01 --end 2025-12-31 --max-workers 4
-```
-
-Fetch Statcast pitcher daily pitch-quality aggregates:
-
-```bash
-python scripts/fetch_statcast.py --config config/config.yaml --start 2022-01-01 --end 2025-12-31
-```
-
-Fetch Baseball Savant Statcast park factors:
-
-```bash
-python scripts/fetch_park_factors.py --config config/config.yaml --start-year 2021 --end-year 2025 --rolling 3
-```
-
-Fetch probable pitchers for a projection date:
-
-```bash
-python scripts/fetch_mlb_data.py probables --config config/config.yaml --date 2026-06-01
-```
-
-Fetch current pitcher prop odds after probable pitchers are available:
-
-```bash
-python scripts/fetch_odds.py --config config/config.yaml --date 2026-06-01
-```
-
-This reads `ODDS_API_KEY` from `.env`, appends raw snapshots to `data/odds/odds_snapshots.csv`, and writes current best lines to `data/odds/pitcher_props.csv`.
-
-Scrape current pitcher prop odds from supported sportsbook pages/endpoints:
-
-```bash
-python scripts/scrape_daily_odds.py --config config/config.yaml --date 2026-06-01 --sportsbooks draftkings
-```
-
-The scraper appends snapshots to `data/odds/odds_snapshots.csv` and overwrites `data/odds/pitcher_props.csv` with the latest best lines, so `project_daily.py` can calculate EV against scraped lines. DraftKings is the first implemented adapter. FanDuel, BetMGM, Caesars, and Pinnacle have adapter slots but need live payload inspection before they should be trusted.
-
-Fetch historical pitcher prop odds for market backtesting:
-
-```bash
-python scripts/fetch_historical_odds.py --config config/config.yaml --start 2023-05-03 --end 2025-12-31 --snapshot-hours-before 4 --bookmakers draftkings --resume
-```
-
-The Odds API historical player props begin on 2023-05-03, so 2022 pitcher prop lines are not available from this source. Use `--dry-run` first to verify access and event counts without saving odds rows:
-
-```bash
-python scripts/fetch_historical_odds.py --config config/config.yaml --start 2025-05-31 --end 2025-05-31 --dry-run
-```
-
-Train 2022-2024 models:
-
-```bash
-python scripts/train.py --config config/config.yaml
-```
-
-Backtest on 2025:
-
-```bash
-python scripts/backtest.py --config config/config.yaml
-```
-
-Backtest 2025 model edges against fetched historical prop odds:
-
-```bash
-python scripts/backtest_historical_odds.py --config config/config.yaml --min-edge-pct 2
-```
-
-Generate today's projections:
-
-```bash
-python scripts/project_daily.py --config config/config.yaml
-```
-
-Generate projections for a specific date:
-
-```bash
-python scripts/project_daily.py --config config/config.yaml --date 2026-06-01
-```
-
-## Automation
-
-Run the daily projection workflow manually:
+To schedule it at 11:03 AM daily:
 
 ```powershell
-powershell -ExecutionPolicy Bypass -File scripts\run_daily.ps1 -Date 2026-06-01
+$action  = New-ScheduledTaskAction -Execute "powershell.exe" `
+             -Argument "-NonInteractive -WindowStyle Hidden -File `"$PWD\run_daily_pipeline.ps1`""
+$trigger = New-ScheduledTaskTrigger -Daily -At "11:03AM"
+Register-ScheduledTask -TaskName "MLBPitcherPipeline" -Action $action -Trigger $trigger
 ```
 
-Run a full data refresh, retrain, and backtest manually:
+Set the `PYTHON_PATH` environment variable if Python is not on your system PATH:
 
 ```powershell
-powershell -ExecutionPolicy Bypass -File scripts\run_retrain.ps1 -Start 2022-01-01 -End 2025-12-31
+$env:PYTHON_PATH = "C:\Users\YourName\anaconda3\python.exe"
 ```
 
-Recommended schedule:
+---
 
-- Daily morning: `scripts\run_daily.ps1`
-- Weekly or monthly: `scripts\run_retrain.ps1`
-- Every 5-15 minutes during the MLB slate: run `scripts\scrape_daily_odds.py` to save odds snapshots for CLV tracking.
+## How It Works
 
-Windows Task Scheduler example for daily projections:
+### Model
 
-```powershell
-$project = "C:\Users\Mani Suresh\Downloads\Pitcher-Model"
-$action = New-ScheduledTaskAction -Execute "powershell.exe" -Argument "-ExecutionPolicy Bypass -File `"$project\scripts\run_daily.ps1`""
-$trigger = New-ScheduledTaskTrigger -Daily -At 9:00am
-Register-ScheduledTask -TaskName "MLB Pitcher Props Daily" -Action $action -Trigger $trigger -Description "Fetch probables and generate MLB pitcher prop projections"
+- **Ensemble:** 60% Poisson GLM + 40% XGBoost Poisson
+- **Features:** pitcher rolling stats (3/5/10/20 games), opponent batting environment, Statcast pitch quality (velocity, CSW, SwStr%), park factors, umpire tendencies, handedness, rest days
+- **Probability:** Poisson CDF on the projected lambda with 50% shrinkage toward 50% to avoid overconfidence
+- **Edge filter:** 7%+ EV, direction-agreement required (model must agree with bet direction)
+
+### Edge Formula
+
+```
+EV = P(hit) × (decimal_odds − 1) − P(miss)
+edge_pct = EV × 100
 ```
 
-For betting and CLV work, daily projections are only half of the automation. The next step is an odds snapshot job that stores current lines repeatedly before first pitch, then compares your bet price to the closing price.
+Break-even at +110 = 47.6%. The model flags a bet only when its shrunk probability exceeds the bookmaker's implied probability by 7%+.
 
-## MVP Model
+### Key Files
 
-- Separate model per target:
-  - `strikeouts`
-  - `walks`
-  - `hits_allowed`
-- Baseline estimator:
-  - `RandomForestRegressor` by default
-  - XGBoost can be enabled if installed and selected in config
-- Features:
-  - pitcher rolling means over 3, 5, and 10 starts
-  - rolling innings workload
-  - pitch count, strikes, batters faced, strike rate, and batters faced per inning
-  - pitcher K/BB/hits rates per inning and per batter faced
-  - opponent rolling pitcher-stat environment from historical logs
-  - opponent rolling batting form: strikeout rate, walk rate, hit rate, runs, and plate appearances
-  - opponent confirmed-lineup batter prior K rate, BB rate, hit rate, and PA volume
-  - expected innings, pitches, and batters faced from opportunity models when targets are available
-  - Statcast pitch-quality aggregates: velocity, CSW rate, swinging-strike rate, zone rate, and pitch mix
-  - pitcher handedness
-  - venue ID, temperature, wind speed, and home plate umpire ID when available
-  - true Baseball Savant park factors for runs, hits, walks, strikeouts, HR, 1B, 2B, and 3B
-  - historical venue and umpire rolling tendencies from prior games
-  - opponent confirmed-lineup handedness counts when available
-  - home/away flag
-  - days rest
+| File | Purpose |
+|---|---|
+| `scripts/project_daily.py` | Daily projection + picks log |
+| `scripts/resolve_picks.py` | Resolve prior day W/L from game logs |
+| `scripts/fetch_probables_daily.py` | Fetch today's probable starters |
+| `scripts/fetch_odds_daily.py` | Fetch today's prop odds |
+| `generate_dashboard.py` | Build self-contained HTML dashboard |
+| `data/exports/picks_log.csv` | Canonical record of every flagged bet |
+| `data/exports/2026_backtest_extended.csv` | 2026 live results |
+| `data/exports/2025_backtest.csv` | 2025 backtest results |
+| `config/config.yaml` | All model/betting parameters |
 
-## Outputs
+---
 
-- Trained models: `data/processed/models/`
-- Backtest predictions: `data/processed/backtest_predictions.csv`
-- Daily projections: `data/exports/daily_pitcher_props_YYYY-MM-DD.csv`
+## Project Structure
 
-Daily picks include:
-
-```text
-projection, fair_over_odds, fair_under_odds, edge_pct, ev, kelly_fraction
+```
+src/
+  data/          # MLB Stats API + Statcast data fetchers
+  features/      # Feature engineering
+  models/        # Poisson GLM + XGBoost ensemble, calibration
+  odds/          # The Odds API client, EV/Kelly math
+  export/        # CSV + Excel exporters
+scripts/         # CLI entry points
+config/          # YAML config
+data/
+  raw/           # Source CSVs (gitignored — fetch with scripts above)
+  processed/     # Trained models + calibration (gitignored)
+  exports/       # Picks log + backtest results (committed)
+  odds/          # Daily odds snapshots (gitignored)
 ```
 
-When odds are missing, projection and fair odds are still exported, while EV and Kelly fields are left blank.
+---
 
-## TODOs
+## Results
 
-- Add weather features: temperature, wind speed/direction, humidity.
-- Convert raw weather, umpire, and venue fields into richer historical factors.
-- Add umpire strike-zone and walk/strikeout tendencies.
-- Add projected lineups before confirmed lineups post.
-- Add park-factor handedness splits and roof/condition-specific park factors.
-- Add historical odds movement and close-line value tracking.
-- Replace baseline residual assumptions with calibrated distribution models.
-- Daily fair odds use backtest calibration with conservative residuals and probability shrinkage.
-- Add sportsbook-specific limits and bankroll state.
-- Add model registry and experiment tracking.
-- Add richer Statcast ingestion once source columns are confirmed.
+| Season | Bets | W | L | ROI |
+|--------|------|---|---|-----|
+| 2025 (backtest) | 770 | 374 | 396 | +2.4% |
+| 2026 (live, through Jun 14) | 335 | 179 | 156 | +9.0% |
+
+Edge buckets (2026): 20%+ edge → +33% ROI · 7-12% edge → +10% ROI
