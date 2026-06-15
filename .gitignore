@@ -1,0 +1,40 @@
+# Python
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+.mypy_cache/
+.ipynb_checkpoints/
+*.egg-info/
+
+# Secrets
+.env
+
+# Data files (large / sensitive)
+data/raw/*.csv
+data/processed/*
+data/odds/*
+!data/raw/.gitkeep
+!data/processed/.gitkeep
+!data/odds/.gitkeep
+
+# Daily export files (keep backtest + picks_log, exclude daily props + old artifacts)
+data/exports/daily_pitcher_props_*.csv
+data/exports/daily_pitcher_props_*.xlsx
+data/exports/*.xlsx
+data/exports/*.html
+data/exports/*.png
+data/exports/2026_all_picks_raw*.csv
+data/exports/2026_picks_board*.xlsx
+!data/exports/.gitkeep
+
+# Generated outputs
+dashboard.html
+logs/
+
+# OS / tooling
+.DS_Store
+Thumbs.db
+*.pdf
+task.xml
+.claude/

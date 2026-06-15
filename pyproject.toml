@@ -1,0 +1,13 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "mlb-pitcher-props"
+version = "0.1.0"
+description = "MVP MLB pitcher prop prediction model for strikeouts, walks, and hits allowed."
+requires-python = ">=3.9"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["src*"]
