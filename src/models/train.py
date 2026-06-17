@@ -71,9 +71,10 @@ def _train_ensemble(
     model_dir: Path,
     random_state: int,
     per_target_alpha: dict[str, float] | None,
+    blend_weights: list = None,
 ) -> dict[str, dict[str, Any]]:
-    """Train Poisson GLM + XGBoost Poisson for each target, blend 60/40."""
-    blend_weights = [0.6, 0.4]
+    """Train Poisson GLM + XGBoost Poisson for each target. Blend from config (default 60/40)."""
+    blend_weights = blend_weights if blend_weights is not None else [0.6, 0.4]
     metrics: dict[str, dict[str, Any]] = {}
 
     x = (
@@ -127,12 +128,13 @@ def train_models(
     random_state: int = 42,
     alpha: float | None = None,
     per_target_alpha: dict[str, float] | None = None,
+    blend_weights: list = None,
 ) -> dict[str, dict[str, Any]]:
     model_dir = Path(model_dir)
     model_dir.mkdir(parents=True, exist_ok=True)
 
     if model_type == "ensemble":
-        return _train_ensemble(train_df, feature_cols, model_dir, random_state, per_target_alpha)
+        return _train_ensemble(train_df, feature_cols, model_dir, random_state, per_target_alpha, blend_weights)
 
     metrics: dict[str, dict[str, Any]] = {}
 

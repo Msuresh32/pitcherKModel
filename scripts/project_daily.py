@@ -207,6 +207,7 @@ def _daily_market_rows(
     distribution: dict,
     bias_corrections: dict,
     disabled_markets: list,
+    nb_alpha=None,
 ) -> pd.DataFrame:
     rows = []
     key_cols = ["game_date", "pitcher_id"]
@@ -258,6 +259,7 @@ def _daily_market_rows(
                 edge_shrink_factor=edge_shrink_factor,
                 distribution=dist,
                 bias_correction=bias,
+                nb_alpha=(nb_alpha or {}).get(market),
             )
         else:
             merged = merged.rename(columns={f"{market}_projection": "projection"})
@@ -369,6 +371,12 @@ def main() -> None:
     odds = load_odds(config["data"]["odds_file"])
     odds = odds[odds["game_date"] == pd.to_datetime(args.date)].copy()
 
+    # Fit NB dispersion from historical K distribution (method of moments)
+    _ks = logs["strikeouts"].dropna().values if "strikeouts" in logs.columns else np.array([])
+    _mu = float(_ks.mean()) if len(_ks) > 0 else 5.0
+    _nb_alpha_k = max(0.0, float((_ks.var() - _mu) / (_mu ** 2))) if _mu > 0 else 0.0
+    nb_alpha = {"strikeouts": _nb_alpha_k}
+
     picks = _daily_market_rows(
         projections,
         odds,
@@ -378,6 +386,7 @@ def main() -> None:
         distribution=distribution,
         bias_corrections=bias_corrections,
         disabled_markets=disabled_markets,
+        nb_alpha=nb_alpha,
     )
     picks = _format_daily_board(picks)
 
@@ -461,6 +470,8 @@ def main() -> None:
             log_rows.append({
                 "game_date": args.date,
                 "pitcher_name": row.get("pitcher_name", row.get("player_name", "")),
+                "pitcher_id": row.get("pitcher_id", ""),
+                "market": row.get("market", "strikeouts"),
                 "best_side": side,
                 "line": row.get("line", float("nan")),
                 "strikeouts_projection": proj_val,

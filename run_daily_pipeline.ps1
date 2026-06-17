@@ -18,23 +18,37 @@ function Log($msg) {
 Set-Location $dir
 Log "=== Daily pipeline starting for $today ==="
 
-# 1. Resolve yesterday's picks (fetch game logs + update picks_log + rebuild backtest)
+# 1. Resolve yesterday's picks (fetch pitcher game logs + update picks_log + rebuild backtest)
 Log "Resolving picks for $yesterday..."
 & $python "$dir\scripts\resolve_picks.py" --date $yesterday 2>&1 | ForEach-Object { Log $_ }
 
-# 2. Fetch today's probable pitchers
+# 2. Update supporting data files with yesterday's results (team batting, game context, batter logs, Statcast)
+Log "Updating team batting and game context logs for $yesterday..."
+& $python "$dir\scripts\fetch_mlb_data.py" extras --start $yesterday --end $yesterday 2>&1 | ForEach-Object { Log $_ }
+
+Log "Updating batter game logs for $yesterday..."
+& $python "$dir\scripts\fetch_mlb_data.py" batters --start $yesterday --end $yesterday --max-workers 4 2>&1 | ForEach-Object { Log $_ }
+
+Log "Updating Statcast pitcher data for $yesterday..."
+& $python "$dir\scripts\fetch_statcast.py" --start $yesterday --end $yesterday 2>&1 | ForEach-Object { Log $_ }
+
+# 4. Fetch today's probable pitchers
 Log "Fetching probable pitchers for $today..."
 & $python "$dir\scripts\fetch_probables_daily.py" --date $today 2>&1 | ForEach-Object { Log $_ }
 
-# 3. Fetch today's odds
+# 5. Fetch today's odds
 Log "Fetching odds for $today..."
 & $python "$dir\scripts\fetch_odds_daily.py" --date $today 2>&1 | ForEach-Object { Log $_ }
 
-# 4. Run projections (saves picks + updates picks_log)
+# 6. Run projections (saves picks + updates picks_log)
 Log "Running projections for $today..."
 & $python "$dir\scripts\project_daily.py" --date $today 2>&1 | ForEach-Object { Log $_ }
 
-# 5. Regenerate dashboard
+# 7. Analyze picks (recent form, opp K rate, verdicts)
+Log "Analyzing picks for $today..."
+& $python "$dir\scripts\analyze_picks.py" --date $today 2>&1 | ForEach-Object { Log $_ }
+
+# 8. Regenerate dashboard
 Log "Regenerating dashboard..."
 & $python "$dir\generate_dashboard.py" 2>&1 | ForEach-Object { Log $_ }
 

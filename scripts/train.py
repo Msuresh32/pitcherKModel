@@ -177,6 +177,7 @@ def main() -> None:
     # ------------------------------------------------------------------
     # Final model training
     # ------------------------------------------------------------------
+    blend_weights = config["training"].get("ensemble_blend")
     metrics = train_models(
         train_df=train_df,
         feature_cols=feature_cols,
@@ -185,6 +186,7 @@ def main() -> None:
         random_state=config["training"]["random_state"],
         alpha=global_alpha,
         per_target_alpha=per_target_alpha,
+        blend_weights=blend_weights,
     )
 
     # Update fill_values to include opportunity feature columns (predicted, rarely NaN)

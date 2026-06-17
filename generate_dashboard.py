@@ -244,6 +244,9 @@ td.your-edge{font-family:'Oswald',sans-serif;font-weight:700;font-size:15px;text
 
 /* edge colors */
 .e-hi{color:#00c853}.e-good{color:var(--green)}.e-ok{color:#fff176}.e-low{color:#ffb74d}.e-neg{color:var(--red)}.e-none{color:var(--dim)}
+/* edge bar */
+.ebar-wrap{display:inline-block;width:54px;height:5px;background:rgba(255,255,255,.1);border-radius:3px;vertical-align:middle;margin-right:8px;flex-shrink:0}
+.ebar{height:100%;border-radius:3px}
 
 /* flagged section */
 .flagged{margin-top:28px}
@@ -353,8 +356,8 @@ td.your-edge{font-family:'Oswald',sans-serif;font-weight:700;font-size:15px;text
     <div style="overflow-x:auto">
       <table>
         <thead><tr>
-          <th>Pitcher</th><th>Side</th><th class="r">Proj</th><th class="r">Gap</th>
-          <th class="r">P(hit)</th><th class="r">Model Edge</th>
+          <th>Pitcher</th><th>Side</th><th class="r">Line</th><th class="r">Proj</th><th class="r">Gap</th>
+          <th class="r">P(hit)</th><th class="r" style="min-width:160px">Model Edge</th>
           <th style="text-align:center">Your Odds </th><th class="r">Your Edge</th>
           <th>Gap Signal</th>
         </tr></thead>
@@ -552,13 +555,18 @@ function renderPicks(){
     var yeStr = fmtEdge(initEdge);
     var gbCls = r.gap!==null?gapCls(r.gap):'gb-ok';
     var gbLbl = r.gap!==null?gapLabel(r.gap):'--';
+    var barW = me!==null ? Math.min(Math.max(me,0)/25*100,100).toFixed(0) : 0;
+    var barClr = me>=15?'#00c853':me>=7?'#2fd44a':me>=0?'#ffb74d':'#e0483a';
+    var lineStr = r.line!==null&&r.line!==undefined ? r.line : '--';
     tr.innerHTML =
       '<td class="pitcher">'+r.pitcher+'</td>'+
-      '<td class="side">'+r.side+'</td>'+
+      '<td class="side">'+r.bestSide+'</td>'+
+      '<td class="proj" style="text-align:right">'+lineStr+'</td>'+
       '<td class="proj" style="text-align:right">'+( r.proj?r.proj.toFixed(2):'--')+'</td>'+
       '<td class="'+gapTdCls+'" style="text-align:right">'+gapStr+'</td>'+
       '<td class="prob" style="text-align:right">'+prob+'</td>'+
-      '<td class="medge '+meCls+'" style="text-align:right">'+meStr+'</td>'+
+      '<td class="medge '+meCls+'" style="text-align:right;white-space:nowrap">'+
+        '<span class="ebar-wrap"><span class="ebar" style="width:'+barW+'%;background:'+barClr+'"></span></span>'+meStr+'</td>'+
       '<td class="your-odds-cell" style="text-align:center"><input class="odds-inp" type="number" value="'+initOdds+'" data-prob="'+(r.hitProb||0)+'" step="5"></td>'+
       '<td class="your-edge '+yeCls+'" data-ye>'+yeStr+'</td>'+
       '<td><span class="gap-badge '+gbCls+'">'+gbLbl+'</span></td>';

@@ -116,95 +116,157 @@ def main() -> None:
         ),
     )
     parser.add_argument("--closing-odds", default=None, help="Separate CSV with closing-line odds for CLV.")
+    parser.add_argument(
+        "--blend",
+        default=None,
+        help="Override ensemble blend as 'glm_weight,xgb_weight' (e.g. '0.8,0.2'). "
+             "Allows testing blend ratios without retraining.",
+    )
+    parser.add_argument(
+        "--model-dir",
+        default=None,
+        help="Override model directory (default: processed_dir/models). Useful for A/B testing saved model snapshots.",
+    )
+    parser.add_argument(
+        "--predictions-file",
+        default=None,
+        help="Skip feature engineering + prediction and load pre-computed predictions CSV directly. "
+             "Speeds up grid searches dramatically when only betting params change.",
+    )
+    parser.add_argument(
+        "--min-edge",
+        type=float,
+        default=None,
+        help="Override betting.min_edge_pct without modifying config.yaml.",
+    )
+    parser.add_argument(
+        "--edge-shrink",
+        type=float,
+        default=None,
+        help="Override betting.edge_shrink_factor without modifying config.yaml.",
+    )
     args = parser.parse_args()
 
     config = load_config(args.config)
+
+    # Command-line betting overrides (avoids config.yaml race conditions in grid searches)
+    if args.min_edge is not None:
+        config["betting"]["min_edge_pct"] = args.min_edge
+    if args.edge_shrink is not None:
+        config["betting"]["edge_shrink_factor"] = args.edge_shrink
     ensure_directories(config)
 
-    # ------------------------------------------------------------------
-    # Load data
-    # ------------------------------------------------------------------
-    logs = load_pitcher_game_logs(config["data"]["pitcher_logs_file"])
-    team_batting = load_team_batting_game_logs(config["data"]["team_batting_logs_file"])
-    game_context = load_game_context_logs(config["data"]["game_context_logs_file"])
-    batter_logs = load_batter_game_logs(config["data"]["batter_game_logs_file"])
-    statcast = load_statcast_pitcher_daily(config["data"]["statcast_pitcher_daily_file"])
-    statcast_batter_pitch_types = load_statcast_batter_pitch_type_daily(
-        config["data"]["statcast_batter_pitch_type_daily_file"]
-    )
-    park_factors = load_park_factors(config["data"]["park_factors_file"])
-
-    fangraphs_path = config["data"].get("fangraphs_file", "")
-    fangraphs = load_fangraphs_stats(fangraphs_path) if fangraphs_path else pd.DataFrame()
-
-    adv_pitcher_path = config["data"].get("statcast_pitcher_advanced_file", "")
-    statcast_pitcher_adv = load_statcast_pitcher_advanced(adv_pitcher_path) if adv_pitcher_path else pd.DataFrame()
-
-    bat_disc_path = config["data"].get("statcast_batter_discipline_file", "")
-    statcast_bat_disc = load_statcast_batter_discipline(bat_disc_path) if bat_disc_path else pd.DataFrame()
-
-    # ------------------------------------------------------------------
-    # Load saved fill_values from training run
-    # ------------------------------------------------------------------
-    model_dir = Path(config["data"]["processed_dir"]) / "models"
-    fill_values = load_fill_values(model_dir / "fill_values.json")
-
-    # ------------------------------------------------------------------
-    # Build features
-    # ------------------------------------------------------------------
-    featured, feature_cols, _ = build_training_features(
-        logs,
-        rolling_windows=config["features"]["rolling_windows"],
-        min_history_games=config["training"]["min_history_games"],
-        team_batting_logs=team_batting,
-        game_context_logs=game_context,
-        batter_game_logs=batter_logs,
-        statcast_pitcher_daily=statcast,
-        statcast_batter_pitch_type_daily=statcast_batter_pitch_types,
-        park_factors=park_factors,
-        fill_values=fill_values,
-        statcast_pitcher_advanced=statcast_pitcher_adv if not statcast_pitcher_adv.empty else None,
-        statcast_batter_discipline=statcast_bat_disc if not statcast_bat_disc.empty else None,
-    )
-
-    if not fangraphs.empty:
-        featured, fg_cols = merge_fangraphs_prior_season(featured, fangraphs)
-        feature_cols = feature_cols + fg_cols
-
     start = args.start or config["training"]["backtest_start"]
-    end = args.end or config["training"]["backtest_end"]
+    end   = args.end   or config["training"]["backtest_end"]
     output_prefix = args.output_prefix or "backtest"
 
-    opportunity_models = load_opportunity_models(model_dir)
-    if opportunity_models:
-        featured, opp_cols = add_expected_opportunity_features(featured, opportunity_models)
-        feature_cols = feature_cols + opp_cols
-
-    backtest_df = filter_date_range(featured, start, end)
-
     # ------------------------------------------------------------------
-    # Predict
+    # Fast path: load pre-computed predictions (skip feature eng + model)
     # ------------------------------------------------------------------
-    models = load_models(model_dir)
-    predictions = predict_targets(backtest_df, models)
+    if args.predictions_file:
+        logs = load_pitcher_game_logs(config["data"]["pitcher_logs_file"])
+        model_dir = Path(args.model_dir) if args.model_dir else Path(config["data"]["processed_dir"]) / "models"
+        predictions = pd.read_csv(args.predictions_file)
+        predictions["game_date"] = pd.to_datetime(predictions["game_date"])
+        if "pitcher_id" in predictions.columns:
+            predictions["pitcher_id"] = predictions["pitcher_id"].astype(str)
+        # Filter to the requested date range (the file may cover a broader period)
+        predictions = filter_date_range(predictions, start, end)
+        print(f"Loaded {len(predictions)} pre-computed predictions from {args.predictions_file}")
+    else:
+        # ------------------------------------------------------------------
+        # Load data
+        # ------------------------------------------------------------------
+        logs = load_pitcher_game_logs(config["data"]["pitcher_logs_file"])
+        team_batting = load_team_batting_game_logs(config["data"]["team_batting_logs_file"])
+        game_context = load_game_context_logs(config["data"]["game_context_logs_file"])
+        batter_logs = load_batter_game_logs(config["data"]["batter_game_logs_file"])
+        statcast = load_statcast_pitcher_daily(config["data"]["statcast_pitcher_daily_file"])
+        statcast_batter_pitch_types = load_statcast_batter_pitch_type_daily(
+            config["data"]["statcast_batter_pitch_type_daily_file"]
+        )
+        park_factors = load_park_factors(config["data"]["park_factors_file"])
+
+        fangraphs_path = config["data"].get("fangraphs_file", "")
+        fangraphs = load_fangraphs_stats(fangraphs_path) if fangraphs_path else pd.DataFrame()
+
+        adv_pitcher_path = config["data"].get("statcast_pitcher_advanced_file", "")
+        statcast_pitcher_adv = load_statcast_pitcher_advanced(adv_pitcher_path) if adv_pitcher_path else pd.DataFrame()
+
+        bat_disc_path = config["data"].get("statcast_batter_discipline_file", "")
+        statcast_bat_disc = load_statcast_batter_discipline(bat_disc_path) if bat_disc_path else pd.DataFrame()
+
+        # ------------------------------------------------------------------
+        # Load saved fill_values from training run
+        # ------------------------------------------------------------------
+        model_dir = Path(args.model_dir) if args.model_dir else Path(config["data"]["processed_dir"]) / "models"
+        fill_values = load_fill_values(model_dir / "fill_values.json")
+
+        # ------------------------------------------------------------------
+        # Build features
+        # ------------------------------------------------------------------
+        featured, feature_cols, _ = build_training_features(
+            logs,
+            rolling_windows=config["features"]["rolling_windows"],
+            min_history_games=config["training"]["min_history_games"],
+            team_batting_logs=team_batting,
+            game_context_logs=game_context,
+            batter_game_logs=batter_logs,
+            statcast_pitcher_daily=statcast,
+            statcast_batter_pitch_type_daily=statcast_batter_pitch_types,
+            park_factors=park_factors,
+            fill_values=fill_values,
+            statcast_pitcher_advanced=statcast_pitcher_adv if not statcast_pitcher_adv.empty else None,
+            statcast_batter_discipline=statcast_bat_disc if not statcast_bat_disc.empty else None,
+        )
+
+        if not fangraphs.empty:
+            featured, fg_cols = merge_fangraphs_prior_season(featured, fangraphs)
+            feature_cols = feature_cols + fg_cols
+
+    if not args.predictions_file:
+        opportunity_models = load_opportunity_models(model_dir)
+        if opportunity_models:
+            featured, opp_cols = add_expected_opportunity_features(featured, opportunity_models)
+            feature_cols = feature_cols + opp_cols
+
+        backtest_df = filter_date_range(featured, start, end)
+
+        # ------------------------------------------------------------------
+        # Predict
+        # ------------------------------------------------------------------
+        if args.model_dir:
+            model_dir = Path(args.model_dir)
+        models = load_models(model_dir)
+
+        # Override blend weights if --blend was supplied
+        if args.blend:
+            try:
+                w = [float(x) for x in args.blend.split(",")]
+                assert len(w) == 2
+                for bundle in models.values():
+                    if bundle.get("ensemble"):
+                        bundle["blend_weights"] = w
+                print(f"Blend override: {w[0]:.2f} GLM / {w[1]:.2f} XGB")
+            except Exception as e:
+                print(f"Warning: could not parse --blend '{args.blend}': {e}")
+
+        predictions = predict_targets(backtest_df, models)
+
+        pred_path = Path(config["data"]["processed_dir"]) / f"{output_prefix}_predictions.csv"
+        predictions.to_csv(pred_path, index=False)
 
     # Per-market distribution from config (overrides model-type default)
     config_dist = config["betting"].get("market_distribution", {})
     if config_dist:
         distribution = {
-            mkt: config_dist.get(mkt, _DISTRIBUTION_FOR_MODEL.get(
-                models.get(mkt, {}).get("model_type", "random_forest"), "normal"
-            ))
+            mkt: config_dist.get(mkt, "normal")
             for mkt in ["strikeouts", "walks", "hits_allowed"]
         }
     else:
-        rep_model_type = models.get("strikeouts", {}).get("model_type", "random_forest")
-        distribution = _DISTRIBUTION_FOR_MODEL.get(rep_model_type, "normal")
+        distribution = "normal"
 
     disabled_markets = config["betting"].get("disabled_markets", [])
-
-    pred_path = Path(config["data"]["processed_dir"]) / f"{output_prefix}_predictions.csv"
-    predictions.to_csv(pred_path, index=False)
 
     # ------------------------------------------------------------------
     # Point-estimate scores (MAE / RMSE)
@@ -268,6 +330,13 @@ def main() -> None:
     if bias_corrections:
         print(f"Applying bias corrections: { {k: f'{v:+.3f}' for k, v in bias_corrections.items()} }")
 
+    # Fit NB dispersion from historical K distribution (method of moments)
+    _ks = logs["strikeouts"].dropna().values
+    _mu = float(_ks.mean())
+    _nb_alpha_k = max(0.0, float((_ks.var() - _mu) / (_mu ** 2))) if _mu > 0 else 0.0
+    nb_alpha = {"strikeouts": _nb_alpha_k}
+    print(f"NB dispersion alpha (strikeouts): {_nb_alpha_k:.4f}")
+
     scored = attach_odds_and_edges(
         predictions,
         odds,
@@ -277,6 +346,7 @@ def main() -> None:
         distribution=distribution,
         bias_corrections=bias_corrections,
         disabled_markets=disabled_markets,
+        nb_alpha=nb_alpha,
     )
     edges_path = Path(config["data"]["processed_dir"]) / f"{output_prefix}_edges.csv"
     scored.to_csv(edges_path, index=False)
@@ -407,7 +477,8 @@ def main() -> None:
                     print(f"  {mkt:16s}: mean CLV = {mkt_clv.mean():+.2f}%  (n={len(mkt_clv)})")
         print(f"CLV analysis saved to {clv_path}")
 
-    print(f"\nBacktest predictions saved to {pred_path}")
+    if not args.predictions_file:
+        print(f"\nBacktest predictions saved to {pred_path}")
     print(f"Backtest scores saved to {score_path}")
     if args.save_calibration or args.output_prefix is None:
         print(f"Calibration saved to {calibration_path}")

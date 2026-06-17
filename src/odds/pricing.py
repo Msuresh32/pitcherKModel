@@ -48,6 +48,27 @@ def poisson_over_probability(lam: float, line: float) -> float:
         return over_probability(lam, line + 0.5, sqrt(lam))
 
 
+def nb_over_probability(mu: float, alpha: float, line: float) -> float:
+    """P(X > line) where X ~ NegativeBinomial(mean=mu, dispersion=alpha).
+
+    Var(X) = mu + alpha*mu^2. When alpha approaches 0 this converges to Poisson.
+    scipy nbinom parameterisation: n=1/alpha, p=n/(n+mu).
+    Falls back to Poisson when alpha <= 0 or unavailable.
+    """
+    if pd.isna(mu) or pd.isna(line) or pd.isna(alpha) or alpha <= 0:
+        return poisson_over_probability(mu, line)
+    mu = max(float(mu), 1e-6)
+    alpha = max(float(alpha), 1e-9)
+    k = int(floor(float(line)))
+    try:
+        from scipy.stats import nbinom
+        n = 1.0 / alpha
+        p = n / (n + mu)
+        return float(nbinom.sf(k, n, p))
+    except ImportError:
+        return poisson_over_probability(mu, line)
+
+
 def shrink_probability(probability: float, shrink_factor: float) -> float:
     if pd.isna(probability):
         return np.nan
@@ -86,19 +107,28 @@ def add_betting_columns(
     edge_shrink_factor: float = 1.0,
     distribution: str = "normal",
     bias_correction: float = 0.0,
+    nb_alpha=None,
 ) -> pd.DataFrame:
     """Compute over/under probabilities, fair odds, EV, and Kelly fraction.
 
-    distribution:    "normal"  uses Gaussian with residual_std (RF/XGBoost).
-                     "poisson" uses the Poisson CDF from the projection lambda.
-    bias_correction: value added to projection before computing probability.
-                     Pass calibration bias (mean actual - mean pred) to correct
-                     systematic over/under-projection.
+    distribution:    "normal"           uses Gaussian with residual_std.
+                     "poisson"          uses the Poisson CDF.
+                     "negative_binomial" uses NB CDF (nb_alpha required).
+    bias_correction: added to projection before computing probability.
+    nb_alpha:        NB dispersion parameter (Var = mu + alpha*mu^2).
+                     Only used when distribution="negative_binomial".
     """
     out = df.copy()
     projection_col = f"{market}_projection"
 
-    if distribution == "poisson":
+    if distribution == "negative_binomial" and nb_alpha is not None:
+        out["raw_over_probability"] = out.apply(
+            lambda row: nb_over_probability(
+                row[projection_col] + bias_correction, nb_alpha, row["line"]
+            ),
+            axis=1,
+        )
+    elif distribution == "poisson":
         out["raw_over_probability"] = out.apply(
             lambda row: poisson_over_probability(
                 row[projection_col] + bias_correction, row["line"]

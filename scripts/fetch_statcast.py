@@ -47,6 +47,14 @@ def main() -> None:
         path = Path(output)
         path.parent.mkdir(parents=True, exist_ok=True)
         df = pd.concat(frames, ignore_index=True, sort=False) if frames else pd.DataFrame()
+        if not df.empty and path.exists():
+            existing = pd.read_csv(path)
+            key_cols = [c for c in ["game_date", "pitcher_id", "pitcher"] if c in df.columns and c in existing.columns]
+            if key_cols:
+                combined = pd.concat([existing, df], ignore_index=True, sort=False)
+                df = combined.drop_duplicates(subset=key_cols, keep="last").reset_index(drop=True)
+            else:
+                df = pd.concat([existing, df], ignore_index=True, sort=False).drop_duplicates()
         df.to_csv(path, index=False)
     print(f"Saved Statcast pitcher daily data to {path}")
 

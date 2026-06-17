@@ -68,9 +68,20 @@ def _rolling_by_pitcher(df: pd.DataFrame, windows: list[int]) -> pd.DataFrame:
         rolled_max = rolled_max.reset_index(level=0, drop=True)
         rolled_min = shifted.groupby(df["pitcher_id"]).rolling(window, min_periods=1).min()
         rolled_min = rolled_min.reset_index(level=0, drop=True)
+        rolled_count = shifted.groupby(df["pitcher_id"]).rolling(window, min_periods=1).count()
+        rolled_count = rolled_count.reset_index(level=0, drop=True)
         for col in rolling_cols:
             df[f"p_{col}_roll{window}"] = rolled[col]
             df[f"p_{col}_std_roll{window}"] = rolled_std[col]
+        # Trimmed rolling mean for strikeouts: excludes the single highest game per window.
+        # Reduces upward bias from one-off dominant starts (e.g. a 9K outlier biasing a 10-start avg).
+        if "strikeouts" in rolling_cols:
+            k_sum = rolled["strikeouts"] * rolled_count["strikeouts"]
+            k_max = rolled_max["strikeouts"]
+            k_count = rolled_count["strikeouts"]
+            denom = (k_count - 1).replace(0, np.nan)
+            trimmed = (k_sum - k_max) / denom
+            df[f"p_strikeouts_trimmed_roll{window}"] = trimmed.where(k_count >= 2, rolled["strikeouts"])
         innings = rolled["innings_pitched"].replace(0, np.nan)
         df[f"p_k_per_ip_roll{window}"] = rolled["strikeouts"] / innings
         df[f"p_bb_per_ip_roll{window}"] = rolled["walks"] / innings
@@ -436,14 +447,13 @@ def _lineup_features_from_batters(
         starters[col] = starters[col].fillna(starters[fallback])
 
     rows = []
-    for keys, group in starters.groupby(["game_date", "game_pk", "team"], sort=False):
+    for keys, group in starters.groupby(["game_date", "team"], sort=False):
         top6 = group[group["batting_slot"] <= 6]
         bottom3 = group[group["batting_slot"] >= 7]
         rows.append(
             {
                 "game_date": keys[0],
-                "game_pk": keys[1],
-                "opponent": str(keys[2]),
+                "opponent": str(keys[1]),
                 "opp_lineup_batter_pa_avg_prior": group["batter_pa_avg_prior"].mean(),
                 "opp_lineup_k_rate_prior": group["batter_k_rate_prior"].mean(),
                 "opp_lineup_bb_rate_prior": group["batter_bb_rate_prior"].mean(),
@@ -515,13 +525,13 @@ def _merge_lineup_batter_features(
         game_context_logs,
         statcast_batter_pitch_type_daily,
     )
-    if lineup.empty or "game_pk" not in pitcher_df.columns:
+    if lineup.empty:
         return pitcher_df
 
     out = pitcher_df.copy()
     out["opponent"] = out["opponent"].astype(str)
     lineup["opponent"] = lineup["opponent"].astype(str)
-    return out.merge(lineup, on=["game_date", "game_pk", "opponent"], how="left")
+    return out.merge(lineup, on=["game_date", "opponent"], how="left")
 
 
 def _statcast_prior_features(
