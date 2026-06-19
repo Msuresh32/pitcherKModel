@@ -270,6 +270,7 @@ def attach_odds_and_edges(
     bias_corrections: dict[str, float] | None = None,
     disabled_markets: list[str] | None = None,
     nb_alpha=None,
+    probability_calibrators: dict[str, dict] | None = None,
 ) -> pd.DataFrame:
     if odds.empty:
         return predictions
@@ -299,6 +300,7 @@ def attach_odds_and_edges(
                 distribution=dist,
                 bias_correction=bias,
                 nb_alpha=(nb_alpha or {}).get(market),
+                probability_calibrator=(probability_calibrators or {}).get(market),
             )
         )
 

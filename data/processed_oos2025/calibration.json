@@ -1,0 +1,30 @@
+{
+  "edge_shrink_factor": 0.7,
+  "residual_std_multiplier": 1.25,
+  "markets": {
+    "strikeouts": {
+      "bias": -0.01101534742595478,
+      "mae": 1.5683301841536015,
+      "rmse": 1.9596535589754462,
+      "residual_std": 1.9596225997181749,
+      "conservative_std": 2.4495282496477184,
+      "rows": 5582
+    },
+    "walks": {
+      "bias": -0.00491739939224311,
+      "mae": 0.9398919695618881,
+      "rmse": 1.1645194079718064,
+      "residual_std": 1.1645090256096016,
+      "conservative_std": 1.455636282012002,
+      "rows": 5582
+    },
+    "hits_allowed": {
+      "bias": -0.04178191337809798,
+      "mae": 1.6531879412862247,
+      "rmse": 2.0661994596881383,
+      "residual_std": 2.065776967373299,
+      "conservative_std": 2.5822212092166237,
+      "rows": 5582
+    }
+  }
+}

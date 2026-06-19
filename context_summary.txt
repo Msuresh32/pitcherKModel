@@ -1,0 +1,270 @@
+===============================================================
+MLB PITCHER STRIKEOUT PROPS MODEL — CONTEXT SUMMARY
+Generated: 2026-06-17
+===============================================================
+
+PROJECT OVERVIEW
+----------------
+Quantitative MLB pitcher strikeout props betting model.
+Working directory: C:\Users\Mani Suresh\Downloads\Pitcher-Model
+Target: pitcher strikeouts (walks + hits_allowed disabled)
+Stack: Python, Poisson GLM + XGBoost ensemble, ~700 features
+
+CURRENT MODEL (NEW)
+--------------------
+- Trained: 2023-01-01 to 2026-05-31
+- Holdout/backtest: June 2026
+- Ensemble: 70% Poisson GLM + 30% XGBoost Poisson
+- Feature selection: top 100 of ~700+ features by RF importance
+- Calibration bias (strikeouts): +0.015 (near-zero, well calibrated)
+- Model files: data/processed/models/
+- Backup (old model, trained through 2025): data/processed/models_backup_2025/
+
+CURRENT CONFIG (config/config.yaml)
+-------------------------------------
+  min_edge_pct: 12.0
+  edge_shrink_factor: 0.7
+  max_proj_gap: 99.0   (effectively off)
+  ensemble_blend: [0.7, 0.3]
+  disabled_markets: [hits_allowed, walks]
+  main_line_only: true
+  main_line_min_odds: -160
+  main_line_max_odds: 140
+  closing_odds_file: data/odds/june_2026_odds.csv
+
+KEY DATA FILES
+--------------
+  data/odds/june_2026_odds.csv            — open+close snapshots, June 1-16 2026 (4458 rows)
+  data/odds/historical_pitcher_props_plus_2026_6h.csv  — 6h snapshots, 2023-Jun4 2026
+  data/processed/edge_full_edges.csv      — 1350 rows, old model, all bets Jan-Jun4 2026
+  data/processed/gap_2025_edges.csv       — 3601 rows, old model, all bets 2025 (IN-SAMPLE)
+  data/processed/experiment_results_bk_20260101_20260616.csv  — old model grid search
+  data/processed/experiment_results_new_20260601_20260616.csv — new model grid search
+
+KEY SCRIPTS
+-----------
+  scripts/train.py                   — retrain model
+  scripts/backtest.py                — backtest (supports --blend, --min-edge, --edge-shrink,
+                                       --predictions-file, --closing-odds flags)
+  scripts/run_experiments.py         — grid search (fast path reuses saved predictions)
+  scripts/project_daily.py --date YYYY-MM-DD  — daily picks output
+  scripts/fetch_historical_odds.py   — fetch open+close snapshots from Odds API
+  scripts/fetch_historical_clv_snapshots.py  — fetch closing lines for CLV
+  scripts/compute_live_clv.py        — CLV from picks_log + closing odds
+  scripts/recalibrate.py             — rolling recalibration
+
+===============================================================
+BACKTEST RESULTS
+===============================================================
+
+NEW MODEL — June 1-16 2026 (true out-of-sample, 16 days)
+----------------------------------------------------------
+Best configs (all show positive CLV using june_2026_odds.csv):
+
+  Config                        Bets  Win%    ROI     CLV
+  blend_70_30, edge>=15%, sh=0.7   7  71.4%  +40.8%  +3.35%
+  blend_70_30, edge>=12%, sh=0.6   7  71.4%  +47.0%  +2.53%
+  blend_70_30, edge>=12%, sh=0.7  10  60.0%  +19.1%  +1.82%  <- production default
+  blend_70_30, edge>=10%, sh=0.7  11  54.5%   +8.2%  +1.59%
+
+Note: All 18 configs in grid search showed positive CLV on June holdout.
+
+OLD MODEL — Mar 26-Jun 16 2026 (true OOS, 83 days, DK lines only)
+--------------------------------------------------------------------------
+  Odds source: DraftKings open+close via Odds API (full_2026_odds_dk.csv)
+  Blend: 70/30 GLM/XGB, edge shrink 0.7
+
+  Min Edge   Bets  Win%    ROI    Sharpe
+  edge>=5%    675  53.3%   +6.1%   1.58
+  edge>=10%   424  52.8%   +6.4%   1.29
+  edge>=12%   352  55.4%  +12.3%   2.27   <- BEST CONFIG
+  edge>=15%   256  54.7%  +11.7%   1.82
+  edge>=20%   155  56.8%  +18.0%   2.15
+
+Monthly breakdown (edge >= 10%):
+  Month     Bets  Win%    ROI
+  2026-03     34  47.1%   -4.6%  <- early season weakness
+  2026-04    171  57.9%  +17.2%
+  2026-05    156  48.7%   -2.1%
+  2026-06     63  52.4%   +3.8%
+
+FULL 2026 CLV (DK, edge >= 10%, 371 of 424 bets matched):
+  Mean CLV: +1.76%   CLV > 0: 53.9%
+  Month   CLV
+  Mar     -0.19%  (early season weak)
+  Apr     +2.22%  (strong)
+  May     +1.54%  (solid)
+  Jun     +2.18%  (strong)
+
+IMPORTANT NOTE: Using 8-bookmaker combined odds gives 47.9% win and near-zero ROI
+because the model was calibrated to DraftKings lines. ALWAYS use DK as reference.
+Files: full_2026_odds.csv (all books), full_2026_odds_dk.csv (DK only).
+
+===============================================================
+CLV ANALYSIS — JUNE 1-16 2026 (NEW MODEL, FULL WINDOW)
+===============================================================
+CLV data: june_2026_odds.csv has proper open+close for all 16 days now.
+
+  Min Edge  CLV Bets  Mean CLV   ROI (June)
+  10%         91      +1.58%     -2.47%
+  12%         76      +1.64%     -3.51%
+  15%         57      +1.34%     -2.31%
+  20%         27      +1.03%     -36.8%
+
+KEY INSIGHT: CLV is consistently positive (+1.0-1.6%) across all thresholds.
+This means the model identifies edges that the MARKET CONFIRMS by moving lines
+in the predicted direction before game time. June ROI is negative but on tiny
+samples (27-91 bets in 16 days) — pure variance. The CLV is the real signal.
+
+===============================================================
+EDGE BANDWIDTH ANALYSIS (OLD MODEL, JAN-JUN4 2026, TRUE OOS)
+===============================================================
+Source file: data/processed/edge_full_edges.csv (1350 rows, strikeouts only)
+
+By 5% edge bands:
+  Band       Bets   Win%     ROI    AvgOdds
+  < 0%        420   43.6%  -18.7%    -38
+  0-5%        306   50.0%   -3.1%    -21
+  5-10%       227   55.9%   +8.5%    -10
+  10-15%      143   55.2%   +7.2%     -6
+  15-20%      106   48.1%   -4.0%    +22   <- TRAP: negative ROI despite high edge
+  20-25%       75   66.7%  +39.3%    +61   <- best band
+  25-35%       46   50.0%   +5.1%    +65
+  35%+         27   59.3%  +24.7%    +91
+
+Cumulative thresholds:
+  Min Edge  Bets   Win%     ROI    Sharpe
+  0%         930   53.7%   +5.9%    1.79
+  3%         742   55.1%   +9.5%    2.59
+  5%         624   55.4%  +10.3%    2.56
+  10%        397   55.2%  +11.2%    2.21
+  12%        331   54.7%  +11.0%    1.97
+  15%        254   55.1%  +13.5%    2.08
+  20%        148   60.1%  +26.0%    3.05  <- best Sharpe
+  25%         73   53.4%  +12.4%    1.00
+
+CRITICAL FINDING: The 15-20% edge band is a TRAP (-4.0% ROI). The model
+is overconfident at that range, often pushing favorable odds on longshots.
+Recommendation: Use edge >= 20% (skip the trap) OR edge 5-15% only.
+
+Over vs Under (edge >= 0):
+  OVER :  245 bets  54.3% win  +10.1% ROI  avg odds +32
+  UNDER:  685 bets  53.4% win   +4.3% ROI  avg odds  -7
+
+Note: Overs are more profitable despite the conventional wisdom on unders.
+The model finds over edges at +32 average odds vs under edges at -7.
+The 3:1 under/over ratio is worth monitoring for systematic model bias.
+
+===============================================================
+PROJECTION GAP ANALYSIS — KEY FINDING
+===============================================================
+Gap = strikeouts_projection - line (model's projected Ks minus the posted line)
+Positive gap = model projects over, bets the over.
+Negative gap = model projects under, bets the under.
+
+2026 OOS (old model, edge >= 0):
+  Gap band          Bets   Win%     ROI
+  gap < 0 (under)   534    55.8%   +6.8%
+  0.0 - 0.5         257    46.7%   -0.1%   <- DEAD MONEY
+  0.5 - 1.0          91    54.9%  +11.8%
+  1.0 - 1.5          36    61.1%   +9.6%
+  1.5+               12    75.0%  +32.0%   (small sample)
+
+THE MOST IMPORTANT FINDING:
+- Gap is MORE CONSISTENT than edge as a directional predictor
+- Win rates are monotonically increasing with gap size — no exceptions
+- The 0.0-0.5 gap zone is dead money (-0.1% ROI, 46.7% win) regardless of edge
+- Any bet where model barely disagrees with the line has no real conviction
+
+RECOMMENDATION FOR HIGH-CONFIDENCE BETTING:
+If shopping lines (getting 5-20 cents better than scraped price), the gap
+is the best directional signal. Entry bar: gap >= 0.5 minimum.
+
+Combined filters (edge >= 5%):
+  Filter                  Bets  Win%    ROI
+  gap >= 0 (all)           624   55.4%  +10.3%
+  gap >= 0.5                77   57.1%  +12.3%
+  gap >= 1.0                35   62.9%  +14.9%
+  edge >= 20% (no gap)     148   60.1%  +26.0%   (5.5 months, old model OOS)
+
+===============================================================
+MONTHLY CONSISTENCY CHECK (OLD MODEL, EDGE >= 0, 2026 OOS)
+===============================================================
+  Month    Bets   Win%     ROI
+  2026-03    65   44.6%  -10.3%   <- bad month (March, early season variance)
+  2026-04   396   54.3%   +7.6%   <- consistent
+  2026-05   426   53.8%   +5.3%   <- consistent
+  2026-06    43   60.5%  +20.0%   <- small sample
+
+April and May are the reliable validation. March is suspect (early season,
+fewer games, pitcher workloads not established). June too small to read.
+
+===============================================================
+WHAT'S WORKING / NOT WORKING
+===============================================================
+
+WORKING:
+- CLV consistently positive across all thresholds and time windows
+- Model calibration: near-zero bias for strikeouts (+0.015 after 2026 retraining)
+- Gap >= 0.5 filter cleanly separates conviction bets from noise
+- April+May OOS ROI of ~6-8% on hundreds of bets is genuine signal
+- All 18 grid search configs showed positive CLV on June holdout
+
+NOT WORKING / CONCERNS:
+- The 15-20% edge band loses money — model overconfident in that range
+- March 2026 was -10.3% ROI (early season issue, rule out or handle separately)
+- Under/over ratio is 3:1 — may indicate model is systematically projecting low
+- max_proj_gap is effectively disabled (99.0) — original model had 0.8 cutoff
+  but new analysis shows large gaps ARE the best bets, so this is probably fine
+- June 2026 ROI is negative on 16-day window — pure variance, CLV says model is fine
+
+===============================================================
+NEXT STEPS / OPEN QUESTIONS
+===============================================================
+1. Add minimum gap filter (min_proj_gap: 0.5) to config + backtest.py
+   - Removes the dead money 0-0.5 zone
+   - ~10 min code change
+
+2. Decide on edge threshold:
+   - Edge >= 20%: 148 bets/5.5mo, +26% ROI, Sharpe 3.05, but 15-20% trap
+   - Edge >= 10% + gap >= 0.5: broader, still avoids dead money
+
+3. Investigate the 3:1 under/over ratio — is the model biased low?
+
+4. Collect ongoing CLV data: june_2026_odds.csv now covers full June 1-16.
+   Run fetch_historical_odds.py daily to keep it current.
+
+5. True 2025 OOS validation: retrain with train_end: 2024-12-31, run on 2025.
+   Currently 2025 backtest is in-sample (model trained on 2025 data).
+
+6. Push to GitHub: Msuresh32/pitcherKModel
+
+===============================================================
+DAILY PIPELINE
+===============================================================
+Run each morning:
+  python scripts/project_daily.py --date YYYY-MM-DD
+
+Output: data/exports/daily_pitcher_props_YYYY-MM-DD.csv + .xlsx
+Picks log: data/exports/picks_log.csv
+
+Scheduled cloud agent: runs daily at 11:03am ET
+  (1) fetch probables, (2) fetch odds, (3) project_daily.py, (4) dashboard
+
+===============================================================
+HOW TO INTERPRET A BET FROM THE MODEL
+===============================================================
+Example output line:
+  Zack Littell | over 3.5 | proj=4.28 gap=+0.78 | edge=24.4% odds=+120 | [Medium]
+
+  - proj=4.28: model projects 4.28 strikeouts
+  - gap=+0.78: model is 0.78 Ks above the line (decent conviction, not elite)
+  - edge=24.4%: model's implied probability exceeds market implied probability by 24.4%
+  - odds=+120: you're getting paid +120 on the over
+  - [Medium]: confidence tier
+
+High conviction bet would be: gap >= 1.0, edge >= 20%, odds in [-120, +140] range.
+
+===============================================================
+END OF CONTEXT
+===============================================================

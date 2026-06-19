@@ -35,7 +35,9 @@ from src.features.build_features import build_training_features
 from src.models.calibration import (
     bias_corrections_from_calibration,
     build_calibration,
+    build_probability_calibration,
     load_calibration,
+    probability_calibrators_from_calibration,
     save_calibration,
 )
 from src.models.opportunity import add_expected_opportunity_features, load_opportunity_models
@@ -327,8 +329,11 @@ def main() -> None:
     calibration_path = Path(config["data"]["processed_dir"]) / "calibration.json"
     existing_calibration = load_calibration(calibration_path)
     bias_corrections = bias_corrections_from_calibration(config, existing_calibration)
+    probability_calibrators = probability_calibrators_from_calibration(existing_calibration)
     if bias_corrections:
         print(f"Applying bias corrections: { {k: f'{v:+.3f}' for k, v in bias_corrections.items()} }")
+    if probability_calibrators:
+        print(f"Applying probability calibrators: {list(probability_calibrators)}")
 
     # Fit NB dispersion from historical K distribution (method of moments)
     _ks = logs["strikeouts"].dropna().values
@@ -347,6 +352,7 @@ def main() -> None:
         bias_corrections=bias_corrections,
         disabled_markets=disabled_markets,
         nb_alpha=nb_alpha,
+        probability_calibrators=probability_calibrators,
     )
     edges_path = Path(config["data"]["processed_dir"]) / f"{output_prefix}_edges.csv"
     scored.to_csv(edges_path, index=False)
@@ -370,6 +376,21 @@ def main() -> None:
             "\nNote: no sportsbook odds matched the backtest period — "
             "run scripts/fetch_historical_odds.py to get 2025 odds for Brier/CLV analysis."
         )
+
+    # Fit isotonic probability calibration and merge into calibration.json
+    if has_odds and (args.save_calibration or args.output_prefix is None):
+        prob_cal = build_probability_calibration(scored)
+        for target, spec in prob_cal.items():
+            calibration.setdefault("markets", {}).setdefault(target, {})["probability_calibration"] = spec
+        save_calibration(calibration, calibration_path)
+        if prob_cal:
+            for target, spec in prob_cal.items():
+                improvement = spec["raw_brier"] - spec["calibrated_brier"]
+                print(
+                    f"Probability calibration fitted ({target}): "
+                    f"Brier {spec['raw_brier']:.4f} -> {spec['calibrated_brier']:.4f} "
+                    f"(improvement: {improvement:.4f})"
+                )
 
     # ------------------------------------------------------------------
     # Edge-bucket segmentation

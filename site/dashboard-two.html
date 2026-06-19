@@ -1,0 +1,382 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dashboard Two - Pitcher K Model</title>
+<style>
+:root{
+  --paper:#f4f1e8;
+  --paper2:#fbfaf5;
+  --ink:#16211c;
+  --muted:#68736c;
+  --line:#d8d1c1;
+  --green:#17684f;
+  --green2:#d9eee3;
+  --amber:#b56b19;
+  --amber2:#fff0d8;
+  --red:#b84534;
+  --red2:#fae2dc;
+  --blue:#315c8f;
+  --blue2:#e3edf8;
+  --shadow:0 18px 44px rgba(48,38,22,.12);
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;background:var(--paper);color:var(--ink);font-family:Inter,Arial,sans-serif;line-height:1.45}
+button,input,select{font:inherit}
+button,select{cursor:pointer}
+.shell{min-height:100vh;display:grid;grid-template-columns:260px minmax(0,1fr)}
+.rail{position:sticky;top:0;height:100vh;background:#17231e;color:#f9f3e7;padding:22px 18px;display:flex;flex-direction:column;gap:18px}
+.brand{border-bottom:1px solid rgba(255,255,255,.14);padding-bottom:18px}
+.brand b{display:block;font-size:24px;line-height:1}
+.brand span{display:block;color:#bec9bf;font-size:12px;margin-top:7px}
+.navbtn{width:100%;border:1px solid rgba(255,255,255,.13);background:transparent;color:#f9f3e7;border-radius:8px;padding:11px 12px;text-align:left}
+.navbtn.active{background:#f9f3e7;color:#17231e;border-color:#f9f3e7}
+.railbox{border:1px solid rgba(255,255,255,.13);border-radius:8px;padding:12px}
+.railbox label{display:block;color:#bec9bf;font-size:12px;margin-bottom:7px}
+.railbox select,.railbox input{width:100%;border:1px solid rgba(255,255,255,.16);background:#101a16;color:#f9f3e7;border-radius:8px;padding:9px 10px}
+.check{display:flex;align-items:center;gap:8px;color:#f9f3e7;font-size:13px;margin-top:10px}
+.check input{width:auto}
+.main{padding:22px;min-width:0}
+.topbar{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:16px;align-items:start;margin-bottom:18px}
+.title h1{font-size:30px;margin:0 0 4px}
+.title p{margin:0;color:var(--muted)}
+.seg{display:inline-flex;background:var(--paper2);border:1px solid var(--line);border-radius:8px;overflow:hidden}
+.seg button{border:0;border-right:1px solid var(--line);background:transparent;color:var(--muted);padding:10px 14px}
+.seg button:last-child{border-right:0}
+.seg button.active{background:var(--ink);color:var(--paper2)}
+.kpirow{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin-bottom:16px}
+.tile{background:var(--paper2);border:1px solid var(--line);border-radius:8px;padding:14px;box-shadow:0 1px 0 rgba(255,255,255,.55) inset}
+.tile .v{font-size:28px;font-weight:800;line-height:1}
+.tile .k{font-size:12px;color:var(--muted);margin-top:6px}
+.grid{display:grid;grid-template-columns:minmax(420px,1.25fr) minmax(320px,.75fr);gap:16px;align-items:start}
+.panel{background:var(--paper2);border:1px solid var(--line);border-radius:8px;box-shadow:var(--shadow);overflow:hidden}
+.panelhead{display:flex;justify-content:space-between;align-items:center;gap:12px;border-bottom:1px solid var(--line);padding:14px 16px}
+.panelhead h2{font-size:16px;margin:0}
+.panelhead small{color:var(--muted)}
+.stack{padding:12px;display:grid;gap:10px}
+.pick{border:1px solid var(--line);border-radius:8px;background:#fffdf7;display:grid;grid-template-columns:minmax(0,1fr) auto;gap:12px;padding:13px}
+.pick.selected{border-color:var(--green);box-shadow:0 0 0 3px var(--green2)}
+.pick button{border:0;background:transparent;text-align:left;color:inherit;padding:0}
+.pitcher{font-size:17px;font-weight:800}
+.sub{color:var(--muted);font-size:13px;margin-top:2px}
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
+.chip{border-radius:999px;padding:4px 8px;font-size:12px;background:#ede7d9;color:#423b31}
+.chip.green{background:var(--green2);color:var(--green)}
+.chip.amber{background:var(--amber2);color:var(--amber)}
+.chip.red{background:var(--red2);color:var(--red)}
+.score{text-align:right;min-width:88px}
+.score b{display:block;font-size:25px;line-height:1;color:var(--green)}
+.score span{font-size:12px;color:var(--muted)}
+.order{padding:16px;display:grid;gap:12px}
+.heroorder{background:#17231e;color:#f9f3e7;border-radius:8px;padding:16px}
+.heroorder h3{font-size:18px;margin:0 0 5px}
+.heroorder .price{font-size:34px;font-weight:900}
+.quotegrid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.quote{border:1px solid var(--line);border-radius:8px;padding:12px;background:#fffdf7}
+.quote b{display:block;font-size:20px}
+.quote span{display:block;font-size:12px;color:var(--muted);margin-top:3px}
+.mini{color:var(--muted);font-size:13px}
+.ladder{display:grid;gap:7px}
+.ladderrow{display:grid;grid-template-columns:76px minmax(0,1fr) 58px;gap:8px;align-items:center;font-size:13px}
+.bar{height:9px;background:#eadfca;border-radius:999px;overflow:hidden}
+.bar i{display:block;height:100%;background:var(--green);border-radius:999px}
+.bt{display:none}
+.bt.active,.daily.active{display:block}
+.wide{margin-top:16px}
+.btgrid{display:grid;grid-template-columns:minmax(0,1fr) 360px;gap:16px}
+.chart{height:280px;padding:14px;background:#fffdf7}
+.chart svg{width:100%;height:100%;display:block}
+.axis{stroke:#d9d0bd;stroke-width:1}
+.curve{fill:none;stroke:var(--green);stroke-width:3}
+.fill{fill:rgba(23,104,79,.12)}
+.metriclist{padding:12px;display:grid;gap:10px}
+.metric{display:flex;justify-content:space-between;gap:10px;border:1px solid var(--line);border-radius:8px;background:#fffdf7;padding:11px 12px}
+.metric span{color:var(--muted)}
+.metric b{font-size:18px}
+table{width:100%;border-collapse:collapse}
+th,td{padding:10px 12px;border-bottom:1px solid var(--line);text-align:left;font-size:13px;white-space:nowrap}
+th{color:var(--muted);font-size:12px;background:#f4eee0}
+td.r,th.r{text-align:right}
+.pos{color:var(--green);font-weight:800}
+.neg{color:var(--red);font-weight:800}
+.scroll{overflow:auto}
+.empty{padding:22px;color:var(--muted)}
+@media(max-width:1000px){
+  .shell{grid-template-columns:1fr}
+  .rail{position:relative;height:auto}
+  .grid,.btgrid,.topbar{grid-template-columns:1fr}
+  .kpirow{grid-template-columns:repeat(2,minmax(0,1fr))}
+}
+@media(max-width:620px){
+  .main{padding:14px}
+  .kpirow{grid-template-columns:1fr}
+  .pick{grid-template-columns:1fr}
+  .score{text-align:left}
+}
+</style>
+</head>
+<body>
+<div class="shell">
+  <aside class="rail">
+    <div class="brand">
+      <b>Dashboard Two</b>
+      <span>Pitcher K order desk</span>
+    </div>
+    <button class="navbtn active" data-view="daily">Daily Board</button>
+    <button class="navbtn" data-view="bt">Model Health</button>
+    <div class="railbox">
+      <label for="dateSel">Slate</label>
+      <select id="dateSel"></select>
+      <label for="sortSel" style="margin-top:12px">Sort</label>
+      <select id="sortSel">
+        <option value="edge">Model edge</option>
+        <option value="gap">Projection gap</option>
+        <option value="prob">Hit probability</option>
+      </select>
+      <label class="check"><input type="checkbox" id="edgeOnly" checked> 15% edge only</label>
+      <label class="check"><input type="checkbox" id="pricedOnly" checked> Priced markets</label>
+    </div>
+    <div class="railbox">
+      <label for="yearSel">Backtest Year</label>
+      <select id="yearSel">
+        <option value="2026">2026</option>
+        <option value="2025">2025</option>
+      </select>
+    </div>
+  </aside>
+
+  <main class="main">
+    <section class="daily active" id="dailyView">
+      <div class="topbar">
+        <div class="title">
+          <h1>Daily Board</h1>
+          <p id="slateLine">Loading slate</p>
+        </div>
+        <div class="seg" id="sideSeg">
+          <button class="active" data-side="all">All</button>
+          <button data-side="over">Overs</button>
+          <button data-side="under">Unders</button>
+        </div>
+      </div>
+      <div class="kpirow" id="dailyKpis"></div>
+      <div class="grid">
+        <section class="panel">
+          <div class="panelhead">
+            <h2>Signal Stack</h2>
+            <small id="countLine"></small>
+          </div>
+          <div class="stack" id="pickStack"></div>
+        </section>
+        <section class="panel">
+          <div class="panelhead">
+            <h2>Exchange Ticket</h2>
+            <small id="ticketHint"></small>
+          </div>
+          <div class="order" id="orderPanel"></div>
+        </section>
+      </div>
+      <section class="panel wide">
+        <div class="panelhead">
+          <h2>Full Slate</h2>
+          <small>15% threshold is the default play filter</small>
+        </div>
+        <div class="scroll">
+          <table>
+            <thead><tr><th>Pitcher</th><th>Side</th><th class="r">Line</th><th class="r">Proj</th><th class="r">Gap</th><th class="r">Hit %</th><th class="r">Edge</th><th>Book</th><th>Order</th><th class="r">Fair</th><th>Worst Play</th></tr></thead>
+            <tbody id="slateRows"></tbody>
+          </table>
+        </div>
+      </section>
+    </section>
+
+    <section class="bt" id="btView">
+      <div class="topbar">
+        <div class="title">
+          <h1>Model Health</h1>
+          <p id="btLine">15%+ edge backtest with CLV marked to close</p>
+        </div>
+        <div class="seg" id="chartSeg">
+          <button class="active" data-chart="chart">Booked</button>
+          <button data-chart="chart5">+5%</button>
+          <button data-chart="chart10">+10%</button>
+          <button data-chart="chart15">+15%</button>
+        </div>
+      </div>
+      <div class="kpirow" id="btKpis"></div>
+      <div class="btgrid">
+        <section class="panel">
+          <div class="panelhead"><h2>Equity Curve</h2><small id="chartLine"></small></div>
+          <div class="chart" id="curve"></div>
+        </section>
+        <section class="panel">
+          <div class="panelhead"><h2>CLV Console</h2><small id="clvLine"></small></div>
+          <div class="metriclist" id="btMetrics"></div>
+        </section>
+      </div>
+      <section class="panel wide">
+        <div class="panelhead"><h2>Recent Decisions</h2><small id="logLine"></small></div>
+        <div class="scroll">
+          <table>
+            <thead><tr><th>Date</th><th>Pitcher</th><th>Side</th><th class="r">Edge</th><th class="r">Open</th><th class="r">Close</th><th class="r">CLV</th><th class="r">Actual</th><th>Result</th><th class="r">P&amp;L</th></tr></thead>
+            <tbody id="logRows"></tbody>
+          </table>
+        </div>
+      </section>
+    </section>
+  </main>
+</div>
+
+<script src="picks/picks_data.js"></script>
+<script src="picks/backtest_data.js"></script>
+<script>
+(function(){
+  var state={view:'daily',side:'all',selected:0,chart:'chart'};
+  var dates=window.AVAILABLE_DATES||Object.keys(window.PICKS_BY_DATE||{}).sort().reverse();
+  var picksByDate=window.PICKS_BY_DATE||{};
+  var btAll=window.BT_ALL||{};
+  var el=function(id){return document.getElementById(id);};
+  var num=function(v,d){return typeof v==='number' && isFinite(v)?v:d;};
+  var fmt=function(v,s){return v===null||v===undefined||v===''?'--':String(v)+(s||'');};
+  var pct=function(v){return v===null||v===undefined?'--':Number(v).toFixed(1)+'%';};
+  var signed=function(v,s){return v===null||v===undefined?'--':(v>=0?'+':'')+Number(v).toFixed(1)+(s||'');};
+  var money=function(v){return v===null||v===undefined?'--':(v>=0?'+$':'-$')+Math.abs(Math.round(v)).toLocaleString();};
+  var esc=function(v){return String(v===null||v===undefined?'':v).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});};
+  function americanFromDecimal(d){
+    if(!isFinite(d)||d<=1) return '--';
+    return d>=2?'+'+Math.round((d-1)*100):String(Math.round(-100/(d-1)));
+  }
+  function targetOdds(p,edge){
+    var prob=num(p.hitProb,0);
+    if(prob<=0) return p.makeOrder||'--';
+    return americanFromDecimal((1+edge)/prob)+' or better';
+  }
+  function worstNote(p){
+    return targetOdds(p,.15).replace(' or better','')+' max for 15% edge; fair '+(p.fairOdds||'--');
+  }
+
+  function cleanName(v){
+    return esc(String(v||'').replace(/Mart..n P..rez/g,'Martin Perez').replace(/Rod..n/g,'Rodon'));
+  }
+  function activeDate(){return el('dateSel').value||dates[0];}
+  function dailyRaw(){return (picksByDate[activeDate()]||[]).slice();}
+  function priced(p){return p.line!==null && p.line!==undefined && p.modelEdge!==null && p.modelEdge!==undefined;}
+  function filteredPicks(){
+    var data=dailyRaw().filter(function(p){return !el('pricedOnly').checked || priced(p);});
+    if(el('edgeOnly').checked) data=data.filter(function(p){return num(p.modelEdge,-999)>=15;});
+    if(state.side!=='all') data=data.filter(function(p){return String(p.bestSide||p.side||'').toLowerCase().indexOf(state.side)>=0;});
+    var sort=el('sortSel').value;
+    data.sort(function(a,b){
+      if(sort==='gap') return Math.abs(num(b.gap,0))-Math.abs(num(a.gap,0));
+      if(sort==='prob') return num(b.hitProb,0)-num(a.hitProb,0);
+      return num(b.modelEdge,-999)-num(a.modelEdge,-999);
+    });
+    return data;
+  }
+  function signalFor(p){
+    var g=Math.abs(num(p.gap,0));
+    if(g>=0.9 && g<1.2) return ['Prime gap','green'];
+    if(g>=0.6 && g<0.9) return ['Good gap','green'];
+    if(g>=1.2) return ['High variance','amber'];
+    if(g<0.3) return ['Thin gap','red'];
+    return ['Neutral gap','amber'];
+  }
+  function edgeClass(v){return num(v,0)>=15?'green':num(v,0)>=0?'amber':'red';}
+  function renderDaily(){
+    var data=filteredPicks();
+    if(state.selected>=data.length) state.selected=0;
+    var all=dailyRaw().filter(priced);
+    var plays=all.filter(function(p){return num(p.modelEdge,-999)>=15;});
+    var best=plays.slice().sort(function(a,b){return num(b.modelEdge,0)-num(a.modelEdge,0);})[0];
+    var avgEdge=plays.length?plays.reduce(function(a,p){return a+num(p.modelEdge,0);},0)/plays.length:null;
+    var avgProb=plays.length?plays.reduce(function(a,p){return a+num(p.hitProb,0);},0)/plays.length*100:null;
+    el('slateLine').textContent=activeDate()+' slate, '+plays.length+' playable markets at 15%+ edge';
+    el('dailyKpis').innerHTML=[
+      tile(plays.length,'15%+ Plays'),
+      tile(best?signed(best.modelEdge,'%'):'--','Best Edge'),
+      tile(avgEdge?signed(avgEdge,'%'):'--','Avg Play Edge'),
+      tile(avgProb?pct(avgProb):'--','Avg Hit Rate')
+    ].join('');
+    el('countLine').textContent=data.length+' shown';
+    el('pickStack').innerHTML=data.length?data.map(function(p,i){return pickCard(p,i);}).join(''):'<div class="empty">No markets match the current filters.</div>';
+    el('slateRows').innerHTML=dailyRaw().filter(priced).map(row).join('');
+    renderOrder(data[state.selected]||data[0]||null);
+    Array.prototype.forEach.call(document.querySelectorAll('.pick button'),function(btn){
+      btn.addEventListener('click',function(){state.selected=Number(btn.dataset.i)||0;renderDaily();});
+    });
+  }
+  function tile(v,k){return '<div class="tile"><div class="v">'+esc(v)+'</div><div class="k">'+esc(k)+'</div></div>';}
+  function pickCard(p,i){
+    var sig=signalFor(p), cls=edgeClass(p.modelEdge);
+    return '<article class="pick '+(i===state.selected?'selected':'')+'"><button data-i="'+i+'"><div class="pitcher">'+cleanName(p.pitcher)+'</div><div class="sub">'+esc(p.side)+' at '+esc(p.book||'market')+' | line '+fmt(p.line)+'</div><div class="chips"><span class="chip '+cls+'">'+signed(p.modelEdge,'%')+' edge</span><span class="chip">'+signed(p.gap,' K gap')+'</span><span class="chip '+sig[1]+'">'+sig[0]+'</span></div></button><div class="score"><b>'+pct(num(p.hitProb,0)*100)+'</b><span>hit probability</span></div></article>';
+  }
+  function row(p){
+    return '<tr><td>'+cleanName(p.pitcher)+'</td><td>'+esc(p.side)+'</td><td class="r">'+fmt(p.line)+'</td><td class="r">'+fmt(p.proj)+'</td><td class="r">'+signed(p.gap)+'</td><td class="r">'+pct(num(p.hitProb,0)*100)+'</td><td class="r '+(num(p.modelEdge,0)>=15?'pos':'')+'">'+signed(p.modelEdge,'%')+'</td><td>'+esc(p.book||'--')+'</td><td>'+esc(p.exchangeOrder||'--')+'</td><td class="r">'+esc(p.fairOdds||'--')+'</td><td>'+esc(worstNote(p))+'</td></tr>';
+  }
+  function renderOrder(p){
+    if(!p){el('ticketHint').textContent='No selection';el('orderPanel').innerHTML='<div class="empty">Pick a market from the signal stack.</div>';return;}
+    el('ticketHint').textContent=cleanName(p.pitcher).replace(/&amp;/g,'&');
+    var edge=num(p.modelEdge,0), prob=num(p.hitProb,0)*100, gap=Math.abs(num(p.gap,0));
+    var ladder=[['Hit %',prob,100],['Edge',Math.max(edge,0),50],['Gap',Math.min(gap,2.5),2.5]];
+    el('orderPanel').innerHTML='<div class="heroorder"><h3>'+cleanName(p.exchangeOrder||p.pitcher)+'</h3><div class="price">'+esc(targetOdds(p,.15))+'</div><div class="mini">Worst play: '+esc(worstNote(p))+'</div></div><div class="quotegrid"><div class="quote"><b>'+esc(p.fairOdds||'--')+'</b><span>fair odds</span></div><div class="quote"><b>'+signed(p.modelEdge,'%')+'</b><span>model edge</span></div><div class="quote"><b>'+fmt(p.proj)+'</b><span>projection</span></div><div class="quote"><b>'+signed(p.gap)+'</b><span>K gap</span></div></div><div class="ladder">'+ladder.map(function(x){return '<div class="ladderrow"><span>'+x[0]+'</span><div class="bar"><i style="width:'+Math.max(3,Math.min(100,x[1]/x[2]*100))+'%"></i></div><b>'+Number(x[1]).toFixed(x[0]==='Gap'?2:1)+'</b></div>';}).join('')+'</div>';
+  }
+  function renderBt(){
+    var yr=el('yearSel').value;
+    var bt=btAll[yr]||{};
+    var chart=bt[state.chart]||bt.chart||[];
+    el('btLine').textContent=(bt.range||yr)+' | 15%+ edge sample';
+    el('btKpis').innerHTML=[
+      tile(fmt(bt.total),'Bets'),
+      tile(pct(bt.wr),'Win Rate'),
+      tile(money(bt.pnl),'P&L'),
+      tile(signed(bt.roi,'%'),'ROI')
+    ].join('');
+    el('btMetrics').innerHTML=[
+      metric('Mean CLV',signed(bt.clvMean,'%')),
+      metric('Positive CLV',pct(bt.clvPositive)),
+      metric('CLV Coverage',pct(bt.clvCoverage)),
+      metric('CLV Matches',fmt(bt.clvN))
+    ].join('');
+    el('clvLine').textContent='close comparison included';
+    el('chartLine').textContent=chart.length+' plotted bets';
+    drawChart(chart);
+    var log=(bt.log||[]).slice(0,80);
+    el('logLine').textContent=log.length+' latest rows';
+    el('logRows').innerHTML=log.map(function(r){return '<tr><td>'+esc(r.date)+'</td><td>'+cleanName(r.pitcher)+'</td><td>'+esc(r.side)+'</td><td class="r">'+signed(r.edge,'%')+'</td><td class="r">'+(r.openOdds?(r.openOdds>0?'+':'')+r.openOdds:'--')+'</td><td class="r">'+(r.closeOdds?(r.closeOdds>0?'+':'')+r.closeOdds:'--')+'</td><td class="r '+(num(r.clv,0)>=0?'pos':'neg')+'">'+(r.clv===null||r.clv===undefined?'--':signed(r.clv,'%'))+'</td><td class="r">'+fmt(r.actual)+'</td><td>'+(r.won?'<span class="pos">Win</span>':'<span class="neg">Loss</span>')+'</td><td class="r '+(num(r.pnl,0)>=0?'pos':'neg')+'">'+money(r.pnl)+'</td></tr>';}).join('');
+  }
+  function metric(k,v){return '<div class="metric"><span>'+esc(k)+'</span><b>'+esc(v)+'</b></div>';}
+  function drawChart(data){
+    if(!data.length){el('curve').innerHTML='<div class="empty">No chart data.</div>';return;}
+    var w=900,h=260,p=18;
+    var vals=data.map(function(d){return num(d.v,0);});
+    var min=Math.min.apply(null,vals), max=Math.max.apply(null,vals);
+    if(min===max){min-=100;max+=100;}
+    var x=function(i){return p+(w-p*2)*(i/Math.max(1,data.length-1));};
+    var y=function(v){return h-p-(h-p*2)*((v-min)/(max-min));};
+    var line=data.map(function(d,i){return (i?'L':'M')+x(i).toFixed(1)+' '+y(d.v).toFixed(1);}).join(' ');
+    var area=line+' L '+x(data.length-1).toFixed(1)+' '+(h-p)+' L '+x(0).toFixed(1)+' '+(h-p)+' Z';
+    var zero=y(0);
+    el('curve').innerHTML='<svg viewBox="0 0 '+w+' '+h+'" preserveAspectRatio="none"><path class="fill" d="'+area+'"></path><line class="axis" x1="'+p+'" x2="'+(w-p)+'" y1="'+zero+'" y2="'+zero+'"></line><path class="curve" d="'+line+'"></path></svg>';
+  }
+  function setView(view){
+    state.view=view;
+    document.querySelectorAll('.navbtn').forEach(function(b){b.classList.toggle('active',b.dataset.view===view);});
+    el('dailyView').classList.toggle('active',view==='daily');
+    el('btView').classList.toggle('active',view==='bt');
+    if(view==='bt') renderBt(); else renderDaily();
+  }
+  function init(){
+    el('dateSel').innerHTML=dates.map(function(d){return '<option value="'+esc(d)+'">'+esc(d)+'</option>';}).join('');
+    document.querySelectorAll('.navbtn').forEach(function(b){b.addEventListener('click',function(){setView(b.dataset.view);});});
+    document.querySelectorAll('#sideSeg button').forEach(function(b){b.addEventListener('click',function(){document.querySelectorAll('#sideSeg button').forEach(function(x){x.classList.remove('active');});b.classList.add('active');state.side=b.dataset.side;state.selected=0;renderDaily();});});
+    document.querySelectorAll('#chartSeg button').forEach(function(b){b.addEventListener('click',function(){document.querySelectorAll('#chartSeg button').forEach(function(x){x.classList.remove('active');});b.classList.add('active');state.chart=b.dataset.chart;renderBt();});});
+    ['dateSel','sortSel','edgeOnly','pricedOnly'].forEach(function(id){el(id).addEventListener('change',function(){state.selected=0;renderDaily();});});
+    el('yearSel').addEventListener('change',renderBt);
+    renderDaily();
+  }
+  init();
+})();
+</script>
+</body>
+</html>

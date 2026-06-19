@@ -16,6 +16,134 @@ def pnl_calc(won, odds, stake=100):
     decimal = 1 + odds/100 if odds > 0 else 1 + 100/abs(odds)
     return round(stake * (decimal - 1) if won == 1 else -stake, 2)
 
+def am_to_dec(odds):
+    if pd.isna(odds): return np.nan
+    o = float(odds)
+    return 1 + o/100 if o > 0 else 1 + 100/abs(o)
+
+def mean_dec(american_list):
+    vals = [am_to_dec(o) for o in american_list if pd.notna(o)]
+    vals = [v for v in vals if pd.notna(v)]
+    return float(np.mean(vals)) if vals else np.nan
+
+def compute_units_d(edge_pct, gap_abs):
+    if (edge_pct or 0) >= 35: return "2.5U"
+    if (edge_pct or 0) >= 18 and (gap_abs or 0) >= 0.5: return "2U"
+    return "1U"
+
+def composite_score_d(edge_pct, gap_abs):
+    return (edge_pct or 0) + 2.0 * (gap_abs or 0)
+
+def dec_to_am(dec):
+    if dec is None or pd.isna(dec) or dec <= 1: return None
+    return round((dec - 1) * 100) if dec >= 2.0 else round(-100 / (dec - 1))
+
+def min_odds_for_ev(hit_prob, target_ev):
+    """Minimum American odds needed to achieve target_ev edge."""
+    if not hit_prob or hit_prob <= 0 or hit_prob >= 1: return None
+    return dec_to_am((1 + target_ev) / hit_prob)
+
+def edge_at(hit_prob, american_odds):
+    if hit_prob is None or american_odds is None: return None
+    d = am_to_dec(american_odds)
+    return round((hit_prob * (d - 1) - (1 - hit_prob)) * 100, 1)
+
+def build_ladder(hit_prob, entry_odds):
+    """Upside shopping ladder: current odds + 4 better-price scenarios."""
+    if hit_prob is None or entry_odds is None: return []
+    rungs = []
+    for shift in [0, 5, 10, 15, 25]:
+        adj = entry_odds + shift
+        e = edge_at(hit_prob, adj)
+        rungs.append({"shift": shift, "odds": int(adj), "edge": e})
+    return rungs
+
+def build_clv_index():
+    """Returns dict (date_str, player_name, line, side) -> clv_pct float.
+    Uses vectorised groupby — O(n) not O(n*k)."""
+    dfs = []
+    for p in ["data/odds/full_2026_odds.csv", "data/odds/historical_pitcher_props_2025.csv"]:
+        if Path(p).exists():
+            dfs.append(pd.read_csv(p))
+    pin_p = Path("data/odds/pinnacle_close_cache.csv")
+    if pin_p.exists():
+        pin = pd.read_csv(pin_p)
+        pin["bookmaker"] = "pinnacle"
+        pin["snapshot_type"] = "close"
+        dfs.append(pin)
+    if not dfs:
+        return {}
+
+    odds = pd.concat(dfs, ignore_index=True)
+    odds["game_date"]  = pd.to_datetime(odds["game_date"]).dt.strftime("%Y-%m-%d")
+    odds["line"]       = pd.to_numeric(odds["line"],       errors="coerce")
+    odds["over_odds"]  = pd.to_numeric(odds["over_odds"],  errors="coerce")
+    odds["under_odds"] = pd.to_numeric(odds["under_odds"], errors="coerce")
+    odds["line_f"]     = odds["line"].round(1)  # normalise 4.5 vs 4.50
+
+    # ── Pre-build close dict: (date, player, line) → {book: {over_dec, under_dec}} ──
+    close_dict = {}  # (date, player, line) → {'pinnacle':{'over':dec,'under':dec}, ...}
+    for _, row in odds[odds["snapshot_type"] == "close"].iterrows():
+        key  = (row["game_date"], row["player_name"], row["line_f"])
+        book = str(row.get("bookmaker",""))
+        if key not in close_dict:
+            close_dict[key] = {}
+        if book not in close_dict[key]:
+            close_dict[key][book] = {"over": np.nan, "under": np.nan}
+        if pd.notna(row["over_odds"]):
+            close_dict[key][book]["over"]  = am_to_dec(row["over_odds"])
+        if pd.notna(row["under_odds"]):
+            close_dict[key][book]["under"] = am_to_dec(row["under_odds"])
+
+    def close_dec(date, player, line, side):
+        key   = (date, player, round(float(line), 1) if pd.notna(line) else None)
+        books = close_dict.get(key, {})
+        # Pinnacle priority
+        pin = books.get("pinnacle", {})
+        v   = pin.get(side, np.nan)
+        if pd.notna(v) and v > 1: return v
+        # Avg of all available books
+        vals = [b.get(side, np.nan) for b in books.values()]
+        vals = [v for v in vals if pd.notna(v) and v > 1]
+        return float(np.mean(vals)) if vals else np.nan
+
+    # ── Open avg: (date, player, line, side) → mean decimal (non-PIN) ──
+    op = odds[(odds["snapshot_type"] == "open") & (odds["bookmaker"] != "pinnacle")].copy()
+
+    idx = {}
+    for side, col in [("over", "over_odds"), ("under", "under_odds")]:
+        grp = (op[op[col].notna()]
+               .groupby(["game_date","player_name","line_f"])[col]
+               .apply(lambda x: mean_dec(list(x)))
+               .reset_index(name="open_dec"))
+        for _, row in grp.iterrows():
+            d, pl, ln = row["game_date"], row["player_name"], row["line_f"]
+            close_d = close_dec(d, pl, ln, side)
+            if pd.notna(close_d) and close_d > 1:
+                idx[(d, pl, float(ln) if pd.notna(ln) else None, side)] = round(close_d, 6)
+    # Also index any close keys not covered by opens
+    for (d, pl, ln) in close_dict.keys():
+        for side2 in ("over", "under"):
+            key = (d, pl, float(ln) if pd.notna(ln) else None, side2)
+            if key not in idx:
+                c = close_dec(d, pl, ln, side2)
+                if pd.notna(c) and c > 1:
+                    idx[key] = round(c, 6)
+    return idx  # value = close_decimal (not CLV%)
+
+CLOSE_INDEX = build_clv_index()
+
+def get_clv(date_str, player_name, line, side, entry_american_odds):
+    """CLV in cents: compares actual entry odds to closing price."""
+    key = (date_str, player_name, float(line) if line is not None else None, side)
+    close_d = CLOSE_INDEX.get(key)
+    if close_d is None or close_d <= 1:
+        return None
+    entry_d = am_to_dec(entry_american_odds)
+    if entry_d is None or pd.isna(entry_d) or entry_d <= 1:
+        return None
+    return round((entry_d / close_d - 1) * 100, 1)
+
 def gap_label(g):
     g = abs(g)
     if g >= 1.2: return "1.2+ . 59% WR"
@@ -45,21 +173,34 @@ for date_str in available_dates:
         if col not in df.columns:
             df[col] = np.nan
     df["gap"] = df["strikeouts_projection"] - df["line"]
+    df["gap_abs"] = df["gap"].abs()
     df["hit_prob"] = np.where(df["best_side"]=="over", df["over_probability"], df["under_probability"])
     df["model_odds"] = np.where(df["best_side"]=="over", df["over_odds"], df["under_odds"])
-    df = df.sort_values("edge_pct",ascending=False).drop_duplicates(subset=["pitcher_name"]).reset_index(drop=True)
+    df["_score"] = df.apply(lambda r2: composite_score_d(
+        float(r2["edge_pct"]) if pd.notna(r2.get("edge_pct")) else 0,
+        float(r2["gap_abs"]) if pd.notna(r2.get("gap_abs")) else 0), axis=1)
+    df = df.sort_values("_score", ascending=False).drop_duplicates(subset=["pitcher_name"]).reset_index(drop=True)
     rows = []
     for _, r in df.iterrows():
+        ep = float(r["edge_pct"]) if pd.notna(r.get("edge_pct")) else 0
+        ga = float(r["gap_abs"]) if pd.notna(r.get("gap_abs")) else 0
+        hp  = round(float(r["hit_prob"]), 4) if pd.notna(r.get("hit_prob")) else None
+        mo  = int(r["model_odds"]) if pd.notna(r.get("model_odds")) else 0
         rows.append({
-            "pitcher": r["pitcher_name"],
-            "side": str(r["best_side"]) + " " + str(r["line"]),
-            "proj": round(float(r["strikeouts_projection"]),2) if pd.notna(r.get("strikeouts_projection")) else None,
-            "line": float(r["line"]) if pd.notna(r.get("line")) else None,
-            "gap": round(float(r["gap"]),2) if pd.notna(r.get("gap")) else None,
-            "hitProb": round(float(r["hit_prob"]),4) if pd.notna(r.get("hit_prob")) else None,
-            "modelEdge": round(float(r["edge_pct"]),1) if pd.notna(r.get("edge_pct")) else None,
-            "modelOdds": int(r["model_odds"]) if pd.notna(r.get("model_odds")) else 0,
-            "bestSide": str(r["best_side"]),
+            "pitcher":   r["pitcher_name"],
+            "side":      str(r["best_side"]) + " " + str(r["line"]),
+            "proj":      round(float(r["strikeouts_projection"]),2) if pd.notna(r.get("strikeouts_projection")) else None,
+            "line":      float(r["line"]) if pd.notna(r.get("line")) else None,
+            "gap":       round(float(r["gap"]),2) if pd.notna(r.get("gap")) else None,
+            "hitProb":   hp,
+            "modelEdge": round(ep, 1),
+            "modelOdds": mo,
+            "bestSide":  str(r["best_side"]),
+            "units":     compute_units_d(ep, ga),
+            "makeOdds":  min_odds_for_ev(hp, 0.12),   # 12% EV floor (greedy ask)
+            "floorOdds": min_odds_for_ev(hp, 0.15),   # 15% EV floor (calibration floor)
+            "ladder":    build_ladder(hp, mo),         # price sensitivity ladder
+            "lineupConf": str(r["lineup_confidence"]) if pd.notna(r.get("lineup_confidence")) else "",
         })
     picks_by_date[date_str] = rows
 
@@ -72,14 +213,25 @@ def load_backtest(path):
         if col in df.columns:
             df[col] = pd.to_numeric(df[col], errors="coerce")
     df = df[df["pitcher_name"].notna()].copy()
-    df["pnl"] = df.apply(lambda r: pnl_calc(r["won"], r["odds_used"]), axis=1)
+    df = df[df["edge_pct"] >= 15.0].copy()
     df["game_date"] = pd.to_datetime(df["game_date"])
     df = df.sort_values("game_date").reset_index(drop=True)
+
+    # Unit-based stake: 1U=$100, 2U=$200, 2.5U=$250
+    df["units_num"] = df.apply(lambda r: (
+        2.5 if (float(r["edge_pct"] or 0) >= 35) else
+        2.0 if (float(r["edge_pct"] or 0) >= 18 and abs(float(r["gap"] or 0)) >= 0.5) else
+        1.0
+    ), axis=1)
+    df["stake"] = df["units_num"] * 100
+    df["pnl"]   = df.apply(lambda r: pnl_calc(r["won"], r["odds_used"], stake=r["stake"]), axis=1)
+
     resolved = df[df["won"].notna()].copy()
     resolved["cum_pnl"] = resolved["pnl"].cumsum()
+    total_wagered = resolved["stake"].sum()
 
     def cum_at_bump(bump):
-        pnls = resolved.apply(lambda r: pnl_calc(r["won"], r["odds_used"] + bump), axis=1)
+        pnls = resolved.apply(lambda r: pnl_calc(r["won"], r["odds_used"] + bump, stake=r["stake"]), axis=1)
         return pnls.cumsum().tolist()
 
     dates  = [r["game_date"].strftime("%m-%d") for _,r in resolved.iterrows()]
@@ -90,34 +242,48 @@ def load_backtest(path):
 
     bins   = [0, 0.3, 0.6, 0.9, 1.2, 10]
     blabels= ["0-0.3","0.3-0.6","0.6-0.9","0.9-1.2","1.2+"]
-    resolved["gb"] = pd.cut(resolved["gap"], bins=bins, labels=blabels)
+    resolved["gb"] = pd.cut(resolved["gap"].abs(), bins=bins, labels=blabels)
     gap_rows = []
     for b in blabels:
         s = resolved[resolved["gb"]==b]
         if len(s)==0: continue
-        n=len(s); w=int(s["won"].sum()); p=s["pnl"].sum(); r2=p/(n*100)*100
-        gap_rows.append({"bucket":b,"n":n,"w":w,"l":n-w,"wr":round(s["won"].mean()*100,1),"pnl":round(p,0),"roi":round(r2,1)})
+        n=len(s); w=int(s["won"].sum()); p=s["pnl"].sum(); wgd=s["stake"].sum()
+        gap_rows.append({"bucket":b,"n":n,"w":w,"l":n-w,"wr":round(s["won"].mean()*100,1),"pnl":round(p,0),"roi":round(p/wgd*100,1)})
 
-    ebins   = [7,10,15,20,100]
-    elabels = ["7-10%","10-15%","15-20%","20%+"]
+    ebins   = [15,20,100]
+    elabels = ["15-20%","20%+"]
     resolved["eb"] = pd.cut(resolved["edge_pct"], bins=ebins, labels=elabels)
     edge_rows = []
     for b in elabels:
         s = resolved[resolved["eb"]==b]
         if len(s)==0: continue
-        n=len(s); w=int(s["won"].sum()); p=s["pnl"].sum(); r2=p/(n*100)*100
-        edge_rows.append({"bucket":b,"n":n,"w":w,"l":n-w,"wr":round(s["won"].mean()*100,1),"pnl":round(p,0),"roi":round(r2,1)})
+        n=len(s); w=int(s["won"].sum()); p=s["pnl"].sum(); wgd=s["stake"].sum()
+        edge_rows.append({"bucket":b,"n":n,"w":w,"l":n-w,"wr":round(s["won"].mean()*100,1),"pnl":round(p,0),"roi":round(p/wgd*100,1)})
 
     log = []
     for _,r in resolved.sort_values("game_date",ascending=False).iterrows():
+        ep  = float(r["edge_pct"]) if pd.notna(r["edge_pct"]) else 0
+        ga  = abs(float(r["gap"])) if pd.notna(r["gap"]) else 0
+        ds  = r["game_date"].strftime("%Y-%m-%d")
+        ln  = float(r["line"]) if pd.notna(r["line"]) else None
+        sd  = str(r["best_side"])
+        entry_am = float(r["odds_used"]) if pd.notna(r.get("odds_used")) else None
+        clv = get_clv(ds, r["pitcher_name"], ln, sd, entry_am) if entry_am is not None else None
+        close_key = (ds, r["pitcher_name"], ln, sd)
+        close_d = CLOSE_INDEX.get(close_key)
+        close_am = dec_to_am(close_d) if close_d else None
         log.append({
-            "date": r["game_date"].strftime("%Y-%m-%d"),
+            "date": ds,
             "pitcher": r["pitcher_name"],
-            "side": str(r["best_side"]) + " " + str(r["line"]),
+            "side": sd + " " + str(r["line"]),
             "proj": round(float(r["strikeouts_projection"]),2) if pd.notna(r["strikeouts_projection"]) else None,
             "gap": round(float(r["gap"]),2) if pd.notna(r["gap"]) else None,
-            "edge": round(float(r["edge_pct"]),1) if pd.notna(r["edge_pct"]) else None,
-            "odds": int(r["odds_used"]) if pd.notna(r["odds_used"]) else None,
+            "edge": round(ep, 1),
+            "units": compute_units_d(ep, ga),
+            "stake": int(r["stake"]),
+            "openOdds": int(entry_am) if entry_am is not None else None,
+            "closeOdds": int(close_am) if close_am is not None else None,
+            "clv": clv,
             "actual": int(r["actual"]) if pd.notna(r["actual"]) else None,
             "won": bool(r["won"]==1),
             "pnl": round(float(r["pnl"]),0) if pd.notna(r["pnl"]) else None,
@@ -126,11 +292,11 @@ def load_backtest(path):
     total=len(resolved); wins=int(resolved["won"].sum()); total_pnl=resolved["pnl"].sum()
 
     def scenario_stats(bump):
-        p = resolved.apply(lambda r: pnl_calc(r["won"], r["odds_used"] + bump), axis=1).sum()
-        return {"pnl": round(p, 0), "roi": round(p / (total * 100) * 100, 1)}
+        p = resolved.apply(lambda r: pnl_calc(r["won"], r["odds_used"] + bump, stake=r["stake"]), axis=1).sum()
+        return {"pnl": round(p, 0), "roi": round(p / total_wagered * 100, 1)}
 
     scenarios = {
-        "actual": {"pnl": round(total_pnl, 0), "roi": round(total_pnl/(total*100)*100, 1)},
+        "actual": {"pnl": round(total_pnl, 0), "roi": round(total_pnl / total_wagered * 100, 1)},
         "+5c":    scenario_stats(5),
         "+10c":   scenario_stats(10),
         "+15c":   scenario_stats(15),
@@ -139,11 +305,13 @@ def load_backtest(path):
     return {
         "total": total, "wins": wins, "losses": total-wins,
         "wr": round(resolved["won"].mean()*100,1),
-        "pnl": round(total_pnl,0), "roi": round(total_pnl/(total*100)*100,1),
+        "pnl": round(total_pnl,0), "roi": round(total_pnl / total_wagered * 100, 1),
         "range": f"{resolved['game_date'].min().strftime('%b %d')} - {resolved['game_date'].max().strftime('%b %d, %Y')}",
         "chart": chart, "chart5": chart5, "chart10": chart10, "chart15": chart15,
         "scenarios": scenarios,
-        "gapRows": gap_rows, "edgeRows": edge_rows, "log": log
+        "gapRows": gap_rows, "edgeRows": edge_rows, "log": log,
+        "clvPosRate": round(sum(1 for r in log if r.get("clv") is not None and r["clv"] >= 0) / max(sum(1 for r in log if r.get("clv") is not None), 1) * 100, 1),
+        "avgClv": round(float(np.mean([r["clv"] for r in log if r.get("clv") is not None])), 2) if any(r.get("clv") is not None for r in log) else None,
     }
 
 bt_2026 = load_backtest(EXPORTS / "2026_backtest_extended.csv")
@@ -153,7 +321,7 @@ bt_data = bt_2026  # default for backward-compat print at end
 
 # -- build HTML ----------------------------------------------------------------
 today_picks = picks_by_date.get(available_dates[0], []) if available_dates else []
-ticker_items = [p for p in today_picks if p.get("modelEdge") and p["modelEdge"] >= 7]
+ticker_items = [p for p in today_picks if p.get("modelEdge") and p["modelEdge"] >= 15]
 
 HTML = """<!DOCTYPE html>
 <html lang="en">
@@ -222,9 +390,12 @@ table{width:100%;border-collapse:collapse}
 th{text-align:left;font-size:11px;letter-spacing:1px;text-transform:uppercase;color:var(--dim);font-weight:600;padding:12px 20px;border-bottom:1px solid var(--line)}
 th.r{text-align:right}
 td{padding:14px 20px;border-bottom:1px solid var(--line);font-size:14px;vertical-align:middle}
+td.r{text-align:right}
 tr:last-child td{border-bottom:none}
 tr{transition:background .12s}
 tr:hover td{background:rgba(255,255,255,.02)}
+tr.low-gap td{background:rgba(224,72,58,.07)}
+tr.low-gap:hover td{background:rgba(224,72,58,.12)}
 td.pitcher{color:var(--silver);font-weight:500;font-family:'Oswald',sans-serif;letter-spacing:.3px}
 td.side{color:var(--dim);font-size:13px}
 td.proj{font-family:'Oswald',sans-serif;font-weight:600;color:var(--silver)}
@@ -259,7 +430,7 @@ td.your-edge{font-family:'Oswald',sans-serif;font-weight:700;font-size:15px;text
 .play-card .pdetail{font-size:12px;color:var(--dim);margin-top:2px}
 
 /* backtest */
-.bt-kpis{display:grid;grid-template-columns:repeat(5,1fr);gap:1px;background:var(--line);border:1px solid var(--line);border-radius:16px;overflow:hidden;margin-bottom:28px}
+.bt-kpis{display:grid;grid-template-columns:repeat(6,1fr);gap:1px;background:var(--line);border:1px solid var(--line);border-radius:16px;overflow:hidden;margin-bottom:28px}
 .section-label{font-family:'Oswald',sans-serif;letter-spacing:4px;text-transform:uppercase;font-size:12px;color:var(--green);margin-bottom:12px}
 .h2{font-family:'Oswald',sans-serif;font-weight:600;font-size:clamp(22px,3vw,32px);color:var(--silver);margin-bottom:6px;letter-spacing:.5px}
 .sub{color:var(--dim);font-size:15px;margin-bottom:24px}
@@ -312,10 +483,24 @@ td.your-edge{font-family:'Oswald',sans-serif;font-weight:700;font-size:15px;text
 .log-table th{font-size:10px;letter-spacing:1px;text-transform:uppercase;color:var(--dim);font-weight:600;padding:9px 12px;border-bottom:1px solid var(--line);white-space:nowrap;text-align:left}
 .log-table th.r{text-align:right}
 .log-table td{padding:10px 12px;border-bottom:1px solid var(--line);white-space:nowrap}
+.log-table td.r{text-align:right}
 .log-table tr:last-child td{border-bottom:none}
 .log-table tr:hover td{background:rgba(255,255,255,.02)}
 .badge-win{display:inline-block;background:rgba(47,212,74,.15);color:var(--green);border:1px solid rgba(47,212,74,.3);font-family:'Oswald',sans-serif;font-weight:600;font-size:12px;padding:2px 10px;border-radius:20px;letter-spacing:.5px}
 .badge-loss{display:inline-block;background:rgba(224,72,58,.12);color:var(--red);border:1px solid rgba(224,72,58,.25);font-family:'Oswald',sans-serif;font-weight:600;font-size:12px;padding:2px 10px;border-radius:20px;letter-spacing:.5px}
+.badge-clv-pos{display:inline-block;background:rgba(47,212,74,.12);color:var(--green);border:1px solid rgba(47,212,74,.3);font-family:'Oswald',sans-serif;font-weight:700;font-size:12px;padding:2px 9px;border-radius:6px;letter-spacing:.3px}
+.badge-clv-neg{display:inline-block;background:rgba(224,72,58,.12);color:var(--red);border:1px solid rgba(224,72,58,.25);font-family:'Oswald',sans-serif;font-weight:700;font-size:12px;padding:2px 9px;border-radius:6px;letter-spacing:.3px}
+.badge-clv-null{display:inline-block;color:var(--dim);font-size:12px;padding:2px 4px}
+.ubadge{display:inline-block;font-family:'Oswald',sans-serif;font-size:11px;font-weight:700;padding:2px 9px;border-radius:6px;letter-spacing:.5px}
+.ub-25{background:rgba(255,243,205,.18);color:#c8960c;border:1px solid rgba(255,215,0,.35)}
+.ub-2{background:rgba(47,212,74,.12);color:var(--green);border:1px solid rgba(47,212,74,.3)}
+.ub-1{background:rgba(255,255,255,.04);color:var(--dim);border:1px solid var(--line)}
+.ldr-cell{position:relative;cursor:pointer}
+.ldr-badge{display:inline-block;font-family:'Oswald',sans-serif;font-size:11px;font-weight:700;padding:2px 8px;border-radius:6px;letter-spacing:.3px}
+.ldr-pop{display:none;position:absolute;right:0;top:110%;z-index:50;background:#0e140f;border:1px solid rgba(47,212,74,.3);border-radius:10px;padding:10px 14px;white-space:nowrap;min-width:190px;box-shadow:0 8px 24px rgba(0,0,0,.6);font-size:12px}
+.ldr-pop table{border-collapse:collapse;width:100%}
+.ldr-pop td{padding:3px 8px;font-family:'Oswald',sans-serif;font-size:13px}
+.ldr-cell:hover .ldr-pop,.ldr-cell:focus-within .ldr-pop{display:block}
 
 @media(max-width:900px){
   .kpis,.bt-kpis{grid-template-columns:repeat(2,1fr)}
@@ -346,7 +531,7 @@ td.your-edge{font-family:'Oswald',sans-serif;font-weight:700;font-size:15px;text
   <div class="controls">
     <select class="date-sel" id="date-sel"></select>
     <label class="toggle"><input type="checkbox" id="dir-filter" checked> Direction-agreement only</label>
-    <label class="toggle"><input type="checkbox" id="edge-filter"> 7%+ edge only</label>
+    <label class="toggle"><input type="checkbox" id="edge-filter"> 15%+ edge only</label>
     <button class="sort-btn active" id="sort-edge">Sort: Edge</button>
     <button class="sort-btn" id="sort-gap">Sort: Gap</button>
   </div>
@@ -358,8 +543,10 @@ td.your-edge{font-family:'Oswald',sans-serif;font-weight:700;font-size:15px;text
         <thead><tr>
           <th>Pitcher</th><th>Side</th><th class="r">Line</th><th class="r">Proj</th><th class="r">Gap</th>
           <th class="r">P(hit)</th><th class="r" style="min-width:160px">Model Edge</th>
-          <th style="text-align:center">Your Odds </th><th class="r">Your Edge</th>
-          <th>Gap Signal</th>
+          <th style="text-align:center">Units</th>
+          <th style="text-align:center">Your Odds</th><th class="r">Your Edge</th>
+          <th class="r">Make</th><th class="r">Floor (15%)</th><th class="r">Worst Line</th>
+          <th>Gap Signal</th><th style="text-align:center">Lineup</th>
         </tr></thead>
         <tbody id="picks-body"></tbody>
       </table>
@@ -378,7 +565,7 @@ td.your-edge{font-family:'Oswald',sans-serif;font-weight:700;font-size:15px;text
     </div>
   </div>
   <div class="h2" id="bt-title">Loading...</div>
-  <p class="sub">7%+ edge . direction-agreement filter . one bet per pitcher per day . $100 flat stake</p>
+  <p class="sub">15%+ edge . one bet per pitcher per day . fixed unit sizing (1U/2U/2.5U)</p>
   <div class="bt-kpis" id="bt-kpis"></div>
 
   <div class="card">
@@ -441,7 +628,7 @@ var BT = BT_ALL['2026'] || BT_ALL['2025'] || {};
 /* -- ticker -- */
 (function(){
   var today = AVAILABLE_DATES[0];
-  var items = (PICKS_BY_DATE[today]||[]).filter(function(p){return p.modelEdge && p.modelEdge>=7;});
+  var items = (PICKS_BY_DATE[today]||[]).filter(function(p){return p.modelEdge && p.modelEdge>=15;});
   if(!items.length) items = PICKS_BY_DATE[today]||[];
   var html = items.map(function(p){
     var e = p.modelEdge ? (p.modelEdge>0?'+':'')+p.modelEdge.toFixed(1)+'%':'--';
@@ -512,6 +699,58 @@ function gapLabel(g){
   return '0-0.3 . 51%';
 }
 
+function fmtAm(o){if(o===null||o===undefined) return '--'; return (o>0?'+':'')+o;}
+function fmtMake(r){
+  var o=r.makeOdds; if(o===null||o===undefined) return '<td class="r" style="color:var(--dim)">--</td>';
+  var clr=o>0?'var(--green)':'#ffb74d';
+  return '<td class="r" style="color:'+clr+';font-family:Oswald,sans-serif;font-weight:700" title="Min odds for 12% EV">'+fmtAm(o)+'</td>';
+}
+function fmtFloor(r){
+  var o=r.floorOdds; if(o===null||o===undefined) return '<td class="r" style="color:var(--dim)">--</td>';
+  var clr='#e0483a';
+  return '<td class="r" style="color:'+clr+';font-family:Oswald,sans-serif;font-weight:700">'+fmtAm(o)+'</td>';
+}
+function fmtLadder(r){
+  var base=r.modelOdds; if(base===null||base===undefined) return '<td class="r" style="color:var(--dim)">--</td>';
+  var worst=base-20;
+  var worstStr=fmtAm(worst);
+  // build popup: current + upside shopping scenarios (+5c to +25c better)
+  var ld=r.ladder||[];
+  var rows=ld.map(function(l){
+    var eClr=l.edge>=15?'var(--green)':l.edge>=7?'#ffb74d':'var(--red)';
+    var lbl=l.shift===0?'Scraped':'+'+l.shift+'c better';
+    return '<tr><td style="color:var(--dim)">'+lbl+'</td>'+
+      '<td style="color:var(--silver)">'+fmtAm(l.odds)+'</td>'+
+      '<td style="color:'+eClr+';font-weight:700">'+(l.edge!==null?(l.edge>=0?'+':'')+l.edge+'%':'--')+'</td></tr>';
+  }).join('');
+  // worst row at bottom
+  var wEdge=r.hitProb?calcEdge(r.hitProb,worst):null;
+  var wClr=wEdge!==null&&wEdge>=15?'var(--green)':wEdge!==null&&wEdge>=7?'#ffb74d':'var(--red)';
+  rows+='<tr style="border-top:1px solid rgba(255,255,255,.1)"><td style="color:#e0483a">Worst (-20c)</td>'+
+    '<td style="color:#e0483a">'+worstStr+'</td>'+
+    '<td style="color:'+wClr+';font-weight:700">'+(wEdge!==null?(wEdge>=0?'+':'')+wEdge.toFixed(1)+'%':'--')+'</td></tr>';
+  return '<td class="r ldr-cell">'+
+    '<span class="ldr-badge" style="color:#e0483a;font-family:Oswald,sans-serif;font-weight:700;font-size:12px">'+worstStr+' worst</span>'+
+    '<div class="ldr-pop"><div style="font-size:10px;letter-spacing:1px;color:var(--dim);margin-bottom:8px;text-transform:uppercase">Price Ladder</div>'+
+    '<table><thead><tr>'+
+      '<th style="color:var(--dim);font-size:10px;letter-spacing:1px">Scenario</th>'+
+      '<th style="color:var(--dim);font-size:10px;letter-spacing:1px">Odds</th>'+
+      '<th style="color:var(--dim);font-size:10px;letter-spacing:1px">Edge</th></tr></thead>'+
+      '<tbody>'+rows+'</tbody></table></div></td>';
+}
+
+function fmtLineupConf(r){
+  var c = r.lineupConf||'';
+  if(!c) return '<td style="text-align:center;color:var(--dim)">--</td>';
+  var bg,clr;
+  if(c==='Confirmed'){bg='rgba(47,212,74,.18)';clr='#2fd44a';}
+  else if(c==='High'){bg='rgba(52,211,153,.15)';clr='#34d399';}
+  else if(c==='Medium'){bg='rgba(251,191,36,.15)';clr='#fbbf24';}
+  else if(c==='Low'){bg='rgba(224,72,58,.15)';clr='#e0483a';}
+  else{bg='rgba(160,160,160,.12)';clr='#888';}
+  return '<td style="text-align:center"><span style="display:inline-block;padding:2px 8px;border-radius:10px;font-size:11px;font-weight:700;letter-spacing:.5px;background:'+bg+';color:'+clr+'">'+c+'</span></td>';
+}
+
 function renderPicks(){
   var rows = (PICKS_BY_DATE[currentDate]||[]).slice();
   var dirFilter = document.getElementById('dir-filter').checked;
@@ -520,17 +759,17 @@ function renderPicks(){
     if(!r.gap) return false;
     return (r.bestSide==='over'&&r.gap>0)||(r.bestSide==='under'&&r.gap<0);
   });
-  if(edgeFilter) rows = rows.filter(function(r){return r.modelEdge&&r.modelEdge>=7;});
+  if(edgeFilter) rows = rows.filter(function(r){return r.modelEdge&&r.modelEdge>=15;});
   if(sortByGap) rows.sort(function(a,b){return Math.abs(b.gap||0)-Math.abs(a.gap||0);});
   else rows.sort(function(a,b){return (b.modelEdge||0)-(a.modelEdge||0);});
 
   // KPIs
-  var flagged = rows.filter(function(r){return r.modelEdge&&r.modelEdge>=7;});
+  var flagged = rows.filter(function(r){return r.modelEdge&&r.modelEdge>=15;});
   var bestE = rows.reduce(function(m,r){return r.modelEdge>m?r.modelEdge:m;},0);
   var bigGap = rows.reduce(function(m,r){return Math.abs(r.gap||0)>m?Math.abs(r.gap||0):m;},0);
   var kpis = [
     {v:rows.length,k:'Pitchers'},
-    {v:flagged.length,k:'7%+ Edge Picks'},
+    {v:flagged.length,k:'15%+ Edge Picks'},
     {v:bestE?'+'+bestE.toFixed(1)+'%':'--',k:'Best Edge',cls:''},
     {v:bigGap?bigGap.toFixed(2)+'K':'--',k:'Biggest Gap',cls:'s'}
   ];
@@ -558,6 +797,8 @@ function renderPicks(){
     var barW = me!==null ? Math.min(Math.max(me,0)/25*100,100).toFixed(0) : 0;
     var barClr = me>=15?'#00c853':me>=7?'#2fd44a':me>=0?'#ffb74d':'#e0483a';
     var lineStr = r.line!==null&&r.line!==undefined ? r.line : '--';
+    var uCls = r.units==='2.5U'?'ub-25':r.units==='2U'?'ub-2':'ub-1';
+    var uLbl = r.units||'1U';
     tr.innerHTML =
       '<td class="pitcher">'+r.pitcher+'</td>'+
       '<td class="side">'+r.bestSide+'</td>'+
@@ -567,9 +808,15 @@ function renderPicks(){
       '<td class="prob" style="text-align:right">'+prob+'</td>'+
       '<td class="medge '+meCls+'" style="text-align:right;white-space:nowrap">'+
         '<span class="ebar-wrap"><span class="ebar" style="width:'+barW+'%;background:'+barClr+'"></span></span>'+meStr+'</td>'+
+      '<td style="text-align:center"><span class="ubadge '+uCls+'">'+uLbl+'</span></td>'+
       '<td class="your-odds-cell" style="text-align:center"><input class="odds-inp" type="number" value="'+initOdds+'" data-prob="'+(r.hitProb||0)+'" step="5"></td>'+
       '<td class="your-edge '+yeCls+'" data-ye>'+yeStr+'</td>'+
-      '<td><span class="gap-badge '+gbCls+'">'+gbLbl+'</span></td>';
+      fmtMake(r)+
+      fmtFloor(r)+
+      fmtLadder(r)+
+      '<td><span class="gap-badge '+gbCls+'">'+gbLbl+'</span></td>'+
+      fmtLineupConf(r);
+    if(r.gap!==null&&r.gap!==undefined&&Math.abs(r.gap)<0.6) tr.classList.add('low-gap');
     tbody.appendChild(tr);
     tr.querySelector('.odds-inp').addEventListener('input', function(){
       var odds = parseFloat(this.value)||0;
@@ -595,7 +842,8 @@ function updateFlagged(){
     var odds = parseFloat(inp.value)||0;
     var prob = parseFloat(inp.dataset.prob)||0;
     var edge = calcEdge(prob, odds);
-    if(edge!==null && edge>=7){
+    if(edge!==null && edge>=15){
+      var ubEl = tr.querySelector('.ubadge');
       qualifying.push({
         pitcher: tr.querySelector('.pitcher').textContent,
         side: tr.querySelector('.side').textContent,
@@ -605,6 +853,8 @@ function updateFlagged(){
         odds: odds,
         gapBadge: tr.querySelector('.gap-badge').textContent,
         gbCls: tr.querySelector('.gap-badge').className.replace('gap-badge ',''),
+        units: ubEl ? ubEl.textContent : '1U',
+        uCls: ubEl ? ubEl.className.replace('ubadge ','') : 'ub-1',
       });
     }
   });
@@ -615,11 +865,12 @@ function updateFlagged(){
     var eCls = edgeCls(p.edge);
     var oddsStr = (p.odds>=0?'+':'')+Math.round(p.odds);
     return '<div class="play-card">'+
-      '<div><div class="pname">'+p.pitcher+'</div><div class="pside">'+p.side+' . proj '+p.proj+' . gap '+p.gap+'</div></div>'+
+      '<div><div class="pname">'+p.pitcher+' <span class="ubadge '+(p.uCls||'ub-1')+'" style="font-size:10px;vertical-align:middle;margin-left:6px">'+(p.units||'1U')+'</span></div>'+
+      '<div class="pside">'+p.side+' . proj '+p.proj+' . gap '+p.gap+'</div></div>'+
       '<div style="text-align:right"><div class="pedge '+eCls+'">'+fmtEdge(p.edge)+'</div><div class="pdetail">at '+oddsStr+' . <span class="gap-badge '+p.gbCls+'" style="font-size:11px">'+p.gapBadge+'</span></div></div>'+
       '</div>';
   }).join('');
-  sec.innerHTML = '<div class="flagged-title">'+qualifying.length+' play'+(qualifying.length>1?'s':'')+' at 7%+ edge (your odds)</div>'+cards;
+  sec.innerHTML = '<div class="flagged-title">'+qualifying.length+' play'+(qualifying.length>1?'s':'')+' at 15%+ edge (your odds)</div>'+cards;
 }
 
 renderPicks();
@@ -657,12 +908,17 @@ function renderBacktest(){
 
   // KPIs
   var pnlCls = BT.pnl>=0?'':'style="color:var(--red)"';
+  var clvPosRate = BT.clvPosRate!=null ? BT.clvPosRate : null;
+  var avgClv     = BT.avgClv!=null ? BT.avgClv : null;
+  var clvV = clvPosRate!=null ? clvPosRate+'% CLV+' : '--';
+  var clvSub = avgClv!=null ? 'avg '+(avgClv>=0?'+':'')+avgClv+'c' : '';
   var kpis=[
     {v:BT.total,k:'Total Bets',cls:'s'},
     {v:BT.wins+'W / '+BT.losses+'L',k:'Record',cls:'s'},
     {v:BT.wr+'%',k:'Win Rate'},
     {v:(BT.pnl>=0?'+$':'-$')+Math.abs(BT.pnl).toLocaleString(),k:'Total P&L',st:BT.pnl<0?'color:var(--red)':'',id:'kpi-pnl'},
     {v:(BT.roi>=0?'+':'')+BT.roi+'%',k:'ROI',st:BT.roi<0?'color:var(--red)':'',id:'kpi-roi'},
+    {v:clvV,k:'CLV Rate'+(clvSub?' . '+clvSub:''),st:clvPosRate!=null&&clvPosRate>=50?'':'color:var(--red)'},
   ];
   document.getElementById('bt-kpis').innerHTML = kpis.map(function(k){
     return '<div class="kpi"><div class="v '+(k.cls||'')+'" style="'+(k.st||'')+'"'+(k.id?' id="'+k.id+'"':'')+'>'+k.v+'</div><div class="k">'+k.k+'</div></div>';
@@ -712,19 +968,27 @@ function renderLog(filter){
     if(filter==='loss') return !r.won;
     return true;
   });
-  document.getElementById('log-thead').innerHTML='<tr><th>Date</th><th>Pitcher</th><th>Side</th><th class="r">Proj</th><th class="r">Gap</th><th class="r">Edge</th><th class="r">Odds</th><th class="r">Actual</th><th>Result</th><th class="r">P&L</th></tr>';
+  document.getElementById('log-thead').innerHTML='<tr><th>Date</th><th>Pitcher</th><th>Side</th><th class="r">Proj</th><th class="r">Gap</th><th class="r">Edge</th><th style="text-align:center">Units</th><th class="r">Stake</th><th class="r">Open</th><th class="r">Close</th><th class="r" style="min-width:80px">CLV %</th><th class="r">Actual</th><th>Result</th><th class="r">P&L</th></tr>';
   var tbody = document.getElementById('log-body');
   tbody.innerHTML='';
   data.forEach(function(r){
     var tr=document.createElement('tr');
     var pnlStr = r.pnl!==null?(r.pnl>=0?'<span style="color:var(--green)">+$'+r.pnl.toLocaleString()+'</span>':'<span style="color:var(--red)">-$'+Math.abs(r.pnl).toLocaleString()+'</span>'):'--';
+    var uCls = r.units==='2.5U'?'ub-25':r.units==='2U'?'ub-2':'ub-1';
+    var clvStr = r.clv!==null&&r.clv!==undefined
+      ? '<span class="badge-clv-'+(r.clv>=0?'pos':'neg')+'">'+(r.clv>=0?'+':'')+r.clv.toFixed(1)+'c</span>'
+      : '<span class="badge-clv-null">--</span>';
     tr.innerHTML='<td style="color:var(--dim)">'+r.date+'</td>'+
       '<td style="font-weight:500;color:var(--silver)">'+r.pitcher+'</td>'+
       '<td style="color:var(--dim)">'+r.side+'</td>'+
       '<td class="r" style="color:var(--silver)">'+( r.proj?r.proj.toFixed(2):'--')+'</td>'+
       '<td class="r" style="color:var(--dim)">'+( r.gap!==null?(r.gap>0?'+':'')+r.gap.toFixed(2):'--')+'</td>'+
       '<td class="r" style="color:var(--green)">'+( r.edge?'+'+r.edge+'%':'--')+'</td>'+
-      '<td class="r" style="color:var(--dim)">'+( r.odds?(r.odds>0?'+':'')+r.odds:'--')+'</td>'+
+      '<td style="text-align:center"><span class="ubadge '+uCls+'">'+(r.units||'1U')+'</span></td>'+
+      '<td class="r" style="color:var(--dim)">$'+(r.stake||100)+'</td>'+
+      '<td class="r" style="color:var(--silver);font-family:Oswald,sans-serif;font-weight:600">'+( r.openOdds!==null&&r.openOdds!==undefined?(r.openOdds>0?'+':'')+r.openOdds:'--')+'</td>'+
+      '<td class="r" style="color:var(--dim)">'+( r.closeOdds!==null&&r.closeOdds!==undefined?(r.closeOdds>0?'+':'')+r.closeOdds:'--')+'</td>'+
+      '<td class="r">'+clvStr+'</td>'+
       '<td class="r" style="color:var(--silver)">'+( r.actual!==null?r.actual:'--')+'</td>'+
       '<td>'+(r.won?'<span class="badge-win">WIN</span>':'<span class="badge-loss">LOSS</span>')+'</td>'+
       '<td class="r">'+pnlStr+'</td>';

@@ -3,6 +3,8 @@ from math import erf, floor, sqrt
 import numpy as np
 import pandas as pd
 
+from src.models.calibration import apply_probability_calibrator
+
 
 def american_to_decimal(odds: float) -> float:
     if pd.isna(odds):
@@ -108,6 +110,7 @@ def add_betting_columns(
     distribution: str = "normal",
     bias_correction: float = 0.0,
     nb_alpha=None,
+    probability_calibrator=None,
 ) -> pd.DataFrame:
     """Compute over/under probabilities, fair odds, EV, and Kelly fraction.
 
@@ -146,6 +149,11 @@ def add_betting_columns(
     out["over_probability"] = out["raw_over_probability"].map(
         lambda p: shrink_probability(p, edge_shrink_factor)
     )
+    if probability_calibrator:
+        out["over_probability_uncalibrated"] = out["over_probability"]
+        out["over_probability"] = out["over_probability"].map(
+            lambda p: apply_probability_calibrator(p, probability_calibrator)
+        )
     out["under_probability"] = 1 - out["over_probability"]
     out["fair_over_odds"] = out["over_probability"].map(fair_american_odds)
     out["fair_under_odds"] = out["under_probability"].map(fair_american_odds)

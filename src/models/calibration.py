@@ -5,6 +5,7 @@ from pathlib import Path
 from typing import Any
 
 import pandas as pd
+import numpy as np
 
 from src.data.schema import TARGETS
 
@@ -86,3 +87,116 @@ def bias_corrections_from_calibration(
         if b is not None:
             corrections[market] = float(b)
     return corrections
+
+
+def build_probability_calibration(
+    scored: pd.DataFrame,
+    min_rows: int = 200,
+    method: str = "logit",
+    regularization_c: float = 1.0,
+) -> dict[str, Any]:
+    """Fit serializable calibrators for over probabilities.
+
+    The calibrator maps the model's over_probability to the empirical chance
+    that the market goes over. It is intentionally stored as plain JSON instead
+    of a pickled sklearn object so calibration.json remains portable.
+    """
+    if method not in {"logit", "isotonic"}:
+        raise ValueError("method must be 'logit' or 'isotonic'")
+
+    try:
+        if method == "isotonic":
+            from sklearn.isotonic import IsotonicRegression
+        else:
+            from sklearn.linear_model import LogisticRegression
+    except ImportError:
+        return {}
+
+    markets: dict[str, Any] = {}
+    for target in TARGETS:
+        if target not in scored.columns:
+            continue
+        sub = scored[scored.get("market", target) == target].copy()
+        if sub.empty or "over_probability" not in sub.columns or "line" not in sub.columns:
+            continue
+        sub = sub.dropna(subset=["over_probability", "line", target])
+        if len(sub) < min_rows:
+            continue
+
+        x = pd.to_numeric(sub["over_probability"], errors="coerce").clip(1e-6, 1 - 1e-6)
+        y = (sub[target] > sub["line"]).astype(float)
+        valid = x.notna() & y.notna()
+        x = x[valid]
+        y = y[valid]
+        if len(x) < min_rows or y.nunique() < 2:
+            continue
+
+        if method == "isotonic":
+            model = IsotonicRegression(y_min=1e-6, y_max=1 - 1e-6, out_of_bounds="clip")
+            model.fit(x.to_numpy(), y.to_numpy())
+            calibrated = pd.Series(model.predict(x.to_numpy()), index=x.index)
+            spec = {
+                "method": "isotonic",
+                "x_thresholds": [float(v) for v in model.X_thresholds_],
+                "y_thresholds": [float(v) for v in model.y_thresholds_],
+            }
+        else:
+            x_clipped = x.clip(1e-6, 1 - 1e-6)
+            logits = np.log(x_clipped / (1 - x_clipped)).to_numpy().reshape(-1, 1)
+            model = LogisticRegression(C=regularization_c, solver="lbfgs")
+            model.fit(logits, y.to_numpy())
+            calibrated = pd.Series(model.predict_proba(logits)[:, 1], index=x.index)
+            spec = {
+                "method": "logit",
+                "coefficient": float(model.coef_[0][0]),
+                "intercept": float(model.intercept_[0]),
+                "regularization_c": float(regularization_c),
+            }
+        raw_brier = float(((x - y) ** 2).mean())
+        calibrated_brier = float(((calibrated - y) ** 2).mean())
+
+        markets[target] = {
+            "source_rows": int(len(x)),
+            "raw_brier": raw_brier,
+            "calibrated_brier": calibrated_brier,
+            "mean_raw_over_probability": float(x.mean()),
+            "actual_over_rate": float(y.mean()),
+            **spec,
+        }
+    return markets
+
+
+def probability_calibrators_from_calibration(
+    calibration: dict[str, Any],
+) -> dict[str, dict[str, Any]]:
+    """Return per-market probability calibrator specs from calibration.json."""
+    out: dict[str, dict[str, Any]] = {}
+    for market, values in calibration.get("markets", {}).items():
+        spec = values.get("probability_calibration")
+        if not spec:
+            continue
+        if spec.get("method") == "isotonic" and spec.get("x_thresholds") and spec.get("y_thresholds"):
+            out[market] = spec
+        elif spec.get("method") == "logit" and "coefficient" in spec and "intercept" in spec:
+            out[market] = spec
+    return out
+
+
+def apply_probability_calibrator(probability: float, calibrator: dict[str, Any] | None) -> float:
+    if calibrator is None or pd.isna(probability):
+        return probability
+    if calibrator.get("method") != "isotonic":
+        if calibrator.get("method") != "logit":
+            return probability
+        p = min(max(float(probability), 1e-6), 1 - 1e-6)
+        z = np.log(p / (1 - p))
+        linear = float(calibrator["coefficient"]) * z + float(calibrator["intercept"])
+        calibrated = 1 / (1 + np.exp(-linear))
+        return min(max(float(calibrated), 1e-6), 1 - 1e-6)
+    else:
+        x = np.asarray(calibrator.get("x_thresholds", []), dtype=float)
+        y = np.asarray(calibrator.get("y_thresholds", []), dtype=float)
+        if len(x) == 0 or len(x) != len(y):
+            return probability
+        calibrated = float(np.interp(float(probability), x, y, left=y[0], right=y[-1]))
+    return min(max(calibrated, 1e-6), 1 - 1e-6)

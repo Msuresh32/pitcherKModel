@@ -31,11 +31,21 @@ from src.models.calibration import (
     bias_corrections_from_calibration,
     edge_shrink_from_calibration,
     load_calibration,
+    probability_calibrators_from_calibration,
     residual_std_from_calibration,
 )
 from src.models.opportunity import add_expected_opportunity_features, load_opportunity_models
 from src.models.train import load_fill_values, load_models, predict_targets
 from src.odds.pricing import add_betting_columns
+
+_MLB_TEAM_ID_TO_ABBREV: dict[int, str] = {
+    108: "LAA", 109: "AZ",  110: "BAL", 111: "BOS", 112: "CHC",
+    113: "CIN", 114: "CLE", 115: "COL", 116: "DET", 117: "HOU",
+    118: "KC",  119: "LAD", 120: "WSH", 121: "NYM", 133: "ATH",
+    134: "PIT", 135: "SD",  136: "SEA", 137: "SF",  138: "STL",
+    139: "TB",  140: "TEX", 141: "TOR", 142: "MIN", 143: "PHI",
+    144: "ATL", 145: "CWS", 146: "MIA", 147: "NYY", 158: "MIL",
+}
 
 _DISTRIBUTION_FOR_MODEL = {
     "poisson": "poisson",
@@ -57,6 +67,37 @@ def _format_american(value: float) -> str:
         return ""
     value = int(round(float(value)))
     return f"+{value}" if value > 0 else str(value)
+
+
+def compute_lineup_stability_scores(batter_logs: pd.DataFrame, target_date: str, lookback_days: int = 30) -> dict:
+    """Return {team_id: tier} based on core-8 batter retention rate over last `lookback_days` days."""
+    if batter_logs is None or batter_logs.empty:
+        return {}
+    target_dt = pd.to_datetime(target_date)
+    cutoff = target_dt - pd.Timedelta(days=lookback_days)
+    bl = batter_logs.copy()
+    bl["game_date"] = pd.to_datetime(bl["game_date"])
+    window = bl[(bl["game_date"] >= cutoff) & (bl["game_date"] < target_dt)]
+    if window.empty:
+        return {}
+    result = {}
+    for team_id, team_df in window.groupby("team"):
+        pa_totals = team_df.groupby("batter_id")["plate_appearances"].sum()
+        core = set(pa_totals.nlargest(8).index)
+        if not core:
+            continue
+        retentions = []
+        for _, game_df in team_df.groupby("game_pk"):
+            appeared = set(game_df[game_df["plate_appearances"] > 0]["batter_id"])
+            retentions.append(len(core & appeared) / len(core))
+        if not retentions:
+            continue
+        rate = sum(retentions) / len(retentions)
+        tier = "High" if rate >= 0.85 else "Medium" if rate >= 0.70 else "Low"
+        abbrev = _MLB_TEAM_ID_TO_ABBREV.get(int(team_id))
+        if abbrev:
+            result[abbrev] = tier
+    return result
 
 
 def _assign_confidence_tier(row: pd.Series) -> str:
@@ -140,6 +181,7 @@ def _format_daily_board(picks: pd.DataFrame) -> pd.DataFrame:
         "edge",
         "kelly",
         "confidence_tier",
+        "lineup_confidence",
         "expected_innings_pitched",
         "bookmaker",
         "pitcher_id",
@@ -208,6 +250,7 @@ def _daily_market_rows(
     bias_corrections: dict,
     disabled_markets: list,
     nb_alpha=None,
+    probability_calibrators=None,
 ) -> pd.DataFrame:
     rows = []
     key_cols = ["game_date", "pitcher_id"]
@@ -260,6 +303,7 @@ def _daily_market_rows(
                 distribution=dist,
                 bias_correction=bias,
                 nb_alpha=(nb_alpha or {}).get(market),
+                probability_calibrator=(probability_calibrators or {}).get(market),
             )
         else:
             merged = merged.rename(columns={f"{market}_projection": "projection"})
@@ -366,6 +410,7 @@ def main() -> None:
     calibration_path = Path(config["data"]["processed_dir"]) / "calibration.json"
     calibration = load_calibration(calibration_path)
     bias_corrections = bias_corrections_from_calibration(config, calibration)
+    probability_calibrators = probability_calibrators_from_calibration(calibration)
     disabled_markets = config["betting"].get("disabled_markets", [])
 
     odds = load_odds(config["data"]["odds_file"])
@@ -387,8 +432,30 @@ def main() -> None:
         bias_corrections=bias_corrections,
         disabled_markets=disabled_markets,
         nb_alpha=nb_alpha,
+        probability_calibrators=probability_calibrators,
     )
     picks = _format_daily_board(picks)
+
+    # ------------------------------------------------------------------
+    # Lineup stability confidence
+    # ------------------------------------------------------------------
+    if batter_logs is not None and not batter_logs.empty and "opponent" in picks.columns:
+        _stability = compute_lineup_stability_scores(batter_logs, args.date)
+        _confirmed_map: dict = {}
+        if "pitcher_id" in probable.columns and "opp_lineup_confirmed_starters" in probable.columns:
+            for _, _pr in probable.iterrows():
+                _confirmed_map[_pr["pitcher_id"]] = float(_pr.get("opp_lineup_confirmed_starters") or 0)
+
+        def _lineup_conf(row: pd.Series) -> str:
+            pid = row.get("pitcher_id")
+            if pid is not None and _confirmed_map.get(pid, 0) >= 7:
+                return "Confirmed"
+            opp = row.get("opponent")
+            if opp is not None:
+                return _stability.get(str(opp), "Unknown")
+            return "Unknown"
+
+        picks["lineup_confidence"] = picks.apply(_lineup_conf, axis=1)
 
     # ------------------------------------------------------------------
     # Export
