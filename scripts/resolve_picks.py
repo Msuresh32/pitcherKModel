@@ -188,12 +188,14 @@ def main() -> None:
         row = picks.loc[idx]
         already_resolved = str(row.get("won", "")) in ("0", "1")
 
-        # Always fill odds if missing (even for already-resolved rows)
-        if str(row.get("opening_odds", "")) in ("", "nan"):
-            o = lookup_odds(resolve_date, str(row["pitcher_name"]),
-                            float(row["line"]), str(row["best_side"]), "morning")
-            if o is not None:
-                picks.loc[idx, "opening_odds"] = str(o)
+        # Opening odds: prefer morning (7am) snapshot, fall back to nightly (11pm)
+        # Always overwrite so 7am run supersedes any earlier nightly value
+        o = (lookup_odds(resolve_date, str(row["pitcher_name"]),
+                         float(row["line"]), str(row["best_side"]), "morning") or
+             lookup_odds(resolve_date, str(row["pitcher_name"]),
+                         float(row["line"]), str(row["best_side"]), "nightly"))
+        if o is not None:
+            picks.loc[idx, "opening_odds"] = str(o)
 
         if str(row.get("closing_odds", "")) in ("", "nan"):
             c = lookup_odds(resolve_date, str(row["pitcher_name"]),

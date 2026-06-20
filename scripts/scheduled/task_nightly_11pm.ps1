@@ -21,9 +21,9 @@ Log "Nightly pipeline started for $Tomorrow"
 Log "Fetching probable pitchers..."
 & $Python scripts\fetch_probables_daily.py --date $Tomorrow 2>&1 | Tee-Object -Append -FilePath $LogFile
 
-# 2. Fetch early odds for tomorrow
+# 2. Fetch early odds for tomorrow (saved as nightly snapshot — 7am run saves the morning/open snapshot)
 Log "Fetching early odds..."
-& $Python scripts\fetch_odds_daily.py --date $Tomorrow 2>&1 | Tee-Object -Append -FilePath $LogFile
+& $Python scripts\fetch_odds_daily.py --date $Tomorrow --snapshot nightly 2>&1 | Tee-Object -Append -FilePath $LogFile
 
 # 3. Run projections
 Log "Running projections..."

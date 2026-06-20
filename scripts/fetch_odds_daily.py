@@ -27,9 +27,9 @@ def main() -> None:
     parser.add_argument("--date", default=date.today().isoformat())
     parser.add_argument(
         "--snapshot",
-        choices=["morning", "closing"],
+        choices=["morning", "closing", "nightly"],
         default="morning",
-        help="Label this fetch as morning (pick time) or closing (pre-game).",
+        help="Label this fetch: morning=7am open, closing=pre-game, nightly=11pm early lines.",
     )
     args = parser.parse_args()
 
@@ -52,8 +52,8 @@ def main() -> None:
     df.to_csv(snapshot_path, index=False)
     print(f"Snapshot saved: {snapshot_path}")
 
-    # Morning fetch also updates the live file used by project_daily.py
-    if args.snapshot == "morning":
+    # Morning and nightly fetches update the live file used by project_daily.py
+    if args.snapshot in ("morning", "nightly"):
         LIVE_OUTPUT.parent.mkdir(parents=True, exist_ok=True)
         df.to_csv(LIVE_OUTPUT, index=False)
         print(f"Live odds updated: {LIVE_OUTPUT}")
