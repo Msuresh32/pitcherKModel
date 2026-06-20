@@ -268,14 +268,17 @@ def load_backtest(path):
         ds  = r["game_date"].strftime("%Y-%m-%d")
         ln  = float(r["line"]) if pd.notna(r["line"]) else None
         sd  = str(r["best_side"])
-        entry_am = (float(r["opening_odds"]) if pd.notna(r["opening_odds"]) else
-                    float(r["odds_used"])    if pd.notna(r["odds_used"])    else None)
+        _open_o  = r.get("opening_odds")
+        _close_o = r.get("closing_odds")
+        _clv_p   = r.get("clv_pct")
+        entry_am = (float(_open_o)       if pd.notna(_open_o)  else
+                    float(r["odds_used"]) if pd.notna(r.get("odds_used")) else None)
         close_key = (ds, r["pitcher_name"], ln, sd)
         close_d   = CLOSE_INDEX.get(close_key)
-        close_am  = (dec_to_am(close_d)        if close_d                        else
-                     float(r["closing_odds"])   if pd.notna(r["closing_odds"])   else None)
+        close_am  = (dec_to_am(close_d)  if close_d              else
+                     float(_close_o)     if pd.notna(_close_o)   else None)
         # Use stored CLV% from CSV first; fall back to recomputing from index
-        clv = (float(r["clv_pct"]) if pd.notna(r["clv_pct"]) else
+        clv = (float(_clv_p) if pd.notna(_clv_p) else
                get_clv(ds, r["pitcher_name"], ln, sd, entry_am) if entry_am is not None else None)
         log.append({
             "date": ds,
