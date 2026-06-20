@@ -26,6 +26,52 @@ SNAPSHOT_DIR = Path("data/odds/snapshots")
 PICKS_LOG    = Path("data/exports/picks_log.csv")
 
 
+def _american_to_implied(odds: float) -> float:
+    odds = float(odds)
+    if odds >= 0:
+        return 100 / (odds + 100)
+    return abs(odds) / (abs(odds) + 100)
+
+
+def _best_odds(snap: pd.DataFrame, pitcher_name: str, line: float, side: str):
+    col = f"{side}_odds"
+    if col not in snap.columns:
+        return None
+    name_col = "pitcher_name" if "pitcher_name" in snap.columns else "player_name"
+    last = pitcher_name.strip().split()[-1].lower()
+    rows = snap[snap[name_col].str.lower().str.contains(last, na=False)]
+    rows = rows[pd.to_numeric(rows["line"], errors="coerce") == float(line)]
+    vals = pd.to_numeric(rows[col], errors="coerce").dropna()
+    return float(vals.max()) if not vals.empty else None
+
+
+def update_picks_clv(target: str, snapshot: pd.DataFrame) -> None:
+    if not PICKS_LOG.exists():
+        return
+    picks = pd.read_csv(PICKS_LOG, dtype=str)
+    picks["game_date"] = picks["game_date"].astype(str).str[:10]
+    for col in ("closing_odds", "clv_pct"):
+        if col not in picks.columns:
+            picks[col] = ""
+    mask = picks["game_date"] == target
+    updated = 0
+    for idx in picks[mask].index:
+        row = picks.loc[idx]
+        close = _best_odds(snapshot, str(row["pitcher_name"]),
+                           float(row["line"]), str(row["best_side"]))
+        if close is None:
+            continue
+        picks.loc[idx, "closing_odds"] = str(close)
+        open_o = row.get("opening_odds", "")
+        if str(open_o) not in ("", "nan"):
+            p_open  = _american_to_implied(float(open_o))
+            p_close = _american_to_implied(close)
+            picks.loc[idx, "clv_pct"] = str(round((p_close - p_open) * 100, 2))
+        updated += 1
+    picks.to_csv(PICKS_LOG, index=False)
+    print(f"Updated {updated} picks with closing odds + CLV%")
+
+
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--date", default=(date.today() - timedelta(days=1)).isoformat())
@@ -105,6 +151,9 @@ def main() -> None:
     out_path = SNAPSHOT_DIR / f"{target}_closing.csv"
     result.to_csv(out_path, index=False)
     print(f"\nSaved {len(result)} rows to {out_path}")
+
+    # Immediately compute CLV% for the date's picks
+    update_picks_clv(target, result)
 
     # Report coverage for our picks
     if pitcher_names:
