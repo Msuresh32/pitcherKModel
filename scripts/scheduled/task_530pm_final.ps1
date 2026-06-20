@@ -15,7 +15,7 @@ function Ntfy($title, $body, $priority="urgent", $tags="baseball") {
 
 Log "5:30pm final rerun started"
 & $Python scripts\fetch_pregame_lineups.py --date $Today 2>&1 | Tee-Object -Append -FilePath $LogFile
-& $Python scripts\fetch_odds_daily.py --date $Today 2>&1 | Tee-Object -Append -FilePath $LogFile
+& $Python scripts\fetch_odds_daily.py --date $Today --snapshot closing 2>&1 | Tee-Object -Append -FilePath $LogFile
 & $Python scripts\project_daily.py --date $Today 2>&1 | Tee-Object -Append -FilePath $LogFile
 & $Python generate_dashboard.py 2>&1 | Tee-Object -Append -FilePath $LogFile
 

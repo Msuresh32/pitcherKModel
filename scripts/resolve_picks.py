@@ -18,9 +18,10 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from src.data.mlb_source import fetch_pitcher_game_logs
 
-LOGS_FILE   = Path("data/raw/pitcher_game_logs.csv")
-PICKS_LOG   = Path("data/exports/picks_log.csv")
-BT_2026     = Path("data/exports/2026_backtest_extended.csv")
+LOGS_FILE    = Path("data/raw/pitcher_game_logs.csv")
+PICKS_LOG    = Path("data/exports/picks_log.csv")
+BT_2026      = Path("data/exports/2026_backtest_extended.csv")
+SNAPSHOT_DIR = Path("data/odds/snapshots")
 
 
 def american_to_decimal(odds: float) -> float:
@@ -64,6 +65,49 @@ def lookup_k(logs: pd.DataFrame, game_date: str, pitcher_name: str) -> float:
     return np.nan
 
 
+def _american_to_implied(odds: float) -> float:
+    """Convert American odds to implied probability (0–1)."""
+    odds = float(odds)
+    if odds >= 0:
+        return 100 / (odds + 100)
+    return abs(odds) / (abs(odds) + 100)
+
+
+def lookup_odds(game_date: str, pitcher_name: str, line: float, side: str, snapshot: str):
+    """Return best American odds for the given side from a snapshot file.
+
+    Best = most favorable (highest positive or least negative) for that side.
+    """
+    path = SNAPSHOT_DIR / f"{game_date}_{snapshot}.csv"
+    if not path.exists():
+        return None
+    try:
+        df = pd.read_csv(path)
+    except Exception:
+        return None
+
+    col = f"{side}_odds"  # "over_odds" or "under_odds"
+    if col not in df.columns:
+        return None
+
+    # Handle both old (player_name) and new (pitcher_name) column names
+    name_col = "pitcher_name" if "pitcher_name" in df.columns else "player_name"
+    name_lower = pitcher_name.strip().lower()
+    last = name_lower.split()[-1]
+    mask = df[name_col].str.lower().str.contains(last, na=False)
+    df = df[mask]
+
+    # Match line
+    df = df[pd.to_numeric(df["line"], errors="coerce") == float(line)]
+    df = df[pd.to_numeric(df[col], errors="coerce").notna()]
+    if df.empty:
+        return None
+
+    vals = pd.to_numeric(df[col], errors="coerce").dropna()
+    # Best odds = highest value (most favorable) for that side
+    return float(vals.max())
+
+
 def rebuild_backtest(picks_log: pd.DataFrame) -> None:
     bt = pd.read_csv(BT_2026)
     bt["game_date"] = bt["game_date"].astype(str).str[:10]
@@ -71,9 +115,12 @@ def rebuild_backtest(picks_log: pd.DataFrame) -> None:
     bt_old = bt_old[pd.to_numeric(bt_old["edge_pct"], errors="coerce") >= 7.0]
 
     needed = ["game_date", "pitcher_name", "best_side", "line",
-              "strikeouts_projection", "gap", "edge_pct", "odds_used", "actual", "won"]
+              "strikeouts_projection", "gap", "edge_pct", "odds_used",
+              "opening_odds", "closing_odds", "clv_pct",
+              "actual", "won"]
     log_sub = picks_log.copy()
-    for col in ["line", "strikeouts_projection", "gap", "edge_pct", "odds_used", "actual"]:
+    for col in ["line", "strikeouts_projection", "gap", "edge_pct", "odds_used",
+                "opening_odds", "closing_odds", "clv_pct", "actual"]:
         log_sub[col] = pd.to_numeric(log_sub[col], errors="coerce")
 
     for col in needed:
@@ -131,11 +178,41 @@ def main() -> None:
         print(f"  No picks found for {resolve_date} in picks_log.")
         return
 
+    # Ensure odds columns exist
+    for col in ("opening_odds", "closing_odds", "clv_pct"):
+        if col not in picks.columns:
+            picks[col] = ""
+
     updated = 0
     for idx in picks[mask].index:
         row = picks.loc[idx]
-        if str(row.get("won", "")) in ("0", "1"):
-            continue  # already resolved
+        already_resolved = str(row.get("won", "")) in ("0", "1")
+
+        # Always fill odds if missing (even for already-resolved rows)
+        if str(row.get("opening_odds", "")) in ("", "nan"):
+            o = lookup_odds(resolve_date, str(row["pitcher_name"]),
+                            float(row["line"]), str(row["best_side"]), "morning")
+            if o is not None:
+                picks.loc[idx, "opening_odds"] = str(o)
+
+        if str(row.get("closing_odds", "")) in ("", "nan"):
+            c = lookup_odds(resolve_date, str(row["pitcher_name"]),
+                            float(row["line"]), str(row["best_side"]), "closing")
+            if c is not None:
+                picks.loc[idx, "closing_odds"] = str(c)
+
+        # Compute CLV% if we have both
+        open_o  = picks.loc[idx, "opening_odds"]
+        close_o = picks.loc[idx, "closing_odds"]
+        if str(open_o) not in ("", "nan") and str(close_o) not in ("", "nan"):
+            p_open  = _american_to_implied(float(open_o))
+            p_close = _american_to_implied(float(close_o))
+            clv = round((p_close - p_open) * 100, 2)
+            picks.loc[idx, "clv_pct"] = str(clv)
+
+        if already_resolved:
+            continue
+
         actual = lookup_k(logs_df, resolve_date, str(row["pitcher_name"]))
         if pd.notna(actual):
             line = float(row["line"])
