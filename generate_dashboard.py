@@ -1142,14 +1142,16 @@ function buildChart(){
 </body>
 </html>"""
 
+import shutil
+
 out = Path("dashboard.html")
 out.write_text(HTML, encoding="utf-8")
-# Keep site/picks.html in sync automatically
+
 site_copy = Path("site/picks.html")
-if site_copy.parent.exists():
-    import shutil
-    shutil.copy2(out, site_copy)
-print(f"Generated {out} -- open it in your browser.")
+site_copy.parent.mkdir(parents=True, exist_ok=True)
+shutil.copy2(out, site_copy)
+
+print(f"Generated {out} and {site_copy}")
 print(f"Available dates: {', '.join(available_dates[:5])}{'...' if len(available_dates)>5 else ''}")
 if bt_data:
     print(f"Backtest: {bt_data.get('total',0)} bets, {bt_data.get('wins',0)}W/{bt_data.get('losses',0)}L, {bt_data.get('roi',0):+.1f}% ROI")
