@@ -110,8 +110,9 @@ def compute_clv_for_date(picks: pd.DataFrame, date_str: str) -> pd.DataFrame:
         side  = str(pick.get("best_side", ""))
         name_norm = _norm_name(pick.get("pitcher_name", ""))
 
-        # Match by pitcher_id if available, else by normalized name
-        has_pid_col = "pitcher_id" in morning_best.columns
+        # Match by pitcher_id if available in BOTH snapshots, else by normalized name.
+        # Closing snapshots may lack pitcher_id — fall back to name matching in that case.
+        has_pid_col = "pitcher_id" in morning_best.columns and "pitcher_id" in closing_best.columns
         if pid and has_pid_col:
             m_row = morning_best[
                 (morning_best["pitcher_id"].astype(str) == pid) &

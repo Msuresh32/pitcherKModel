@@ -35,14 +35,19 @@ def _american_to_implied(odds: float) -> float:
     return abs(odds) / (abs(odds) + 100)
 
 
+def _strip_accents(s: str) -> str:
+    import unicodedata
+    return unicodedata.normalize("NFD", s).encode("ascii", "ignore").decode("ascii").lower()
+
+
 def _best_odds(snap: pd.DataFrame, pitcher_name: str, line: float, side: str):
     """Return best (most favorable) American odds for the side from a snapshot."""
     col = f"{side}_odds"
     if col not in snap.columns:
         return None
     name_col = "pitcher_name" if "pitcher_name" in snap.columns else "player_name"
-    last = pitcher_name.strip().split()[-1].lower()
-    rows = snap[snap[name_col].str.lower().str.contains(last, na=False)]
+    last = _strip_accents(pitcher_name.strip().split()[-1])
+    rows = snap[snap[name_col].map(_strip_accents).str.contains(last, na=False)]
     rows = rows[pd.to_numeric(rows["line"], errors="coerce") == float(line)]
     vals = pd.to_numeric(rows[col], errors="coerce").dropna()
     return float(vals.max()) if not vals.empty else None

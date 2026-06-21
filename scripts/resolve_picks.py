@@ -90,11 +90,11 @@ def lookup_odds(game_date: str, pitcher_name: str, line: float, side: str, snaps
     if col not in df.columns:
         return None
 
-    # Handle both old (player_name) and new (pitcher_name) column names
+    import unicodedata as _ud
+    def _norm(s): return _ud.normalize("NFD", str(s)).encode("ascii","ignore").decode("ascii").lower()
     name_col = "pitcher_name" if "pitcher_name" in df.columns else "player_name"
-    name_lower = pitcher_name.strip().lower()
-    last = name_lower.split()[-1]
-    mask = df[name_col].str.lower().str.contains(last, na=False)
+    last = _norm(pitcher_name.strip().split()[-1])
+    mask = df[name_col].map(_norm).str.contains(last, na=False)
     df = df[mask]
 
     # Match line

@@ -24,6 +24,13 @@ Log "7am daily pipeline started"
 & $Python scripts\fetch_pregame_lineups.py --date $Today 2>&1 | Tee-Object -Append -FilePath $LogFile
 & $Python scripts\fetch_odds_daily.py --date $Today 2>&1 | Tee-Object -Append -FilePath $LogFile
 & $Python scripts\project_daily.py --date $Today 2>&1 | Tee-Object -Append -FilePath $LogFile
+
+Log "Running backtest (production config: blend 0.7/0.3, min-edge 12, edge-shrink 0.7)..."
+& $Python scripts\backtest.py --blend "0.7,0.3" --min-edge 12 --edge-shrink 0.7 --closing-odds data/odds/june_2026_odds.csv 2>&1 | Tee-Object -Append -FilePath $LogFile
+
+Log "Running live CLV analysis..."
+& $Python scripts\compute_live_clv.py 2>&1 | Tee-Object -Append -FilePath $LogFile
+
 & $Python generate_dashboard.py 2>&1 | Tee-Object -Append -FilePath $LogFile
 
 & $Git -C $ProjectRoot add -A 2>&1 | Out-Null
