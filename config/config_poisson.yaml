@@ -1,0 +1,67 @@
+data:
+  raw_dir: data/raw
+  processed_dir: data/processed_poisson
+  exports_dir: data/exports
+  odds_dir: data/odds
+  pitcher_logs_file: data/raw/pitcher_game_logs.csv
+  team_batting_logs_file: data/raw/team_batting_game_logs.csv
+  batter_game_logs_file: data/raw/batter_game_logs.csv
+  statcast_pitcher_daily_file: data/raw/statcast_pitcher_daily.csv
+  statcast_batter_pitch_type_daily_file: data/raw/statcast_batter_pitch_type_daily.csv
+  park_factors_file: data/raw/park_factors.csv
+  game_context_logs_file: data/raw/game_context_logs.csv
+  probable_pitchers_file: data/raw/probable_pitchers.csv
+  today_lineups_file: data/raw/today_lineups.csv
+  odds_file: data/odds/pitcher_props.csv
+  fangraphs_file: data/raw/fangraphs_pitcher_stats.csv
+  statcast_pitcher_advanced_file: data/raw/statcast_pitcher_advanced_daily.csv
+  statcast_batter_discipline_file: data/raw/statcast_batter_discipline_daily.csv
+  closing_odds_file: data/odds/june_2026_odds.csv
+training:
+  train_start: '2023-01-01'
+  train_end: '2026-05-31'
+  backtest_start: '2026-06-01'
+  backtest_end: '2026-06-16'
+  model_type: poisson
+  random_state: 42
+  min_history_games: 3
+  cv_splits: 4
+  per_target_alpha:
+    strikeouts: 0.5
+    walks: 0.1
+    hits_allowed: 0.01
+features:
+  rolling_windows:
+  - 3
+  - 5
+  - 10
+  - 20
+  top_k_features: 60
+betting:
+  bankroll: 1000
+  max_kelly_fraction: 0.05
+  min_edge_pct: 20.0
+  max_edge_pct: 100.0
+  max_proj_gap: 99.0
+  edge_shrink_factor: 0.7
+  residual_std_multiplier: 1.25
+  default_residual_std:
+    strikeouts: 1.8
+    walks: 1.0
+    hits_allowed: 2.0
+  market_distribution:
+    strikeouts: poisson
+    walks: poisson
+    hits_allowed: poisson
+  apply_bias_correction: true
+  min_starts_current_season: 0
+  disabled_markets:
+  - hits_allowed
+  - walks
+  main_line_only: true
+  main_line_min_odds: -160
+  main_line_max_odds: 140
+export:
+  csv: true
+  google_sheets: false
+  google_sheet_name: ''

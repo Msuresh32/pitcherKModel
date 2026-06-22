@@ -316,6 +316,7 @@ def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--config", default="config/config.yaml")
     parser.add_argument("--date", default=date.today().isoformat())
+    parser.add_argument("--label", default="", help="Suffix appended to output filenames (e.g. 'poisson')")
     args = parser.parse_args()
 
     config = load_config(args.config)
@@ -460,9 +461,10 @@ def main() -> None:
     # ------------------------------------------------------------------
     # Export
     # ------------------------------------------------------------------
-    out_path = Path(config["data"]["exports_dir"]) / f"daily_pitcher_props_{args.date}.csv"
+    label_suffix = f"_{args.label}" if args.label else ""
+    out_path = Path(config["data"]["exports_dir"]) / f"daily_pitcher_props_{args.date}{label_suffix}.csv"
     export_csv(picks, out_path)
-    excel_path = Path(config["data"]["exports_dir"]) / f"daily_pitcher_props_{args.date}.xlsx"
+    excel_path = Path(config["data"]["exports_dir"]) / f"daily_pitcher_props_{args.date}{label_suffix}.xlsx"
     try:
         export_pretty_excel(picks, excel_path)
     except PermissionError:

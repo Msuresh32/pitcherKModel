@@ -23,10 +23,10 @@ Log "7am daily pipeline started"
 & $Python scripts\fetch_probables_daily.py --date $Today 2>&1 | Tee-Object -Append -FilePath $LogFile
 & $Python scripts\fetch_pregame_lineups.py --date $Today 2>&1 | Tee-Object -Append -FilePath $LogFile
 & $Python scripts\fetch_odds_daily.py --date $Today 2>&1 | Tee-Object -Append -FilePath $LogFile
-& $Python scripts\project_daily.py --date $Today 2>&1 | Tee-Object -Append -FilePath $LogFile
+& $Python scripts\project_daily.py --date $Today --config config/config_poisson.yaml --label poisson 2>&1 | Tee-Object -Append -FilePath $LogFile
 
-Log "Running backtest (production config: blend 0.7/0.3, min-edge 12, edge-shrink 0.7)..."
-& $Python scripts\backtest.py --blend "0.7,0.3" --min-edge 12 --edge-shrink 0.7 --closing-odds data/odds/june_2026_odds.csv 2>&1 | Tee-Object -Append -FilePath $LogFile
+Log "Running backtest (Poisson model, min-edge 20)..."
+& $Python scripts\backtest.py --config config/config_poisson.yaml --min-edge 20 --closing-odds data/odds/closing_odds_master.csv 2>&1 | Tee-Object -Append -FilePath $LogFile
 
 Log "Running live CLV analysis..."
 & $Python scripts\compute_live_clv.py 2>&1 | Tee-Object -Append -FilePath $LogFile

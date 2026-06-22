@@ -16,15 +16,15 @@ function Ntfy($title, $body, $priority="high", $tags="baseball") {
 Log "11:30am lineup rerun started"
 & $Python scripts\fetch_pregame_lineups.py --date $Today 2>&1 | Tee-Object -Append -FilePath $LogFile
 & $Python scripts\fetch_odds_daily.py --date $Today 2>&1 | Tee-Object -Append -FilePath $LogFile
-& $Python scripts\project_daily.py --date $Today 2>&1 | Tee-Object -Append -FilePath $LogFile
+& $Python scripts\project_daily.py --date $Today --config config/config_poisson.yaml --label poisson 2>&1 | Tee-Object -Append -FilePath $LogFile
 & $Python generate_dashboard.py 2>&1 | Tee-Object -Append -FilePath $LogFile
 
-$CsvPath    = "$ProjectRoot\data\exports\daily_pitcher_props_$Today.csv"
+$CsvPath    = "$ProjectRoot\data\exports\daily_pitcher_props_${Today}_poisson.csv"
 $LineupPath = "$ProjectRoot\data\raw\today_lineups.csv"
 
 if (Test-Path $CsvPath) {
     $picks = Import-Csv $CsvPath | Where-Object {
-        $_.market -eq "strikeouts" -and [double]($_.edge_pct) -ge 15
+        $_.market -eq "strikeouts" -and [double]($_.edge_pct) -ge 20
     } | Sort-Object { [double]$_.edge_pct } -Descending |
       Group-Object pitcher_name | ForEach-Object { $_.Group[0] }
 
