@@ -72,6 +72,7 @@ def _train_ensemble(
     random_state: int,
     per_target_alpha: dict[str, float] | None,
     blend_weights: list = None,
+    sample_weights=None,
 ) -> dict[str, dict[str, Any]]:
     """Train Poisson GLM + XGBoost Poisson for each target. Blend from config (default 60/40)."""
     blend_weights = blend_weights if blend_weights is not None else [0.6, 0.4]
@@ -83,17 +84,18 @@ def _train_ensemble(
         .fillna(train_df[feature_cols].median(numeric_only=True).fillna(0.0))
         .fillna(0.0)
     )
+    sw = sample_weights if sample_weights is not None else None
     for target in TARGETS:
         y = train_df[target].astype(float).clip(lower=0)
         target_alpha = (per_target_alpha or {}).get(target, 1e-4)
 
         poisson_model = _make_model("poisson", random_state, alpha=target_alpha)
         poisson_pipeline = Pipeline([("scaler", StandardScaler()), ("model", poisson_model)])
-        poisson_pipeline.fit(x, y)
+        poisson_pipeline.fit(x, y, model__sample_weight=sw)
 
         xgb_model = _make_model("xgboost_poisson", random_state)
         xgb_pipeline = Pipeline([("scaler", StandardScaler()), ("model", xgb_model)])
-        xgb_pipeline.fit(x, y)
+        xgb_pipeline.fit(x, y, model__sample_weight=sw)
 
         pois_preds = np.maximum(poisson_pipeline.predict(x), 0)
         xgb_preds = np.maximum(xgb_pipeline.predict(x), 0)
@@ -129,12 +131,16 @@ def train_models(
     alpha: float | None = None,
     per_target_alpha: dict[str, float] | None = None,
     blend_weights: list = None,
+    sample_weights=None,
 ) -> dict[str, dict[str, Any]]:
     model_dir = Path(model_dir)
     model_dir.mkdir(parents=True, exist_ok=True)
 
     if model_type == "ensemble":
-        return _train_ensemble(train_df, feature_cols, model_dir, random_state, per_target_alpha, blend_weights)
+        return _train_ensemble(
+            train_df, feature_cols, model_dir, random_state,
+            per_target_alpha, blend_weights, sample_weights=sample_weights,
+        )
 
     metrics: dict[str, dict[str, Any]] = {}
 
@@ -144,6 +150,7 @@ def train_models(
         .fillna(train_df[feature_cols].median(numeric_only=True).fillna(0.0))
         .fillna(0.0)
     )
+    sw = sample_weights if sample_weights is not None else None
     for target in TARGETS:
         y = train_df[target].astype(float)
         if _is_count_model(model_type):
@@ -156,7 +163,7 @@ def train_models(
                 ("model", model),
             ]
         )
-        pipeline.fit(x, y)
+        pipeline.fit(x, y, model__sample_weight=sw)
         preds = pipeline.predict(x)
         if _is_count_model(model_type):
             preds = np.maximum(preds, 0)

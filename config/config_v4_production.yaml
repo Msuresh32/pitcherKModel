@@ -52,6 +52,10 @@ training:
   # opponent-level information — only the row's use as a prediction target.
   min_starter_ip: 4.0
   cv_splits: 4
+  # Down-weight pre-pitch-clock data (2022). Pitch-clock rule reduced game pace
+  # and slightly changed pitcher usage patterns starting 2023. K-rate impact is
+  # minor (~0.004 K/start difference in audit), but direction is consistent.
+  pre2023_weight: 0.5
   per_target_alpha:
     strikeouts: 0.1
     walks: 0.01

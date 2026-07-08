@@ -194,6 +194,16 @@ def main() -> None:
     # Final model training
     # ------------------------------------------------------------------
     blend_weights = config["training"].get("ensemble_blend")
+
+    # Pre-2023 downweight: compensate for pitch-clock regime shift in 2022 data.
+    pre2023_weight = float(config["training"].get("pre2023_weight", 1.0))
+    sample_weights = None
+    if pre2023_weight != 1.0 and "game_date" in train_df.columns:
+        years = pd.to_datetime(train_df["game_date"], errors="coerce").dt.year
+        sample_weights = years.map(lambda yr: pre2023_weight if yr < 2023 else 1.0).values
+        n_down = int((years < 2023).sum())
+        print(f"Pre-2023 downweight={pre2023_weight}: {n_down} rows weighted at {pre2023_weight}x")
+
     metrics = train_models(
         train_df=train_df,
         feature_cols=feature_cols,
@@ -203,6 +213,7 @@ def main() -> None:
         alpha=global_alpha,
         per_target_alpha=per_target_alpha,
         blend_weights=blend_weights,
+        sample_weights=sample_weights,
     )
 
     # Update fill_values to include opportunity feature columns (predicted, rarely NaN)
