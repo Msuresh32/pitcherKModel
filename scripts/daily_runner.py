@@ -166,6 +166,19 @@ def _apply_v4_filters(picks: pd.DataFrame, target_date: str, config: dict) -> pd
             )
             df = df[pd.to_numeric(prob, errors="coerce").fillna(0) >= min_model_prob].copy()
 
+    max_bet_odds = bet.get("max_bet_odds")
+    if max_bet_odds is not None and not df.empty:
+        bet_odds = df.apply(
+            lambda r: r.get("over_odds") if r.get("best_side") == "over"
+                      else r.get("under_odds"),
+            axis=1,
+        )
+        n_before = len(df)
+        df = df[pd.to_numeric(bet_odds, errors="coerce") <= float(max_bet_odds)].copy()
+        n_dropped = n_before - len(df)
+        if n_dropped:
+            print(f"[V4 filter] max_bet_odds={int(max_bet_odds)}: dropped {n_dropped} non-qualifying bet(s).")
+
     return df.reset_index(drop=True)
 
 
@@ -289,6 +302,8 @@ def _write_summary(flagged: pd.DataFrame, target_date: str, config: dict, n_logg
         "## Configuration",
         f"- Min edge×gap: {v4_thresh}",
         f"- V2_core threshold: {v2_thresh}",
+        f"- Min model prob: {float(bet.get('min_model_prob', 0.0)):.0%}",
+        f"- Max bet odds: {bet.get('max_bet_odds', 'none')}",
         f"- Skip months: {bet.get('skip_months', [])}",
         f"- Overs only: {bet.get('overs_only', False)}",
         f"- Flat stake: ${float(bet.get('flat_stake', 100)):.0f}",
