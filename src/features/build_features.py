@@ -1200,6 +1200,80 @@ def _prior_environment_features(
     return env[["game_date", group_col] + feature_cols]
 
 
+def _umpire_called_strike_features(
+    game_context_logs: pd.DataFrame,
+    statcast_pitcher_daily: pd.DataFrame,
+) -> pd.DataFrame:
+    """
+    Per-umpire prior called-strike rate (expanding mean, shift(1)) and excess vs the
+    league mean over the same window.  Umpires differ by ~1.5-2 K/9 on called-strike
+    tendency, making this the single highest-leverage missing feature.
+
+    Returns (game_date, home_plate_umpire_id, umpire_csr_avg_prior, umpire_csr_excess_prior).
+    """
+    if (
+        game_context_logs is None
+        or game_context_logs.empty
+        or statcast_pitcher_daily is None
+        or statcast_pitcher_daily.empty
+        or "called_strike_rate" not in statcast_pitcher_daily.columns
+        or "home_plate_umpire_id" not in game_context_logs.columns
+    ):
+        return pd.DataFrame()
+
+    ctx = game_context_logs[["game_date", "pitcher_id", "home_plate_umpire_id"]].copy()
+    ctx["game_date"] = pd.to_datetime(ctx["game_date"])
+    ctx["pitcher_id"] = ctx["pitcher_id"].astype(str)
+    ctx["home_plate_umpire_id"] = pd.to_numeric(ctx["home_plate_umpire_id"], errors="coerce")
+    ctx = ctx.dropna(subset=["home_plate_umpire_id"])
+
+    sc = statcast_pitcher_daily[["game_date", "pitcher_id", "called_strike_rate"]].copy()
+    sc["game_date"] = pd.to_datetime(sc["game_date"])
+    sc["pitcher_id"] = sc["pitcher_id"].astype(str)
+    sc = sc.dropna(subset=["called_strike_rate"])
+
+    # Join to get umpire_id per pitcher start
+    merged = ctx.merge(sc, on=["game_date", "pitcher_id"], how="inner")
+    if merged.empty:
+        return pd.DataFrame()
+
+    # One row per (umpire, date): mean CSR across all pitchers who worked that day
+    ump_daily = (
+        merged.groupby(["home_plate_umpire_id", "game_date"], as_index=False)["called_strike_rate"]
+        .mean()
+        .sort_values(["home_plate_umpire_id", "game_date"])
+        .reset_index(drop=True)
+    )
+
+    # League-wide daily baseline for relative metric
+    league_mean = ump_daily.groupby("game_date")["called_strike_rate"].mean().rename("_lg_csr")
+    ump_daily = ump_daily.join(league_mean, on="game_date")
+
+    # Per-umpire expanding prior mean (shift(1) to avoid same-day leakage)
+    grouped = ump_daily.groupby("home_plate_umpire_id", group_keys=False)
+
+    shifted_csr = grouped["called_strike_rate"].shift(1)
+    ump_daily["umpire_csr_avg_prior"] = (
+        shifted_csr.groupby(ump_daily["home_plate_umpire_id"])
+        .expanding(min_periods=5)
+        .mean()
+        .reset_index(level=0, drop=True)
+    )
+
+    shifted_lg = grouped["_lg_csr"].shift(1)
+    lg_prior = (
+        shifted_lg.groupby(ump_daily["home_plate_umpire_id"])
+        .expanding(min_periods=5)
+        .mean()
+        .reset_index(level=0, drop=True)
+    )
+    ump_daily["umpire_csr_excess_prior"] = ump_daily["umpire_csr_avg_prior"] - lg_prior
+
+    return ump_daily[
+        ["game_date", "home_plate_umpire_id", "umpire_csr_avg_prior", "umpire_csr_excess_prior"]
+    ].dropna(subset=["umpire_csr_avg_prior"])
+
+
 def _merge_prior_environment_features(
     pitcher_df: pd.DataFrame,
     windows: list[int],
@@ -1495,6 +1569,20 @@ def build_training_features(
     df = _add_pitch_type_matchup_features(df)
     df = _merge_park_factor_features(df, park_factors)
     df = _merge_prior_environment_features(df, rolling_windows)
+
+    # Umpire called-strike rate: requires home_plate_umpire_id (merged above via game_context)
+    # and statcast called_strike_rate.  Gracefully skips when either is unavailable.
+    if "home_plate_umpire_id" in df.columns and statcast_pitcher_daily is not None:
+        ump_csr = _umpire_called_strike_features(game_context_logs, statcast_pitcher_daily)
+        if not ump_csr.empty:
+            ump_csr["home_plate_umpire_id"] = pd.to_numeric(
+                ump_csr["home_plate_umpire_id"], errors="coerce"
+            )
+            df["home_plate_umpire_id"] = pd.to_numeric(
+                df["home_plate_umpire_id"], errors="coerce"
+            )
+            df = df.merge(ump_csr, on=["game_date", "home_plate_umpire_id"], how="left")
+
     df = _add_composite_pitching_metrics(df, rolling_windows)
 
     # Bullpen workload: opponent's relief pitcher IP over last N games

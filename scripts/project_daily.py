@@ -398,7 +398,7 @@ def main() -> None:
     # ------------------------------------------------------------------
     opportunity_models = load_opportunity_models(model_dir)
     if opportunity_models:
-        features, _ = add_expected_opportunity_features(features, opportunity_models)
+        features, _ = add_expected_opportunity_features(features, opportunity_models, fill_values=fill_values)
 
     models = load_models(model_dir)
     projections = predict_targets(features, models)
@@ -536,6 +536,22 @@ def main() -> None:
             n_dropped = n_before - len(flagged)
             if n_dropped:
                 print(f"[Prob floor filter] Dropped {n_dropped} bet(s) with model_prob < {min_model_prob:.0%}.")
+        # Heavy-juice filter: only bet when our side's odds <= max_bet_odds.
+        # -150 to -130 bracket is the toxic zone: 2026 WR=47.0%, ROI=-20.1%.
+        # heavy-only (<-150): ROI=+5.8%, Sharpe 1.40 vs -0.38 all-odds.
+        max_bet_odds = config["betting"].get("max_bet_odds")
+        if max_bet_odds is not None and not flagged.empty:
+            n_before = len(flagged)
+            bet_odds = flagged.apply(
+                lambda r: r.get("over_odds") if r.get("best_side") == "over"
+                          else r.get("under_odds"),
+                axis=1,
+            )
+            flagged = flagged[pd.to_numeric(bet_odds, errors="coerce") <= float(max_bet_odds)].copy()
+            n_dropped = n_before - len(flagged)
+            if n_dropped:
+                print(f"[Heavy-juice filter] Dropped {n_dropped} bet(s) with odds > {int(max_bet_odds)}.")
+
         # V3 direction filter: overs only
         # Evidence: 2025 WF under bets ROI=+5.6%, p=0.104 (not significant at edge*gap>=12)
         # Re-evaluate after full 2026 season (Jul-Sep) before restoring under bets
