@@ -1,0 +1,121 @@
+rank,feature,classification,reason
+1,p_strikeouts_trimmed_roll10,SAFE,pitcher prior rolling/career feature if shifted before game
+2,p_strikeouts_trimmed_roll20,SAFE,pitcher prior rolling/career feature if shifted before game
+3,p_strikeouts_roll10,SAFE,pitcher prior rolling/career feature if shifted before game
+4,p_strikeouts_roll20,SAFE,pitcher prior rolling/career feature if shifted before game
+5,p_strikeouts_roll5,SAFE,pitcher prior rolling/career feature if shifted before game
+6,p_strikeouts_trimmed_roll5,SAFE,pitcher prior rolling/career feature if shifted before game
+7,p_strikeouts_career_avg_prior,SAFE,pitcher prior rolling/career feature if shifted before game
+8,p_k_per_ip_roll20,SAFE,pitcher prior rolling/career feature if shifted before game
+9,p_k9_roll20,SAFE,pitcher prior rolling/career feature if shifted before game
+10,p_k9_career,SAFE,pitcher prior rolling/career feature if shifted before game
+11,p_k_per_ip_career_prior,SAFE,pitcher prior rolling/career feature if shifted before game
+12,p_strikeouts_roll3,SAFE,pitcher prior rolling/career feature if shifted before game
+13,adv_k_rate_tto2_roll10,SUSPICIOUS,requires source timestamp audit for point-in-time availability
+14,adv_k_per_2strike_roll20,SUSPICIOUS,requires source timestamp audit for point-in-time availability
+15,p_k9_roll10,SAFE,pitcher prior rolling/career feature if shifted before game
+16,p_k_per_ip_roll10,SAFE,pitcher prior rolling/career feature if shifted before game
+17,adv_whiff_rate_roll20,SUSPICIOUS,requires source timestamp audit for point-in-time availability
+18,adv_whiff_rate_roll10,SUSPICIOUS,requires source timestamp audit for point-in-time availability
+19,adv_k_per_2strike_avg_prior,SUSPICIOUS,requires source timestamp audit for point-in-time availability
+20,adv_k_rate_tto2_avg_prior,SUSPICIOUS,requires source timestamp audit for point-in-time availability
+21,adv_k_rate_tto1_avg_prior,SUSPICIOUS,requires source timestamp audit for point-in-time availability
+22,adv_k_rate_tto2_roll20,SUSPICIOUS,requires source timestamp audit for point-in-time availability
+23,p_strikeouts_trimmed_roll3,SAFE,pitcher prior rolling/career feature if shifted before game
+24,adv_k_per_2strike_roll10,SUSPICIOUS,requires source timestamp audit for point-in-time availability
+25,adv_whiff_rate_avg_prior,SUSPICIOUS,requires source timestamp audit for point-in-time availability
+26,adv_k_rate_tto1_roll20,SUSPICIOUS,requires source timestamp audit for point-in-time availability
+27,adv_k_rate_tto1_roll10,SUSPICIOUS,requires source timestamp audit for point-in-time availability
+28,p_k9_roll5,SAFE,pitcher prior rolling/career feature if shifted before game
+29,p_k_per_ip_roll5,SAFE,pitcher prior rolling/career feature if shifted before game
+30,adv_z_contact_rate_roll20,SUSPICIOUS,requires source timestamp audit for point-in-time availability
+31,adv_whiff_rate_roll5,SUSPICIOUS,requires source timestamp audit for point-in-time availability
+32,sc_swinging_strike_rate_roll20,SUSPICIOUS,requires source timestamp audit for point-in-time availability
+33,sc_swinging_strike_rate_roll10,SUSPICIOUS,requires source timestamp audit for point-in-time availability
+34,adv_z_contact_rate_roll10,SUSPICIOUS,requires source timestamp audit for point-in-time availability
+35,p_fip_no_hr_roll20,SAFE,pitcher prior rolling/career feature if shifted before game
+36,p_fip_no_hr_roll10,SAFE,pitcher prior rolling/career feature if shifted before game
+37,adv_whiff_rate_roll3,SUSPICIOUS,requires source timestamp audit for point-in-time availability
+38,sc_csw_rate_roll20,SUSPICIOUS,requires source timestamp audit for point-in-time availability
+39,adv_z_contact_rate_avg_prior,SUSPICIOUS,requires source timestamp audit for point-in-time availability
+40,adv_csw_rate_roll20,SUSPICIOUS,requires source timestamp audit for point-in-time availability
+41,sc_swinging_strike_rate_roll3,SUSPICIOUS,requires source timestamp audit for point-in-time availability
+42,adv_csw_rate_roll10,SUSPICIOUS,requires source timestamp audit for point-in-time availability
+43,adv_k_rate_tto1_roll5,SUSPICIOUS,requires source timestamp audit for point-in-time availability
+44,p_fip_no_hr_roll5,SAFE,pitcher prior rolling/career feature if shifted before game
+45,adv_csw_rate_roll5,SUSPICIOUS,requires source timestamp audit for point-in-time availability
+46,adv_k_rate_tto2_roll5,SUSPICIOUS,requires source timestamp audit for point-in-time availability
+47,sc_csw_rate_roll10,SUSPICIOUS,requires source timestamp audit for point-in-time availability
+48,sc_swinging_strike_rate_roll5,SUSPICIOUS,requires source timestamp audit for point-in-time availability
+49,p_k_per_ip_roll3,SAFE,pitcher prior rolling/career feature if shifted before game
+50,p_k9_roll3,SAFE,pitcher prior rolling/career feature if shifted before game
+51,sc_csw_rate_roll5,SUSPICIOUS,requires source timestamp audit for point-in-time availability
+52,sc_swinging_strike_rate_avg_prior,SUSPICIOUS,requires source timestamp audit for point-in-time availability
+53,p_fip_no_hr_career,SAFE,pitcher prior rolling/career feature if shifted before game
+54,adv_k_per_2strike_roll5,SUSPICIOUS,requires source timestamp audit for point-in-time availability
+55,adv_ff_whiff_rate_roll20,SUSPICIOUS,requires source timestamp audit for point-in-time availability
+56,adv_ff_whiff_rate_roll10,SUSPICIOUS,requires source timestamp audit for point-in-time availability
+57,adv_csw_rate_avg_prior,SUSPICIOUS,requires source timestamp audit for point-in-time availability
+58,sc_max_release_speed_roll20,SUSPICIOUS,requires source timestamp audit for point-in-time availability
+59,sc_max_release_speed_roll10,SUSPICIOUS,requires source timestamp audit for point-in-time availability
+60,adv_ff_whiff_rate_avg_prior,SUSPICIOUS,requires source timestamp audit for point-in-time availability
+61,adv_ff_eff_speed_roll5,SUSPICIOUS,requires source timestamp audit for point-in-time availability
+62,sc_csw_rate_avg_prior,SUSPICIOUS,requires source timestamp audit for point-in-time availability
+63,adv_csw_rate_roll3,SUSPICIOUS,requires source timestamp audit for point-in-time availability
+64,adv_ff_eff_speed_roll10,SUSPICIOUS,requires source timestamp audit for point-in-time availability
+65,sc_max_release_speed_roll5,SUSPICIOUS,requires source timestamp audit for point-in-time availability
+66,adv_k_rate_tto2_roll3,SUSPICIOUS,requires source timestamp audit for point-in-time availability
+67,adv_ff_velo_roll10,SUSPICIOUS,requires source timestamp audit for point-in-time availability
+68,adv_ff_velo_roll5,SUSPICIOUS,requires source timestamp audit for point-in-time availability
+69,sc_max_release_speed_roll3,SUSPICIOUS,requires source timestamp audit for point-in-time availability
+70,adv_z_contact_rate_roll5,SUSPICIOUS,requires source timestamp audit for point-in-time availability
+71,adv_ff_eff_speed_roll20,SUSPICIOUS,requires source timestamp audit for point-in-time availability
+72,adv_ff_eff_speed_roll3,SUSPICIOUS,requires source timestamp audit for point-in-time availability
+73,adv_ff_velo_roll3,SUSPICIOUS,requires source timestamp audit for point-in-time availability
+74,sc_csw_rate_roll3,SUSPICIOUS,requires source timestamp audit for point-in-time availability
+75,adv_ff_velo_roll20,SUSPICIOUS,requires source timestamp audit for point-in-time availability
+76,adv_k_per_2strike_roll3,SUSPICIOUS,requires source timestamp audit for point-in-time availability
+77,p_fip_no_hr_roll3,SAFE,pitcher prior rolling/career feature if shifted before game
+78,adv_ff_eff_speed_avg_prior,SUSPICIOUS,requires source timestamp audit for point-in-time availability
+79,matchup_overall_stuff,UNKNOWN,derived matchup feature; needs construction audit
+80,sc_max_release_speed_avg_prior,SUSPICIOUS,requires source timestamp audit for point-in-time availability
+81,p_innings_pitched_roll5,SAFE,pitcher prior rolling/career feature if shifted before game
+82,adv_ff_velo_avg_prior,SUSPICIOUS,requires source timestamp audit for point-in-time availability
+83,adv_k_rate_tto1_roll3,SUSPICIOUS,requires source timestamp audit for point-in-time availability
+84,sc_avg_release_speed_roll20,SUSPICIOUS,requires source timestamp audit for point-in-time availability
+85,p_innings_pitched_roll3,SAFE,pitcher prior rolling/career feature if shifted before game
+86,sc_avg_release_speed_roll5,SUSPICIOUS,requires source timestamp audit for point-in-time availability
+87,adv_total_pitches_roll3,SUSPICIOUS,requires source timestamp audit for point-in-time availability
+88,p_innings_pitched_roll10,SAFE,pitcher prior rolling/career feature if shifted before game
+89,sc_statcast_pitches_roll3,SUSPICIOUS,requires source timestamp audit for point-in-time availability
+90,adv_z_contact_rate_roll3,SUSPICIOUS,requires source timestamp audit for point-in-time availability
+91,sc_avg_release_speed_roll10,SUSPICIOUS,requires source timestamp audit for point-in-time availability
+92,sc_avg_release_speed_roll3,SUSPICIOUS,requires source timestamp audit for point-in-time availability
+93,p_deep_start_rate_6ip_roll5,SAFE,pitcher prior rolling/career feature if shifted before game
+94,p_deep_start_rate_6ip_roll20,SAFE,pitcher prior rolling/career feature if shifted before game
+95,adv_ff_whiff_rate_roll5,SUSPICIOUS,requires source timestamp audit for point-in-time availability
+96,adv_total_pitches_roll5,SUSPICIOUS,requires source timestamp audit for point-in-time availability
+97,opp_lineup_k_rate_prior,SAFE,opponent prior rolling feature if shifted before game
+98,opp_lineup_k_rate_vs_starter_hand_prior,SAFE,opponent prior rolling feature if shifted before game
+99,sc_statcast_pitches_roll5,SUSPICIOUS,requires source timestamp audit for point-in-time availability
+100,opp_lineup_weighted_k_rate_vs_starter_hand_prior,SAFE,opponent prior rolling feature if shifted before game
+101,p_deep_start_rate_6ip_roll10,SAFE,pitcher prior rolling/career feature if shifted before game
+102,opp_lineup_weighted_k_rate_prior,SAFE,opponent prior rolling feature if shifted before game
+103,p_innings_pitched_roll20,SAFE,pitcher prior rolling/career feature if shifted before game
+104,p_innings_pitched_max_roll3,SAFE,pitcher prior rolling/career feature if shifted before game
+105,lineup_bat_whiff_rate_avg_prior,SUSPICIOUS,requires source timestamp audit for point-in-time availability
+106,matchup_ff_stuff_score,UNKNOWN,derived matchup feature; needs construction audit
+107,adv_k_rate_tto3_avg_prior,SUSPICIOUS,requires source timestamp audit for point-in-time availability
+108,p_hits_per_ip_roll20,SAFE,pitcher prior rolling/career feature if shifted before game
+109,p_deep_start_rate_6ip_roll3,SAFE,pitcher prior rolling/career feature if shifted before game
+110,adv_o_swing_rate_roll20,SUSPICIOUS,requires source timestamp audit for point-in-time availability
+111,adv_ff_whiff_rate_roll3,SUSPICIOUS,requires source timestamp audit for point-in-time availability
+112,adv_o_swing_rate_avg_prior,SUSPICIOUS,requires source timestamp audit for point-in-time availability
+113,sc_avg_release_speed_avg_prior,SUSPICIOUS,requires source timestamp audit for point-in-time availability
+114,p_deep_start_rate_6ip_career_prior,SAFE,pitcher prior rolling/career feature if shifted before game
+115,lineup_bat_k_rate_avg_prior,SUSPICIOUS,requires source timestamp audit for point-in-time availability
+116,p_hits_per_ip_roll10,SAFE,pitcher prior rolling/career feature if shifted before game
+117,p_hits_per_ip_career_prior,SAFE,pitcher prior rolling/career feature if shifted before game
+118,lineup_bat_sl_whiff_rate_avg_prior,SUSPICIOUS,requires source timestamp audit for point-in-time availability
+119,adv_ff_count_roll3,SUSPICIOUS,requires source timestamp audit for point-in-time availability
+120,p_short_start_rate_under5ip_roll5,SAFE,pitcher prior rolling/career feature if shifted before game

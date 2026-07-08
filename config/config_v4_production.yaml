@@ -1,0 +1,142 @@
+##############################################################################
+# V4 Production Config
+# Research date: 2026-06-29
+# Objective: maximize E[annual profit] = n × (ROI + exchange_adj)
+#
+# Key changes from V2/V3:
+#   min_edge_gap_product: 6.0  (V2=12; V4 frontier peaks at eg=6)
+#   overs_only: false          (V3 reversed: unders add $7,937/yr at eg>=6)
+#   v2_core_threshold: 12.0   (bets are tagged V2_core vs V4_extra for audit)
+#   exchange pricing fields added for decision support
+#
+# Expected 2025 WF performance at $100/bet:
+#   Raw (no exchange): n=1340, ROI=+10.9%, E[$]=~$14,550/yr
+#   +10c exchange:     n=1340, ROI=+16.6%, E[$]=~$22,210/yr
+##############################################################################
+
+data:
+  raw_dir: data/raw
+  processed_dir: data/processed_poisson_wf2025
+  exports_dir: data/exports
+  odds_dir: data/odds
+  pitcher_logs_file: data/raw/pitcher_game_logs.csv
+  team_batting_logs_file: data/raw/team_batting_game_logs.csv
+  batter_game_logs_file: data/raw/batter_game_logs.csv
+  statcast_pitcher_daily_file: data/raw/statcast_pitcher_daily.csv
+  statcast_batter_pitch_type_daily_file: data/raw/statcast_batter_pitch_type_daily.csv
+  park_factors_file: data/raw/park_factors.csv
+  game_context_logs_file: data/raw/game_context_logs.csv
+  probable_pitchers_file: data/raw/probable_pitchers.csv
+  today_lineups_file: data/raw/today_lineups.csv
+  odds_file: data/odds/historical_pitcher_props_2025.csv
+  fangraphs_file: data/raw/fangraphs_pitcher_stats.csv
+  statcast_pitcher_advanced_file: data/raw/statcast_pitcher_advanced_daily.csv
+  statcast_batter_discipline_file: data/raw/statcast_batter_discipline_daily.csv
+  closing_odds_file: data/odds/historical_pitcher_props_2025.csv
+
+training:
+  train_start: '2022-01-01'
+  train_end: '2024-12-31'        # WF cutoff — do NOT change until 2026 season ends
+  backtest_start: '2025-04-01'
+  backtest_end: '2025-10-05'
+  model_type: ensemble
+  random_state: 42
+  min_history_games: 3
+  # Exclude non-starter appearances (openers, bulk relievers) from training targets.
+  # Data quality audit found 221 pure relievers (mean K=1.63 vs 5.21 for IP>=5).
+  # IP=0 rows (scratched starts, logical errors) are always excluded.
+  # Rolling window history is computed before this filter, so it doesn't remove
+  # opponent-level information — only the row's use as a prediction target.
+  min_starter_ip: 4.0
+  cv_splits: 4
+  per_target_alpha:
+    strikeouts: 0.1
+    walks: 0.01
+    hits_allowed: 0.0001
+  ensemble_blend:
+  - 0.7
+  - 0.3
+
+features:
+  rolling_windows:
+  - 3
+  - 5
+  - 10
+  - 20
+  top_k_features: 100
+
+betting:
+  bankroll: 1000
+  flat_stake: 100                  # dollars per bet (for E[$] calculations)
+  max_kelly_fraction: 0.05
+  edge_shrink_factor: 0.7
+  auto_place_bets: false           # NEVER set to true — system is decision-support only
+
+  # ── V4 PRIMARY FILTER ────────────────────────────────────────────────────
+  # Efficient frontier peaks at edge*gap ≥ 5–6 for E[profit] maximization.
+  # WF2025: n=1340, ROI=+10.9%, E[$+10c]=$22,210/yr, p<0.001
+  # Compare to V2B (eg≥12): n=750, ROI=+13.4%, E[$+10c]=$14,387/yr (-35%)
+  min_edge_pct: 0.0
+  min_edge_gap_product: 6.0       # V4: profit-maximizing threshold
+
+  # ── STRATEGY BUCKET THRESHOLDS (for audit/analysis only) ─────────────────
+  # V2_core : edge_gap_product >= 12  (original V2 signal, highly selective)
+  # V4_extra: 6 <= edge_gap_product < 12  (new volume from V4 research)
+  # Filtered: edge_gap_product < 6    (below threshold, not bet)
+  v2_core_threshold: 12.0
+
+  # ── SEASONAL FILTER ───────────────────────────────────────────────────────
+  # Jul-Sep 2025 WR=40-43%, but this is a model selection problem (rolling
+  # average mean-reversion), NOT a seasonal K-rate problem. K environment
+  # is flat year-round (early 4.889 vs late 4.893 Ks/start, delta=0.004).
+  # Skipping months hides the deficiency — it needs to be fixed in the model.
+  # June 2025 was +28.6%; combined June ROI=+7.3%. Do NOT skip June.
+  skip_months: []
+
+  # ── PROBABILITY FLOOR ─────────────────────────────────────────────────────
+  # Discovery (2025): model_prob>=65% gives WR=61.1%, ROI=+23.0%
+  # Validation (2026 holdout): WR=62.8%, ROI=+20.7%, p=0.016 (Bonferroni ok)
+  # The 55-60% probability band has WR=36-48% in BOTH years. Eliminates that.
+  # 70% threshold: 2026 WR=69.8%, ROI=+32.2%, p=0.002 — start at 65%, monitor.
+  # Raised to 0.67 per betting strategy analysis (2026 OOS: only positive ROI tier).
+  min_model_prob: 0.67
+
+  # ── HEAVY-JUICE FILTER ────────────────────────────────────────────────────
+  # Grid search (2025+2026 combined) shows -150 to -130 bracket is the toxic
+  # zone: 2026 WR=0.470, ROI=-20.1%. All-odds ROI=-2.1% in 2026; heavy-only
+  # (<-150) ROI=+5.8%, Sharpe 1.40 vs -0.38.  CI for <-150 is entirely positive
+  # [+0.8%, +12.4%] while all-odds CI straddles zero.
+  # max_bet_odds: bet only when our side's odds <= this value (i.e., more negative
+  # than -150 qualifies: -160, -180, -200; but -130 does NOT).
+  max_bet_odds: -150
+
+  # ── DIRECTION FILTER ──────────────────────────────────────────────────────
+  # V4 research: overs-only costs $7,937/yr vs all-sides at eg≥6 ($22,210 vs $14,273).
+  # NB model shows under bets significant at p=0.029*. Under signal is real.
+  overs_only: false
+
+  # ── ODDS CONSTRAINTS ──────────────────────────────────────────────────────
+  max_edge_pct: 100.0
+  max_proj_gap: 99.0
+  residual_std_multiplier: 1.25
+  default_residual_std:
+    strikeouts: 1.8
+    walks: 1.0
+    hits_allowed: 2.0
+  market_distribution:
+    strikeouts: negative_binomial
+    walks: poisson
+    hits_allowed: normal
+  apply_bias_correction: true
+  min_starts_current_season: 0
+  disabled_markets:
+  - hits_allowed
+  - walks
+  main_line_only: true
+  main_line_min_odds: -160
+  main_line_max_odds: 140
+
+export:
+  csv: true
+  google_sheets: false
+  google_sheet_name: ''

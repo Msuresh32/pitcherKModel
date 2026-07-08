@@ -211,6 +211,7 @@ def main() -> None:
             logs,
             rolling_windows=config["features"]["rolling_windows"],
             min_history_games=config["training"]["min_history_games"],
+            min_starter_ip=config["training"].get("min_starter_ip"),
             team_batting_logs=team_batting,
             game_context_logs=game_context,
             batter_game_logs=batter_logs,
@@ -229,7 +230,9 @@ def main() -> None:
     if not args.predictions_file:
         opportunity_models = load_opportunity_models(model_dir)
         if opportunity_models:
-            featured, opp_cols = add_expected_opportunity_features(featured, opportunity_models)
+            featured, opp_cols = add_expected_opportunity_features(
+                featured, opportunity_models, fill_values=fill_values
+            )
             feature_cols = feature_cols + opp_cols
 
         backtest_df = filter_date_range(featured, start, end)
@@ -288,6 +291,7 @@ def main() -> None:
         edge_shrink_factor=config["betting"]["edge_shrink_factor"],
     )
     calibration_path = Path(config["data"]["processed_dir"]) / "calibration.json"
+    existing_calibration = load_calibration(calibration_path)
     if args.save_calibration or args.output_prefix is None:
         save_calibration(calibration, calibration_path)
 
@@ -326,8 +330,6 @@ def main() -> None:
         ].copy()
         print(f"Main-line filter: {len(odds)} of {before} lines kept (odds in [{min_o}, {max_o}])")
 
-    calibration_path = Path(config["data"]["processed_dir"]) / "calibration.json"
-    existing_calibration = load_calibration(calibration_path)
     bias_corrections = bias_corrections_from_calibration(config, existing_calibration)
     probability_calibrators = probability_calibrators_from_calibration(existing_calibration)
     if bias_corrections:

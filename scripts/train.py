@@ -77,13 +77,15 @@ def main() -> None:
         print(f"Loaded {len(statcast_bat_disc)} batter discipline rows")
 
     # ------------------------------------------------------------------
-    # Build features (fill_values computed from ALL data at this stage;
-    # train-period fill_values are saved separately below)
+    # Build features — two-pass to avoid imputation leakage.
+    # Pass 1: build rolling features for all rows, defer imputation.
+    # Pass 2: compute medians from train period only, then impute everything.
     # ------------------------------------------------------------------
-    featured, feature_cols, fill_values_all = build_training_features(
+    featured_raw, feature_cols, _ = build_training_features(
         logs,
         rolling_windows=config["features"]["rolling_windows"],
         min_history_games=config["training"]["min_history_games"],
+        min_starter_ip=config["training"].get("min_starter_ip"),
         team_batting_logs=team_batting,
         game_context_logs=game_context,
         batter_game_logs=batter_logs,
@@ -92,22 +94,29 @@ def main() -> None:
         park_factors=park_factors,
         statcast_pitcher_advanced=statcast_pitcher_adv if not statcast_pitcher_adv.empty else None,
         statcast_batter_discipline=statcast_bat_disc if not statcast_bat_disc.empty else None,
+        return_before_impute=True,  # no imputation yet
     )
 
     # Merge prior-season FanGraphs stats (safe: uses season-1 join)
     if not fangraphs.empty:
-        featured, fg_cols = merge_fangraphs_prior_season(featured, fangraphs)
+        featured_raw, fg_cols = merge_fangraphs_prior_season(featured_raw, fangraphs)
         feature_cols = feature_cols + fg_cols
         print(f"Added {len(fg_cols)} FanGraphs feature columns: {fg_cols}")
+
+    # Compute fill_values from training period only (correct: no future leakage)
+    train_raw = filter_date_range(featured_raw, config["training"]["train_start"], config["training"]["train_end"])
+    fill_values_train = train_raw[feature_cols].median(numeric_only=True).fillna(0.0).to_dict()
+
+    # Apply train-period medians to the full dataset
+    fill_series = pd.Series(fill_values_train).reindex(feature_cols, fill_value=0.0)
+    featured = featured_raw.copy()
+    featured[feature_cols] = featured[feature_cols].fillna(fill_series)
 
     train_df = filter_date_range(
         featured,
         config["training"]["train_start"],
         config["training"]["train_end"],
     )
-
-    # Compute fill_values from training period only and save for inference
-    fill_values_train = train_df[feature_cols].median(numeric_only=True).to_dict()
 
     model_dir = Path(config["data"]["processed_dir"]) / "models"
 
@@ -166,7 +175,9 @@ def main() -> None:
         random_state=config["training"]["random_state"],
     )
     opportunity_models = load_opportunity_models(model_dir)
-    featured, opportunity_cols = add_expected_opportunity_features(featured, opportunity_models)
+    featured, opportunity_cols = add_expected_opportunity_features(
+        featured, opportunity_models, fill_values=fill_values_train
+    )
     train_df = filter_date_range(
         featured,
         config["training"]["train_start"],

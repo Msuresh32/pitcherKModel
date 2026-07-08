@@ -80,15 +80,20 @@ def load_opportunity_models(model_dir: str | Path) -> dict[str, dict[str, Any]]:
 def add_expected_opportunity_features(
     df: pd.DataFrame,
     models: dict[str, dict[str, Any]],
+    fill_values: dict[str, float] | None = None,
 ) -> tuple[pd.DataFrame, list[str]]:
     out = df.copy()
     added = []
     for target, bundle in models.items():
         cols = bundle["feature_cols"]
+        if fill_values:
+            fills = pd.Series(fill_values).reindex(cols, fill_value=0.0)
+        else:
+            fills = out[cols].median(numeric_only=True).fillna(0.0)
         x = (
             out[cols]
             .replace([np.inf, -np.inf], np.nan)
-            .fillna(out[cols].median(numeric_only=True).fillna(0.0))
+            .fillna(fills)
             .fillna(0.0)
         )
         col = f"expected_{target}"

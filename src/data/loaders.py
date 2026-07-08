@@ -41,6 +41,16 @@ def load_pitcher_game_logs(path: str | Path) -> pd.DataFrame:
     df["game_date"] = pd.to_datetime(df["game_date"])
     df["pitcher_id"] = df["pitcher_id"].astype(str)
     df["is_home"] = df["is_home"].astype(int)
+    # Drop exact re-ingestion duplicates (same game_pk + pitcher written twice)
+    if "game_pk" in df.columns:
+        before = len(df)
+        df = df.drop_duplicates(subset=["game_pk", "pitcher_id"], keep="first")
+        if len(df) < before:
+            import logging
+            logging.getLogger(__name__).warning(
+                "load_pitcher_game_logs: dropped %d duplicate (game_pk, pitcher_id) rows",
+                before - len(df),
+            )
     return df.sort_values(["pitcher_id", "game_date"]).reset_index(drop=True)
 
 

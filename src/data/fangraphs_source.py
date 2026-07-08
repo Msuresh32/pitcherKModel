@@ -133,11 +133,15 @@ def _rename_and_clean(fg_df: pd.DataFrame) -> pd.DataFrame:
 def merge_fangraphs_prior_season(
     df: pd.DataFrame,
     fg_stats: pd.DataFrame,
+    fill_values: dict[str, float] | None = None,
 ) -> tuple[pd.DataFrame, list[str]]:
     """Join prior-season FanGraphs stats to a pitcher DataFrame by pitcher_id + year.
 
     Uses season = game_year - 1 to avoid leakage (prior season stats only).
     Returns (merged_df, list_of_added_feature_columns).
+
+    Pass fill_values (computed from training period) to avoid imputing with future-data
+    medians for rookies and late additions.
     """
     if fg_stats is None or fg_stats.empty:
         return df, []
@@ -157,10 +161,14 @@ def merge_fangraphs_prior_season(
     out = out.merge(fg[join_cols], on=["pitcher_id", "join_season"], how="left")
     out = out.drop(columns=["join_season"])
 
-    # Impute missing FanGraphs values with overall median
+    # Impute missing FanGraphs values using train-period medians when available;
+    # fall back to full-dataset median (only relevant for ad-hoc callers without fill_values).
     for col in fg_feature_cols:
         if col in out.columns:
-            median_val = out[col].median()
+            if fill_values and col in fill_values:
+                median_val = fill_values[col]
+            else:
+                median_val = out[col].median()
             out[col] = out[col].fillna(median_val if pd.notna(median_val) else 0.0)
 
     return out, fg_feature_cols

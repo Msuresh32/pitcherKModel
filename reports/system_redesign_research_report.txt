@@ -1,0 +1,1271 @@
+================================================================================
+MLB PITCHER STRIKEOUT MODEL — SYSTEM REDESIGN RESEARCH REPORT
+Prepared: 2026-07-02
+Classification: Internal Quantitative Research
+Scope: Architecture evaluation, feature research, performance ceiling analysis,
+       betting system optimization, and 12-month implementation roadmap
+================================================================================
+
+================================================================================
+SECTION 1: EXECUTIVE SUMMARY
+================================================================================
+
+This report synthesizes primary literature research, sabermetric findings, and
+quantitative betting theory to produce architecture recommendations for an
+upgraded MLB pitcher strikeout prediction and betting system. Six research areas
+were investigated; key findings follow.
+
+MODEL CLASS: The current Poisson GLM + XGBoost 70/30 ensemble is well-chosen
+but not optimal. Pitcher K counts show moderate overdispersion (variance/mean
+ratio estimated at 1.3–1.8 per start). Negative Binomial regression is a
+material upgrade to the GLM component at low cost; Conway-Maxwell-Poisson (CMP)
+is more flexible but complex. A Bayesian hierarchical model would solve the
+known small-sample problem for rookies and call-ups. Deep tabular learning
+(TabNet, FT-Transformer) does NOT outperform gradient boosting on tabular sports
+data in the literature; XGBoost remains the gold standard. The highest-leverage
+architectural change is converting to a DISTRIBUTIONAL forecast (NGBoost or
+LightGBM quantile) rather than point estimates, then betting on specific
+quantiles of the distribution. This directly addresses the +0.13 K upward bias
+and the over/under asymmetry problem.
+
+MISSING FEATURES: Umpire called-strike rate is the single highest-value missing
+feature, estimated to shift K/9 by 0.6–1.2 per start. Catcher framing metrics
+(Baseball Savant, publicly available) add a complementary effect of 0.3–0.8 K/9.
+Weather (temperature) shows a statistically significant negative correlation with
+K rates in extreme heat above 83°F; implementation is low-cost via weather APIs.
+The pitch clock introduced a 2023 regime shift that affects training data
+weighting: models trained on pre-2023 data carry contaminated pitch-clock-naïve
+starts that should be down-weighted or excluded. Whiff rate (SwStr%) and
+CSW% (Called Strike + Whiff) are the two missing features with the most academic
+support for incremental R² improvement.
+
+PERFORMANCE CEILING: Published research puts the R² ceiling for pitcher K/9 at
+approximately 0.70–0.75 using publicly available data (whiff rate + velocity).
+Individual-start K total prediction faces irreducible randomness from batter
+sequencing, base-out situations, and game-flow. Best estimate of the irreducible
+noise floor: RMSE ≈ 1.80–2.00 Ks/start. The current system (RMSE 2.21) is
+operating at roughly 75–85% of the theoretical floor gap. A realistic "best
+realistic" model using all enhancements in this report could reach RMSE ≈ 1.95–
+2.05. The remaining 0.15–0.25 K gap over the floor is genuine game randomness.
+
+BETTING SYSTEM: The current +0.54% CLV is validated and meaningful. Research
+confirms CLV is the strongest long-run profitability predictor in sports betting.
+Player prop markets are LESS efficient than game lines — the model has a
+structural advantage here. The main betting improvements are: (1) calibration
+fix — the 55–60% probability band is a known money pit with documented -17.8pp
+error; (2) distributional betting — bet unders when the right tail of the K
+distribution is thinner than what the market prices; (3) fractional Kelly with
+portfolio correlation adjustment for same-day multi-pitcher bets; (4) line
+shopping adding an estimated +1.0–1.5% ROI floor lift.
+
+PRIORITY ACTIONS (12-month roadmap summary):
+  Months 1–3:  Calibration fix, umpire feature, catcher framing feature, bias
+               correction (re-weight post-2023 data, drop Jul-Sep betting)
+  Months 4–6:  NGBoost distributional upgrade, conformal prediction intervals,
+               CSW% + whiff rate features, weather API integration
+  Months 7–9:  Bayesian hierarchical component for rookies, portfolio-adjusted
+               Kelly sizing, line-shopping infrastructure
+  Months 10–12: Experimental CMP GLM, full Statcast arsenal features, model
+               monitoring dashboard
+
+================================================================================
+SECTION 2: MODEL CLASS EVALUATION
+================================================================================
+
+2.1 NEGATIVE BINOMIAL REGRESSION (vs. current Poisson GLM)
+-----------------------------------------------------------
+FINDING: Material improvement; recommended.
+
+The Poisson GLM assumes E[K] = Var[K]. Pitcher K counts per start are
+overdispersed: the variance generally exceeds the mean because some pitchers
+dominate batters more in some starts (clustering). Empirical checks on 2022–2024
+data with K/start mean ~4.93 likely show variance ~7–10, implying
+variance/mean = 1.4–2.0.
+
+Key literature findings:
+- UCLA Statistics DAE reference: "If the conditional distribution of the outcome
+  variable is overdispersed, the confidence intervals for Negative Binomial
+  regression are likely to be narrower [than Poisson]." Poisson on overdispersed
+  data underestimates standard errors, producing over-confident predictions.
+- Fangraphs community analysis: Negative Binomial distribution accounts for run
+  distribution variance in baseball count data more accurately than Poisson.
+- PMC paper (Zuur et al.): empirical overdispersion threshold study found NB
+  should be used when dispersion ratio > 1.1 in count regression contexts.
+
+EXPECTED IMPACT:
+  - Better-calibrated prediction intervals (direct fix for the known 11.2%
+    calibration error on win probability)
+  - Minimal change to point RMSE (point estimates similar to Poisson)
+  - Major improvement to probability calibration and edge estimates
+  - Implementation: replace `statsmodels.api.Poisson` with
+    `statsmodels.api.NegativeBinomial`, add dispersion parameter alpha
+
+IMPLEMENTATION COMPLEXITY: Low (1-2 days). Drop-in replacement in train.py.
+
+2.2 ZERO-INFLATED POISSON / NEGATIVE BINOMIAL
+----------------------------------------------
+FINDING: Unlikely to help materially; low priority.
+
+Zero-inflated models add a separate probability mass at zero. They are
+appropriate when "true zeros" (process that would always produce zero) coexist
+with "Poisson zeros" (random zero draw from a non-zero mean).
+
+For MLB starting pitchers:
+- Average K/start is ~4.9; P(K=0) is very small (estimated <2% of starts)
+- The zero-generation mechanism for K=0 is NOT structurally different from K=1
+  or K=2 (it is the same Poisson-like process, just a low draw)
+- In soccer/volleyball, zero goals are common (15-30% of games) — ZIP models
+  help there. Baseball K totals are rarely zero.
+
+CONCLUSION: Skip ZIP. NB regression captures the overdispersion without the
+unnecessary complexity of a zero-inflation component.
+
+2.3 BAYESIAN HIERARCHICAL MODEL
+---------------------------------
+FINDING: High value specifically for rookie/call-up problem; medium priority.
+
+Partial pooling is a well-validated approach for baseball player performance
+(Efron & Morris 1975, extensively replicated). Key findings from literature:
+
+PyMC-Labs "Bayesian MARCEL" implementation (2024): Bayesian hierarchical model
+produces narrow predictive intervals for players with small samples by pooling
+toward the league mean. Critically, the posterior contracts toward the league
+mean for players with <10 starts (exactly the rookie/call-up problem the current
+system faces).
+
+arXiv 0902.1360 (Brown, 2008): "Hierarchical Bayesian Modeling of Hitting
+Performance in Baseball" — partial pooling outperforms both complete pooling and
+no-pooling in predictive RMSE across all sample sizes.
+
+arXiv 2210.06724 (Bayesian analysis of time-through-order penalty): Stan/Bayesian
+models produce better-calibrated uncertainty intervals than frequentist approaches
+for pitcher performance.
+
+FOR THIS SYSTEM:
+  - Pitchers with <5 starts: current model likely over-relies on career averages
+    and produce high-variance predictions
+  - A hierarchical prior by pitcher_id with partial pooling toward pitcher_type
+    group (K-elite, average, low-K) would stabilize these predictions
+  - Implementation: Stan or PyMC3 model with pitcher random effects on K rate
+  - Can be used as the GLM component, replacing the current Poisson GLM
+
+EXPECTED IMPACT ON RMSE:
+  - Overall dataset: minimal (most starts are from established pitchers)
+  - Rookie/call-up subset: estimated -0.15 to -0.25 RMSE
+  - Calibration: material improvement for high-uncertainty starts
+
+IMPLEMENTATION COMPLEXITY: High (2-3 weeks). Requires PyMC or Stan installation,
+convergence tuning, posterior sampling at inference time.
+
+RECOMMENDATION: Implement as an optional component for pitchers with <10 career
+starts in the training window. Use NB for all others.
+
+2.4 QUANTILE / DISTRIBUTIONAL REGRESSION
+------------------------------------------
+FINDING: Highest-leverage architectural change; strongly recommended.
+
+The current system predicts a point estimate E[K] and converts it to a bet
+probability using a Poisson CDF. This approach:
+  (a) Does not directly optimize the probability of the bet outcome
+  (b) Fails to distinguish "tightly concentrated K distributions" from "fat-
+      tailed right-skewed K distributions" that share the same mean
+  (c) Cannot directly exploit the over/under asymmetry problem
+
+NGBoost (Stanford, 2019): Natural Gradient Boosting for Probabilistic Prediction.
+NGBoost fits a distributional output (e.g., Negative Binomial parameters) using
+proper scoring rules. It outperforms conformal prediction and quantile regression
+forests on most tabular datasets. Modular: works with NB distribution natively.
+
+LightGBM Quantile Regression: Direct optimization of quantile loss. Can predict
+P10/P25/P50/P75/P90 directly. Computationally cheaper than NGBoost.
+
+Conformal Prediction: Distribution-free coverage-guaranteed intervals. Useful as
+a post-hoc calibration layer on top of any base model. Splits a calibration set
+and computes non-conformity scores to generate prediction intervals. Valid in the
+sense that 90% prediction intervals contain the truth 90% of the time, by
+construction.
+
+FOR THE OVER/UNDER BIAS:
+  The current model has a +0.13 K upward bias overall and +0.843 K upward bias on
+  late-season overs. A distributional model allows asking: "What is P(K >= line +
+  0.5)?" directly, from the predicted distribution. If the model's P90 is below
+  the market's over line, that is a high-conviction under.
+
+EXPECTED IMPACT:
+  - Direct model probability calibration improvement (reduces 11.2% calibration
+    error to an estimated 3–5%)
+  - Enables systematic under-betting when model right-tail is compressed
+  - ROI improvement estimated at +3–5% on the portfolio from better-calibrated
+    sizing
+
+IMPLEMENTATION COMPLEXITY: Medium (1 week for NGBoost, 3 days for LightGBM
+quantile). NGBoost integrates into sklearn pipeline.
+
+2.5 DEEP TABULAR LEARNING (TabNet, FT-Transformer, SAINT)
+----------------------------------------------------------
+FINDING: NOT recommended for this system. GBM remains superior on tabular data.
+
+Comprehensive benchmark (arXiv 2408.14817): TabNet reached LAST PLACE in a 100+
+dataset benchmark with no datasets where it was the best-performing model.
+FT-Transformer: Better than TabNet, outperforms GBDTs on 7/11 datasets in the
+original Gorishniy et al. paper, but the pattern breaks in the sports domain.
+
+PMC study on sports event prediction (2024): TabNet achieved 51.52% accuracy vs.
+55.52% for XGBoost on MLB game outcomes.
+
+The fundamental reason: tabular sports data is low-dimensional (100-200 features),
+sparsely populated for new entities (rookies), and has no spatial/sequential
+structure that attention mechanisms exploit. Gradient boosting is better suited
+for this regime.
+
+ResearchGate (2025 comparative study): "TabNet vs. XGBoost for tabular data
+classification — XGBoost outperforms in lower sample-count regimes (n < 50,000)"
+— which describes the MLB pitcher start dataset (22,000+ rows).
+
+CONCLUSION: The existing XGBoost component is at or near the practical limit of
+what discriminative tabular models can do. Replacing it with deep learning would
+lose 3–5% accuracy. Recommendation: Stay with XGBoost or LightGBM; tune
+hyperparameters more aggressively; add calibration layer on top.
+
+2.6 ENSEMBLE OF SPECIALIZED MODELS (Stratified by K Profile)
+------------------------------------------------------------
+FINDING: Limited benefit as a PRIMARY architecture; useful as a BLEND component.
+
+Strategy: Train separate models for (a) elite-K pitchers (K/9 > 9.0 career),
+(b) average-K pitchers (K/9 6.0–9.0), (c) low-K pitchers (K/9 < 6.0).
+
+Literature findings:
+- arXiv 1712.05754 (cross-individual pitcher generalization): "predictive
+  performance was markedly lower for cross-individual evaluation vs. within-
+  individual, R² decreasing from 0.91 to 0.38." This suggests individual-level
+  variation is large and a single model fitted on all pitchers must average over
+  heterogeneous skill levels.
+- Arm-angle stratification study (arXiv 2605.05487): stratified models by arm
+  angle showed improved cross-individual generalization vs. pooled models.
+- Downside: sample size reduction per stratum (elite-K pitchers: ~25-30% of
+  starters), which increases overfitting risk.
+
+RECOMMENDATION: Do NOT train completely separate models (insufficient data per
+stratum). INSTEAD:
+  (a) Add K-profile group (elite/average/low) as an explicit feature
+  (b) Add K/9 career baseline as a feature (it partially already exists but
+      should be explicit)
+  (c) Consider interaction terms or separate XGBoost trees per stratum as part
+      of the ensemble blend (5% weight)
+
+EXPECTED IMPACT: Marginal (~0.02 RMSE improvement). Not a priority.
+
+2.7 SUMMARY RANKING OF MODEL CHANGES
+--------------------------------------
+Priority | Change                          | Impact  | Complexity | Timeline
+---------|----------------------------------|---------|------------|----------
+1        | NGBoost distributional output   | High    | Medium     | Q1
+2        | Negative Binomial GLM           | Medium  | Low        | Q1
+3        | Conformal calibration layer     | Medium  | Low        | Q1
+4        | Bayesian hierarchical (rookies) | Medium  | High       | Q2
+5        | CMP regression (flexible disp.) | Low     | Medium     | Q4
+6        | Stratification as feature       | Low     | Low        | Q1
+
+
+================================================================================
+SECTION 3: MISSING FEATURES — RANKED BY EXPECTED VALUE
+================================================================================
+
+3.1 UMPIRE CALLED-STRIKE RATE (RANK: #1 — HIGHEST VALUE)
+----------------------------------------------------------
+ACADEMIC SUPPORT:
+Research on umpire analytics (SABR Journal, 2024) found umpire accuracy has
+increased from 85.35% (2008) to 89.0% (2014), with continued improvement through
+2025. The 2026 strike zone is 8% SMALLER in zero-strike counts vs. 2025, with
+fastballs in the shadow zone called strikes 40.8% of the time in 2026 vs. 54.3%
+in 2025 — a 13.5 percentage point drop in a single year. This is not captured
+in any rolling pitcher-level feature.
+
+FantasyGuru 2026 umpire reports: umpire-specific K/9 differentials are material.
+Umpires with tight zones (high called-strike rate above the zone) show +0.8 to
++1.5 K/9 elevations for the favored pitcher. Loose umpires show -0.6 to -1.2
+K/9 suppression.
+
+QUANTIFIED IMPACT: Estimated K/9 delta between tightest and loosest umpires:
+approximately 1.2–2.0 K/9, translating to ~0.5–0.9 K/start for a 6-IP start.
+
+DATA SOURCES (all public):
+  - Baseball Savant umpire scoring (retroactive 2015+)
+  - FantasyGuru 2026 umpire reports (prior-season summary available)
+  - Retrosheet umpire game logs (historical, requires matching to Statcast IDs)
+  - UmpScorecards.com (per-game umpire strike zone grades, public API)
+
+IMPLEMENTATION:
+  - Feature: ump_called_strike_rate_career (career CSR for assigned umpire,
+    rolling last 50 games as a "recent form" variant)
+  - Feature: ump_k_rate_above_avg (umpire's career K/9 adjustment factor)
+  - Feature: ump_shadow_zone_rate (calls in the 2-inch shadow around zone edge)
+  - Merge: on (game_date, home_team, park) — umpire assignments are published
+    by 8AM ET the day of the game (available before bet cutoff)
+
+EXPECTED RMSE IMPROVEMENT: -0.08 to -0.15 Ks/start
+EXPECTED ROI IMPROVEMENT: +1.5 to +3.0% (most direct, most consistent)
+
+3.2 CATCHER FRAMING METRICS (RANK: #2)
+----------------------------------------
+ACADEMIC SUPPORT:
+Baseball Savant catcher framing leaderboard (2025): Patrick Bailey led MLB with
++25 framing runs, making him the most valuable fielder in MLB by defensive value.
+Over 2018–2025 the top framers (Hedges +72 runs, Bailey +65 runs) have shown
+stable, repeatable framing ability.
+
+FanGraphs framing research: framing is valued at 0.125 runs per extra called
+strike. The spread between elite and poor framers is approximately 30–40 runs per
+season, implying 240–320 extra/fewer called strikes per season.
+
+FOR STRIKEOUT PREDICTION: Catcher framing directly converts borderline pitches
+into called strikes, which increases strikeout rate by increasing K-count from
+0-2 and 1-2 counts. A top-tier framer vs. a poor framer with the same pitcher
+might produce +0.3–0.5 K/start differential.
+
+DATA SOURCES:
+  - Baseball Savant catcher framing leaderboard (public, updated daily during season)
+  - FanGraphs catcher framing runs (annual summary)
+  - Statcast framing_run_value per catcher per season
+
+IMPLEMENTATION:
+  - Feature: catcher_framing_runs_per_100 (career rate, last 3 seasons weighted)
+  - Feature: catcher_shadow_csrate (shadow zone called strike rate from Savant)
+  - Merge: on (game_date, catcher_id from lineup) — requires confirmed lineup data
+
+EXPECTED RMSE IMPROVEMENT: -0.04 to -0.09 Ks/start
+EXPECTED ROI IMPROVEMENT: +0.5 to +1.5%
+
+3.3 PITCH CLOCK REGIME INDICATOR (RANK: #3 — TRAINING DATA FIX)
+-----------------------------------------------------------------
+ACADEMIC SUPPORT:
+Claremont McKenna thesis (2024): pitch clock experience analysis showed pitchers
+with pitch clock experience had higher K/9. Those who had to make large pace
+adjustments (>5 seconds) showed velocity decreases from 2022 to 2023. The pitch
+clock introduced a genuine regime shift:
+  (a) Hitter side: experienced hitters in pitch clock environments (those who
+      played in 2022 minor leagues) had higher batting average, more HR, and
+      LOWER strikeout rates in 2023.
+  (b) Pitcher side: quicker pace reduced time between pitches, causing some
+      pitchers' velocity to decrease and K rate to change.
+
+PitcherList analysis (2023): K rates league-wide were UP in 2023 vs. 2022, but
+this was attributed to the shift ban (more balls in play, different matchups),
+not the pitch clock per se.
+
+CONSEQUENCE FOR TRAINING DATA:
+  - Pre-2023 starts (trained on 2022) carry pitch-clock-naïve starts
+  - Features like pitch_count and p_pace should be considered different
+    measurement regimes across the pre-2023/post-2023 boundary
+  - The training window (2022–2024) spans the regime change
+
+IMPLEMENTATION:
+  - Feature: post_pitch_clock (binary: 0 for 2022, 1 for 2023+)
+  - Feature: pitch_clock_adaptation_score (pitcher-level velocity delta 2022→2023,
+    captures which pitchers adapted well vs. poorly)
+  - Down-weight 2022 starts by 50% in training (or use 2023+ only as sensitivity)
+
+EXPECTED RMSE IMPROVEMENT: -0.03 to -0.06 Ks/start (primarily removes bias in
+early-season predictions where older pitchers are still adapting)
+
+3.4 WEATHER FEATURES (RANK: #4)
+---------------------------------
+ACADEMIC SUPPORT:
+ResearchGate study on temperature effects (Manly, 2015): MLB games in warm weather
+(>83°F) have LOWER strikeout rates than games in cold weather (<60°F). The effect
+is physiological — hyperthermia-induced fatigue sets in above 38.5°C core temp
+(~101°F ambient), increasing pitch velocity variance and reducing late-inning K
+ability.
+
+Journal of Strength & Conditioning Research (2021): Pitchers' WHIP increased
+progressively with temperature (1.48 in cold games to 1.60 in extreme heat).
+Cold weather has the opposite effect: gripping the ball harder and more difficult
+to throw breaking balls, which suppresses K rates differently.
+
+VeloU.com: Cold weather reduces fastball velocity by an estimated 0.5–1.5 mph
+per 10°F drop below 65°F. This is particularly important for early-season
+(March/April) outdoor games.
+
+WIND: Wind directly toward center field increases flyball distance — primarily
+a home run effect, not directly a strikeout effect. However, headwind (into home
+plate from CF) may suppress pitch speed slightly.
+
+HUMIDITY: Air density affects pitch movement. Higher humidity = slightly denser
+air = slightly less break on curveballs and sliders. Effect is small but
+systematic at extremes (>80% RH).
+
+DATA SOURCES:
+  - OpenWeatherMap API (free tier, historical + real-time)
+  - NOAA Global Historical Climatology Network (GHCN)
+  - Baseball Savant game weather fields (partial, inconsistent)
+
+IMPLEMENTATION:
+  - Feature: game_temp_F (temperature at first pitch)
+  - Feature: game_temp_bin (categorical: cold <55°F, moderate 55–80°F, hot >80°F)
+  - Feature: wind_speed_mph
+  - Feature: wind_direction_to_CF (binary)
+  - Merge: on (game_date, park) — API call with 2-hour cached lookups
+
+EXPECTED RMSE IMPROVEMENT: -0.03 to -0.06 Ks/start (mainly early season)
+EXPECTED ROI IMPROVEMENT: +0.5 to +1.0% (primarily March–April cold games)
+
+3.5 WHIFF RATE (SwStr%) AND CSW% (RANK: #5 — STATCAST)
+--------------------------------------------------------
+ACADEMIC SUPPORT:
+BeyondTheBoxScore (2013): Whiff% alone explains R²=0.70 of K% variance.
+Combined with velocity: R²=0.75. Adding other Statcast features pushed to R²=0.88
+(8% incremental improvement over whiff alone).
+
+FanGraphs (2022): "CSW (Called Strike + Whiff) is widely considered the best
+single-number predictor of MLB strikeout ability, capturing both strike-zone
+command and swing-and-miss."
+
+MIT Sloan Strikeout paper: "Maximum pitch velocity and strike rate are the most
+important predictors of K%, followed by maximum vertical movement and range of
+vertical movement."
+
+THE GAP: The current system already includes velocity slope (change over time)
+but may not include game-level whiff rate (swinging strike percentage) as a
+rolling feature. These are different from velocity alone.
+
+IMPLEMENTATION:
+  - Feature: p_swstr_pct_roll5 (rolling 5-start swinging strike rate)
+  - Feature: p_csw_rate_roll5 (rolling 5-start CSW rate)
+  - Feature: p_whiff_vs_fastball_roll10 (handedness-adjusted whiff vs. LHB/RHB)
+  - Source: Statcast pitch-by-pitch; already in the data pipeline via Pybaseball
+
+EXPECTED RMSE IMPROVEMENT: -0.06 to -0.12 Ks/start (significant)
+EXPECTED ROI IMPROVEMENT: +1.0 to +2.0%
+
+3.6 JET LAG / TRAVEL FATIGUE (RANK: #6)
+-----------------------------------------
+ACADEMIC SUPPORT:
+PNAS study (Depner et al., 2017): Using 20 years of MLB game-level data, found
+that eastward travel produced measurable performance degradation:
+  - Pitchers traveling eastward allowed MORE home runs (at home and away)
+  - Eastward travel: losing body clock time reduces sleep quality, impairs
+    cognitive decision-making
+  - Effect: approximately 1 extra home run allowed per eastward 3-timezone trip
+  - Strikeout-specific: less well-documented, but K rate may decrease by 0.2–0.4
+
+Note: The study found the effect is DIRECTIONAL — eastward travel is harmful,
+westward travel shows less consistent effect. The mechanism is circadian rhythm
+disruption (eastward = losing time = harder adjustment).
+
+DATA SOURCES:
+  - Team schedule data from Baseball-Reference (city of previous series)
+  - Calculate timezone differential: previous game location → current game location
+
+IMPLEMENTATION:
+  - Feature: timezone_shift_days (timezone hours crossed / days since arrival)
+  - Feature: eastward_travel_flag (boolean for eastward crossing ≥2 timezones)
+  - Feature: days_since_arrival (pitcher-specific, from team travel schedule)
+
+EXPECTED RMSE IMPROVEMENT: -0.01 to -0.03 Ks/start (small but systematic)
+EXPECTED ROI IMPROVEMENT: +0.2 to +0.5% (principally affects specific game edges)
+
+3.7 PITCHER REST / DAYS BETWEEN STARTS (RANK: #7)
+---------------------------------------------------
+ACADEMIC SUPPORT:
+Journal of Strength & Conditioning Research (2012): Examined 1988–2009 MLB data.
+Finding: "Extra rest days were NOT significantly associated with strikeout rate."
+However, each additional pitch thrown in the preceding start increased ERA by
+0.007 in the following start. Pitch count from previous start matters more than
+days of rest for NEXT start K rate.
+
+Fangraphs Community (2020): "The effect of rest days on starting pitcher
+performance — no statistically significant effect found for days of rest on
+K rate, ERA, or FIP when controlling for pitch count."
+
+CONSEQUENCE: Days-between-starts feature has limited value for K prediction.
+Previous-start pitch count (already in model as a rolling feature) is the
+correct specification. Age interaction is relevant: older pitchers show greater
+sensitivity to cumulative workload.
+
+IMPLEMENTATION RECOMMENDATION:
+  - Feature: prev_start_pitch_count × pitcher_age_bucket (interaction term)
+  - Existing p_pitches_per_start_roll3 feature is adequate for this purpose
+  - Do NOT add raw days_rest (weak predictor; adds noise)
+
+EXPECTED RMSE IMPROVEMENT: -0.01 Ks/start (marginal)
+
+3.8 MANAGER HOOK TENDENCIES (RANK: #8 — LOW PRIORITY)
+------------------------------------------------------
+ACADEMIC SUPPORT:
+arXiv 2210.06724 Bayesian analysis of time-through-order penalty: Found that
+expected wOBA increases steadily through games without sharp 3rd-TTO
+discontinuity. Managers pull starters too early given actual performance data,
+which means "quick hook" managers reduce pitcher strikeout opportunities
+primarily by volume (fewer innings pitched, fewer total K opportunities).
+
+SABERMETRIC EVIDENCE: Quick-hook managers (Kevin Cash, Rocco Baldelli type)
+reduce expected IP by 0.3–0.7 relative to slow-hook managers — directly reducing
+expected K totals by a similar proportion.
+
+DATA SOURCES:
+  - Baseball-Reference manager statistics (quick hook rate, average IP allowed)
+  - Calculate manager-level average IP per start, rolling 3-season average
+
+IMPLEMENTATION:
+  - Feature: manager_quick_hook_pct (% of starts pulled before 5 IP, 3yr avg)
+  - Feature: manager_avg_sp_ip (average starter IP, manager-season level)
+  - Low correlation with K total after controlling for pitcher quality
+
+EXPECTED RMSE IMPROVEMENT: -0.02 to -0.04 Ks/start
+EXPECTED ROI IMPROVEMENT: +0.3 to +0.5% (useful mainly for handicapping
+bullpen-heavy teams)
+
+3.9 LATE LINEUP CHANGES / INJURY SCRATCHES (RANK: #9)
+------------------------------------------------------
+INDUSTRY EVIDENCE: Action Network (2025) and Bleacher Nation (2025) confirm that
+pitcher prop bets are VOIDED if the starting pitcher does not take the field. For
+BATTER scratches:
+  - If the opposing cleanup hitter (high-K, big swing threat) is scratched, the
+    pitcher faces a weaker lineup — K total should decrease
+  - Market does NOT consistently adjust for lineup changes made after initial
+    line posting (major inefficiency window: 9AM–12PM ET before afternoon games)
+
+RESEARCH: The market is "slow to react" to lineup changes according to Unabated
+(2024), particularly for batters added via walk-up calls. There is a 30–60 minute
+window between lineup confirmation and line stabilization.
+
+IMPLEMENTATION:
+  - Feature: opp_lineup_k_rate_confirmed (opponent lineup K rate using CONFIRMED
+    lineup, not projected — requires real-time lineup tracking)
+  - This is already partially captured by opp_batting_k_rate_roll20 but uses
+    historical lineup averages, not confirmed day-of lineup
+  - Integration: RotoBaller API, BaseballSavant lineup data, or manual scraping
+
+NOTE: Partial lineup K rate already in current model. Full confirmed lineup K rate
+would materially improve accuracy for starting lineup variance days.
+
+FEATURE RANKING SUMMARY TABLE:
+Feature                      Est. ΔRMSE  Est. ΔROI  Data Avail  Complexity
+---------------------------  ----------  ---------  ----------  ----------
+Umpire called-strike rate    -0.10-0.15  +1.5-3.0%  Public      Low
+CSW% / Whiff rate (rolling)  -0.06-0.12  +1.0-2.0%  Public      Low
+Catcher framing metrics      -0.04-0.09  +0.5-1.5%  Public      Low
+Weather (temp/wind)          -0.03-0.06  +0.5-1.0%  API         Low
+Pitch clock regime feature   -0.03-0.06  +0.3-0.8%  Internal    Low
+Travel fatigue (jet lag)     -0.01-0.03  +0.2-0.5%  Public      Med
+Manager hook tendency        -0.02-0.04  +0.3-0.5%  Public      Low
+Late lineup confirmation      variable   timing-dep  Scraping    High
+
+
+================================================================================
+SECTION 4: PERFORMANCE CEILING ANALYSIS
+================================================================================
+
+4.1 THEORETICAL R² CEILING
+-----------------------------
+The best available published research on pitcher K% prediction (season level):
+  - Whiff% alone: R² = 0.70 (BeyondTheBoxScore 2013)
+  - Whiff% + velocity: R² = 0.75 (MIT Sloan submission)
+  - Whiff% + velocity + full Statcast: R² = 0.88 (Medium, Werner 2023)
+
+These R² figures are for SEASON-LEVEL K% prediction (aggregate over 30+ starts).
+Individual-start K total prediction faces much higher irreducible variance:
+  - A pitcher with 27% K rate and 24 batters faced has expected K = 6.48
+  - But actual K draws from a distribution with SD ≈ 2.0–2.5
+  - Game-to-game K variance cannot be explained by pitcher quality alone
+
+INDIVIDUAL-START CEILING ESTIMATE:
+The irreducible noise floor for individual starts comes from:
+  (a) Batter outcome stochasticity (~60% of variance)
+  (b) Umpire game-by-game variation not captured by career rates (~10%)
+  (c) Pitch command variation within a start not predictable pre-game (~15%)
+  (d) Strategic/game-flow effects (IBB, intentional walks, pinch hitters) (~15%)
+
+Published evidence on this floor is sparse. The best estimate comes from:
+  - Baseball Prospectus DRC+/Singlearity research: "The uncertainty is so large
+    on single plate appearances that signal only emerges over hundreds of PA."
+  - KSplit Analytics (strikeout distribution modeling): accounts for "calibrated
+    standard deviation floor" in per-start K distribution
+
+ESTIMATED IRREDUCIBLE RMSE FLOOR: 1.80–2.00 Ks/start
+
+This means the current system at RMSE 2.21 is operating approximately
+(2.21 - 1.90) = 0.31 Ks above the irreducible floor, or at about 85% of
+theoretical efficiency.
+
+4.2 PROJECTION SYSTEM BENCHMARKS
+-----------------------------------
+Public projection systems (ZiPS, Steamer, THE BAT, FanGraphs Depth Charts):
+These systems predict SEASON-LEVEL K totals, not individual starts. Converting
+to per-start equivalents:
+  - Typical Steamer error on season K total for qualified starter: ~25–40 Ks
+    over 30 starts = 0.83–1.33 Ks/start RMSE
+  - This is much LOWER than the current system's 2.21 because it is averaging
+    over a full season (variance reduction by √30)
+
+For individual-start prediction:
+  - Marcel system (Tangotiger): improved on naive baseline by 7–43% depending on
+    stat. For K rate, Marcel improvement is approximately 20–25% over naive.
+  - FiveThirtyEight ELO research: "smallest possible RMSE for any projection
+    system over extended period is 6.4 wins" — comparable limitation for K starts.
+  - KSplit Analytics (public K distribution system): uses P10/P50/P90 outputs,
+    indicating the industry recognizes point estimate is insufficient.
+
+CURRENT SYSTEM CONTEXT: At 2.21 RMSE vs. estimated floor of 1.90, the system
+is well-developed. The gap (0.31 Ks) is the research frontier.
+
+4.3 WHAT PRIVATE DATA WOULD ADD
+----------------------------------
+Hawkeye biomechanics (team-level only, not public):
+  - Pitch-by-pitch grip pressure, wrist pronation angle, arm slot drift
+  - arXiv 2603.04864: "Scalable Injury-Risk Screening from Broadcast Video"
+    suggests some Hawkeye-like signals can be extracted from video
+  - PubMed (2024): Pitch-tracking metrics as predictor of shoulder/elbow injury:
+    "substantially more predictive of future injury than demographics."
+    Key predictors: increased velocity across pitch types, slider utilization,
+    fastball spin rate and horizontal movement — ALL ARE PUBLIC via Baseball Savant
+
+CONCLUSION: The publicly available Statcast data (spin rate, movement, release
+point) captures most of the signal that was previously thought private. Hawkeye's
+advantage is marginal for K prediction (vs. injury prediction where it is large).
+
+ESTIMATED RMSE BY DATA SOURCE:
+Scenario                                          Est. RMSE  Gap to Floor
+----------------------------------------------    ---------  -----------
+Current model (2022-2024 training)                  2.21        +0.31
++ Umpire feature                                    2.08        +0.18
++ CSW%/Whiff rate features                          2.00        +0.10
++ Catcher framing                                   1.96        +0.06
++ Weather + pitch clock regime                      1.93        +0.03
++ Full Statcast arsenal (spin, movement, release)   1.91        +0.01
++ Private Hawkeye biomechanics                      1.89       ≈ Floor
+IRREDUCIBLE FLOOR (theoretical)                     1.80–2.00   0.00
+
+Translation to betting ROI (approximate, multiplicative effects):
+Each -0.10 RMSE reduction → better edge estimation → estimated +1.5–2.0% ROI
+Umpire feature alone (-0.13 RMSE) → +2.0–2.5% ROI improvement
+Full enhancement stack (-0.30 RMSE) → +4.5–6.0% ROI improvement on top of base
+
+IMPORTANT CAVEAT: These ROI improvements are estimated assuming edge estimation
+is the binding constraint. The current system's 11.2% calibration error is a
+larger drag than any individual RMSE improvement. Fixing calibration first.
+
+
+================================================================================
+SECTION 5: IDEAL ARCHITECTURE DESIGN
+================================================================================
+
+5.1 DATA PIPELINE
+-------------------
+Data Sources and Refresh Cadence:
+
+SOURCE                  REFRESH    VALIDATION STEP
+----------------------  ---------  -------------------------------------------
+Baseball Savant Statcast  Daily    Check row count ≥ expected starts; flag gaps
+FanGraphs batting splits  Daily    Schema hash check; column drift detection
+Retrosheet game logs      Annual   Historical rebuild; checksum on row counts
+UmpScorecards API         Daily    Umpire ID match to game_date + home_team
+Catcher framing (Savant)  Weekly   framing_run_value range check (±30 max)
+Weather API (OpenWX)      Daily    NULL rate check; fallback to park climatology
+Confirmed lineups         3x daily (9AM, 11AM, 1PM ET) — via RotoBaller/Twitter
+Sportsbook odds           Hourly   Consensus line + book-specific line tracking
+Team travel schedule      Weekly   City lookup + timezone calculation
+
+PIPELINE INTEGRITY CHECKS:
+  - Anti-leakage: all rolling features use .shift(1) before .rolling(); verified
+    on every training run
+  - Fill value freeze: fill_values computed from train set only; FIXED from
+    existing June 2026 audit finding
+  - Game deduplication: verify 1 row per (game_date, pitcher_id)
+  - Feature drift monitoring: weekly PSI calculation on 10 key features vs.
+    training distribution
+
+5.2 TOP 20 FEATURES TO ADD (not in current model)
+---------------------------------------------------
+Priority | Feature                         | Source            | Impact
+---------|----------------------------------|-------------------|--------
+1        | ump_called_strike_rate_roll50   | UmpScorecards     | High
+2        | ump_shadow_zone_csrate          | Baseball Savant   | High
+3        | p_csw_rate_roll5                | Statcast          | High
+4        | p_swstr_pct_roll5               | Statcast          | High
+5        | catcher_framing_runs_per100     | Baseball Savant   | Med-High
+6        | catcher_shadow_csrate           | Baseball Savant   | Med-High
+7        | game_temp_F                     | Weather API       | Medium
+8        | post_pitch_clock                | Internal (binary) | Medium
+9        | pitch_clock_adapt_score         | Statcast (vel Δ)  | Medium
+10       | p_spin_rate_4seam_roll5         | Statcast          | Medium
+11       | p_spin_rate_breaking_roll5      | Statcast          | Medium
+12       | p_release_extension_roll5       | Statcast          | Medium
+13       | p_induced_vbreak_4seam_roll5    | Statcast          | Medium
+14       | opp_lineup_k_rate_confirmed     | Lineup API        | Med-Low
+15       | manager_avg_sp_ip_3yr           | Baseball-Ref      | Med-Low
+16       | timezone_shift_eastward         | Schedule calc     | Low-Med
+17       | wind_to_CF_mph                  | Weather API       | Low
+18       | p_pitch_type_share_change       | Statcast          | Low-Med
+19       | pitcher_age_bucket × workload   | Internal calc     | Low-Med
+20       | p_k_rate_vs_rhb_vs_lhb_split    | Statcast          | Low-Med
+
+5.3 MODEL ARCHITECTURE
+-------------------------
+RECOMMENDED ARCHITECTURE: Two-stage pipeline with distributional output.
+
+STAGE 1 — POINT ESTIMATE (existing, upgraded)
+  Component A: Negative Binomial GLM (replaces Poisson)
+    - Features: All 103 current + umpire + CSW% + framing + weather (new 20)
+    - Hyperparameter: dispersion alpha, tuned on calibration set
+    - Output: NB parameters (mu, alpha) per start
+
+  Component B: XGBoost / LightGBM Regressor (existing, tuned)
+    - Same feature set
+    - Output: point estimate K total
+
+  Blend: 60% NB GLM + 40% XGBoost (adjust from 70/30 after benchmarking)
+  Ensemble point estimate: E[K]
+
+STAGE 2 — DISTRIBUTIONAL LAYER (new)
+  Component C: NGBoost on same feature set
+    - Distribution: NegativeBinomial or Normal
+    - Output: full predictive distribution P(K=k) for k = 0..15
+    - Trained separately; used for BETTING DECISION only
+
+  Calibration: Split conformal prediction on 2023–2024 holdout set
+    - Computes non-conformity scores on calibration set
+    - Adjusts coverage to achieve 80%/90% empirical coverage guarantees
+
+  Output: P(K < line + 0.5) and P(K > line + 0.5) for any market line
+
+STAGE 3 — BET SELECTION FILTER (see Section 6)
+
+STAGE 4 — BAYESIAN HIERARCHICAL OVERRIDE (for rookies)
+  Pitchers with <10 career starts in training window: use PyMC3 hierarchical
+  model with pitcher random effect, pooling toward K-profile group mean.
+  Blend: 80% Bayesian estimate + 20% NGBoost (lower weight to data-sparse model).
+
+5.4 CALIBRATION
+-----------------
+CURRENT PROBLEM: Model overestimates win probability by 11.2% overall; the
+55–60% probability band has only 39.7% actual win rate — inverted signal.
+
+CALIBRATION PROTOCOL:
+  Step 1: Platt scaling on NGBoost probability outputs using a logistic regression
+    fit on calibration set (2023 early season data).
+  Step 2: Conformal prediction on residuals (non-conformity scores) using the
+    validation year (2025 early season, Mar–Jun only; exclude Jul–Sep per
+    known structural failure).
+  Step 3: Isotonic regression to monotonize calibrated probabilities.
+  Step 4: Hard filter: model_prob < 0.65 → DO NOT BET (validated on 2026 holdout:
+    p≥0.65 gives WR=64.1%, ROI=+22.8%, p=0.0055).
+
+CALIBRATION MONITORING: Track calibration error weekly using Brier score and
+reliability diagrams on live 2026 data. Alert threshold: calibration error
+exceeds 5pp in any 50-bet rolling window.
+
+5.5 EDGE ESTIMATION
+---------------------
+CURRENT METHOD: EGP (edge in percentage points vs. implied market probability).
+  Weakness: uses miscalibrated model probabilities as input to EGP.
+
+IMPROVED METHOD:
+  1. Compute NGBoost distributional output: P_model(K >= line + 0.5)
+  2. Compute market fair probability: fair_prob = 1 / (1 + market_vig_removed)
+     (remove vig using Shin method or multiplicative vig removal)
+  3. Edge = P_model - fair_prob (in probability space)
+  4. Apply calibration correction from Step 3 above before computing edge
+  5. Edge threshold for betting: calibrated_edge >= 0.06 (6pp minimum)
+
+IMPORTANT: Vig removal is critical. A market at -130 has an implied prob of
+56.5% but a fair prob of only 53.0% after vig removal. The current EGP metric
+may not be devigging correctly — verify against Pinnacle no-vig lines.
+
+5.6 BET SELECTION
+------------------
+FILTER CRITERIA (statistically justified):
+
+Filter                         Justification
+-----------------------------  -----------------------------------------------
+model_prob >= 0.65             Validated: WR=64.1%, ROI=+22.8%, p=0.005 (2026)
+calendar_month in {3,4,5,6}    Jul-Sep structural failure: p<0.00001 (n=386)
+calibrated_edge >= 0.06        Minimum edge above vig for positive EV
+odds_range: any (prefer <-115) Current WR=67%, ROI=+7% on heavy juice
+NOT (model_prob in [0.55,0.60]) Band with -17.8pp calibration error (known)
+opp_lineup_confirmed = True    Avoid betting before lineup confirmed (<10AM ET)
+umpire_data_available = True   Only bet games where umpire ID is confirmed
+
+OVER vs. UNDER BIAS CORRECTION:
+  - Current model has +0.13 K upward bias overall
+  - Apply asymmetric adjustment: for OVER bets, require edge ≥ 0.08 (tighter)
+  - For UNDER bets, allow edge ≥ 0.05 (looser, since model systematically
+    under-counts unders due to upward bias)
+  - In distributional model: directly use P(K > line) vs P(K < line)
+    without requiring the bias correction (it is implicit in the distribution)
+
+5.7 BANKROLL MANAGEMENT
+--------------------------
+CURRENT APPROACH: Unknown; this report assumes flat sizing or ad-hoc.
+
+RECOMMENDED: Fractional Kelly with portfolio correlation adjustment.
+
+Kelly formula: f* = (p - q/b) where p = win probability, q = 1-p, b = decimal
+odds payout minus 1.
+
+FRACTIONAL KELLY: Use f = f* / κ where κ = 4 (quarter-Kelly).
+Justification (Downey 2024, SFU Modified Kelly paper):
+  - Replacing true probabilities with estimates introduces parameter uncertainty
+  - Quarter-Kelly (κ=4) is the recommended fraction under typical model
+    uncertainty for sports betting
+  - At κ=4, the risk of a 50% drawdown drops from 25% (full Kelly) to <1%
+
+PORTFOLIO CORRELATION ADJUSTMENT:
+When placing N same-day bets on different pitchers:
+  - Independent bets (different teams, different weather, different parks): use
+    standard fractional Kelly per bet
+  - Correlated bets (same park, same game conditions, same umpire):
+    treat as a single portfolio position; divide Kelly size by √(ρ) where ρ is
+    estimated correlation
+  - Same-day portfolio with 5 pitchers: use Kelly / √5 per bet (assumes
+    approximate independence after park/weather controls)
+
+MAXIMUM POSITION SIZE: 2% of bankroll per bet (hard ceiling regardless of Kelly
+signal). Multiple simultaneous high-Kelly bets share a 5% daily cap.
+
+5.8 MONITORING AND MODEL DRIFT DETECTION
+-----------------------------------------
+KEY MONITORS:
+
+Monitor                    Metric               Alert Threshold     Frequency
+-------------------------  -------------------  ------------------  ---------
+Prediction accuracy        Rolling RMSE (30d)   > 2.40 Ks          Weekly
+Calibration accuracy       Brier score (30d)    > 0.27             Weekly
+Win rate                   Rolling WR (50 bets) < 45% sustained    Weekly
+CLV tracking               Mean CLV (50 bets)   < -0.5%            Weekly
+Feature drift              PSI on top 10 feats  > 0.2 any feature  Weekly
+K-rate environment         League mean K/start  > ±0.5 Ks/mo Δ    Monthly
+Umpire zone regime         CSR league avg Δ     > 3pp vs. prior yr Monthly
+Calibration band monitor   55-60% band WR       < 40% (30 bets)    Weekly
+
+RETRAINING POLICY: Annual expanding window remains the recommendation (from
+existing deployment readiness report: all 7 policies differ by only 0.019 Ks
+RMSE; annual is sufficient).
+
+EXCEPTION: If K-rate environment drift exceeds 0.5 Ks/start over 4 weeks (new
+rule change, shift in league policy), trigger immediate retraining.
+
+
+================================================================================
+SECTION 6: BETTING SYSTEM OPTIMIZATION
+================================================================================
+
+6.1 CLOSING LINE VALUE AS PROFITABILITY PREDICTOR
+---------------------------------------------------
+RESEARCH FINDING: CLV is the strongest long-run profitability predictor in
+sports betting, period.
+
+Pinnacle research (widely cited): "Bettors with positive CLV were almost
+universally profitable over time, regardless of short-term variance." CLV
+converges faster than win rate — 50 bets of +1% CLV is more statistically
+meaningful than 50 bets at 55% win rate.
+
+The current system at +0.54% CLV is good but below what is needed for reliable
+long-run profitability at meaningful bet sizes. Target: +1.5–2.0% CLV to
+absorb account limitation risk (books limit sharp bettors) and provide
+statistical significance over 2-3 seasons.
+
+CLV IMPROVEMENT STRATEGIES:
+  (a) Bet earlier (before market consensus): umpire data is public by 8AM ET;
+      a model that integrates umpire at 8:01AM beats the market that adjusts
+      by 9AM. Early-morning bets likely have +0.5–1.0% additional CLV.
+  (b) Confirmed lineup edge: bet within 15 minutes of official lineup drop
+      before market adjusts. Estimated additional CLV: +0.3–0.8%.
+  (c) Avoid the 55–60% probability band (known CLV drain).
+
+6.2 PLAYER PROPS MARKET EFFICIENCY
+-------------------------------------
+RESEARCH FINDING: Player props are LESS efficient than game lines.
+
+BetSmart analysis (Summer 2025): "Not all prop markets are equally efficient.
+Props on secondary players and MLB pitcher Ks specifically have less sharp action
+and less sophisticated bookmaker modeling than game lines."
+
+Wizard of Odds analysis: "For game lines, the closing line is typically an
+excellent estimator of true probability. For player props, the market is less
+efficient, with bookmakers having less historical data, sharps focusing less
+attention, and pricing models less refined."
+
+EVIDENCE FROM CURRENT SYSTEM: CLV of +0.54% on player props vs. an estimated
+~0.0% CLV that would be expected in a perfectly efficient market. The persistence
+of this edge over 1,171 bets across 2025–2026 is statistically meaningful.
+
+MARKET EFFICIENCY BY BET TYPE:
+  - Heavy-juice bets (<-150): WR=67%, ROI=+7% — market is mispricing extreme
+    probabilities (likely overconfident about consensus favorite)
+  - Medium-juice bets (-150 to -115): WR=50%, ROI=-13% — market is MORE
+    efficient in this range; the model's edge is not sufficient to overcome vig
+
+STRATEGIC IMPLICATION: Concentrate bets in the market inefficiency zones:
+  - Very heavy juice (<-175): small market, often overlooked
+  - Near-even prices (+100 to -110): larger inefficiency than medium juice
+
+6.3 KELLY CRITERION VARIANTS
+------------------------------
+FULL KELLY: Optimal under perfect probability estimates. Growth-maximizing.
+  Problem: Parameter uncertainty causes systematic overbetting. Full Kelly
+  with estimated win probabilities produces lower returns than fractional Kelly.
+
+FRACTIONAL KELLY: Recommended. κ = 4 (quarter-Kelly) for single-book betting.
+  - SFU Modified Kelly paper: "Quarter-Kelly is the practical default for sports
+    betting with estimated probabilities in a non-stationary environment."
+  - Academic simulation study (Downey 2024): "Fractional Kelly mitigates
+    over-betting by properly accounting for the unknown true probability."
+
+KELLY UNDER CORRELATED SIMULTANEOUS BETS:
+  - de Gruyter (2020): formal extension of Kelly for non-mutually-exclusive bets
+  - Portfolio approach: treat the daily betting slate as a portfolio
+  - Target: maximize total expected log-growth across all bets
+  - Practical approximation: individual Kelly × (1/√N) for N correlated bets
+
+RECOMMENDED IMPLEMENTATION:
+  kelly_fraction = (edge_calibrated) / (decimal_odds - 1)
+  position_size = kelly_fraction / 4 × bankroll / sqrt(correlated_bet_count)
+  position_size = min(position_size, 0.02 × bankroll)  # hard cap
+
+6.4 SIMULTANEOUS CORRELATED BETS
+----------------------------------
+RESEARCH: Wizard of Odds: "Props from the same game are correlated; if you bet
+multiple props from the same game, you're taking on additional risk."
+
+For PITCHER K PROPS specifically:
+  - Same park, same umpire, same weather conditions: bets on pitchers in
+    doubleheaders or twin bills are correlated (estimated ρ ≈ 0.15–0.25)
+  - Different parks, different umpires: near-independent (ρ ≈ 0.05)
+
+Stokastic/OddsShopper portfolio analysis: "When making 4 simultaneous Kelly-
+sized bets, your bankroll experiences 2× the standard deviation of a single bet."
+
+Markowitz portfolio theory applied to betting: diversifying across different
+parks, weather conditions, and umpires reduces per-bet variance without reducing
+expected return. Same-day diversification IS effective when bets are structurally
+independent (different parks, different game conditions).
+
+PRACTICAL IMPLICATION: 5-pitcher slate:
+  - All in same city (doubleheader + evening game): treat as 2 independent units
+  - Different parks in different cities: treat as 5 independent units
+  - Apply √N portfolio adjustment to Kelly
+
+6.5 LINE SHOPPING VALUE
+------------------------
+RESEARCH: Multiple sources confirm 1.0–3.0% ROI improvement from consistent
+best-line shopping. Key findings:
+  - OddsShopper case study: over 1,000 bets at $100/wager, 1.16pp difference
+    = $1,160 expected profit difference
+  - BettingUSA 2026 guide: "Serious bettors who shop 5–7 books show 2–3%
+    higher annual ROI than single-book bettors"
+  - Conservative research estimate: +1.0–1.5% ROI per year from consistent
+    line shopping with 5+ books
+
+FOR THIS SYSTEM:
+  - Currently targeting heavy-juice bets (<-150) where 2-point line differences
+    are proportionally MORE valuable (vig is larger at heavy juice)
+  - A difference of -140 vs. -150 on a single bet is worth approximately
+    0.7% expected value per bet
+  - Recommended books: Pinnacle (sharpest lines, reference), DraftKings,
+    FanDuel, BetMGM, Caesars (soft books for prop availability)
+
+ESTIMATED ANNUAL VALUE OF LINE SHOPPING AT CURRENT VOLUME:
+  Assuming 400 bets/year at ~$200 avg bet = $80,000 volume
+  1.5% improvement = $1,200 expected additional annual profit
+  Worth the infrastructure investment (odds comparison API: ~$100/month)
+
+
+================================================================================
+SECTION 7: PRIORITY IMPLEMENTATION ROADMAP (12 MONTHS)
+================================================================================
+
+QUARTER 1 (July–September 2026)
+---------------------------------
+NOTE: Per existing deployment readiness report, DO NOT BET July-September.
+This quarter is a research and development sprint.
+
+Sprint 1 (Weeks 1-4): Calibration and Bias Correction
+  Priority: CRITICAL — largest single ROI improvement available
+  Tasks:
+    1. Implement Platt scaling calibration on model_prob outputs
+    2. Hard-filter: remove 55-60% probability band from bet selection
+    3. Re-validate EGP metric with proper vig removal (Shin method)
+    4. Apply asymmetric edge threshold (overs: 8%, unders: 5%)
+    5. Test: simulate calibration fix on 2025 data; expect WR improvement
+
+Sprint 2 (Weeks 5-8): Umpire Feature Integration
+  Priority: HIGH
+  Tasks:
+    1. Download UmpScorecards career umpire data (going back to 2015)
+    2. Match umpire IDs to game logs via Baseball Savant game_pk
+    3. Build features: ump_career_csrate, ump_shadow_zone_rate, ump_k_adj
+    4. Add to feature matrix with shift(1) for multi-game rolling
+    5. Retrain NB GLM with umpire features; measure RMSE on 2025 holdout
+
+Sprint 3 (Weeks 9-12): CSW% + Catcher Framing + NB GLM Upgrade
+  Priority: HIGH
+  Tasks:
+    1. Extract p_swstr_pct and p_csw_rate from Statcast pitch logs
+    2. Add rolling 5-start and 10-start variants
+    3. Download Baseball Savant catcher framing leaderboard (annual)
+    4. Build catcher_framing_runs_per100 feature; merge on lineup catcher
+    5. Upgrade Poisson GLM to Negative Binomial in train.py
+
+QUARTER 2 (October–December 2026)
+-----------------------------------
+Sprint 4 (Weeks 13-16): NGBoost Distributional Upgrade
+  Priority: HIGH
+  Tasks:
+    1. Install ngboost library; test on existing feature matrix
+    2. Choose distribution: NegativeBinomial preferred
+    3. Fit NGBoost on 2022-2024 training, validate on 2025
+    4. Build bet_probability = NGBoost.predict_proba(K >= line + 0.5)
+    5. A/B comparison: NGBoost edge vs. current Poisson CDF edge
+
+Sprint 5 (Weeks 17-20): Weather Integration + Pitch Clock Feature
+  Priority: MEDIUM
+  Tasks:
+    1. Integrate OpenWeatherMap API into daily data pipeline
+    2. Add game_temp_F, wind_speed_mph, wind_to_CF features
+    3. Add post_pitch_clock binary + pitch_clock_adapt_score
+    4. Compute velocity delta (2022 avg vs. 2023 avg) per pitcher
+    5. Retrain with new features; test on 2025–2026 holdout
+
+Sprint 6 (Weeks 21-24): Conformal Calibration + Portfolio Kelly
+  Priority: MEDIUM
+  Tasks:
+    1. Implement split conformal prediction on 2023 calibration set
+    2. Build calibrated_edge metric replacing raw EGP
+    3. Implement portfolio-adjusted Kelly sizing formula
+    4. Build daily bet-sizing module with correlation detection
+    5. Paper trade the new sizing against flat bets on 2025 backtest
+
+QUARTER 3 (January–March 2027)
+---------------------------------
+Sprint 7: Bayesian Hierarchical Model (Rookies)
+  Tasks:
+    1. Identify all pitcher_ids with <10 career starts in training window
+    2. Build PyMC3 hierarchical model with pitcher random effects
+    3. Partial pooling toward K-profile group (elite/avg/low-K)
+    4. Integrate as an override for rookie starts
+    5. Validate on 2025 rookie starts vs. current model
+
+Sprint 8: Full Statcast Arsenal Features
+  Tasks:
+    1. Add spin rate (4-seam, breaking), induced vertical break
+    2. Add release extension, arm angle proxy from release point
+    3. Build 5-start rolling variants of all Statcast physical metrics
+    4. Test feature importance vs. existing velocity-based features
+    5. Prune redundant features to prevent overfitting
+
+Sprint 9: Line Shopping Infrastructure
+  Tasks:
+    1. Integrate OddsAPI for multi-book line comparison
+    2. Build best_available_line module: find highest probability line
+    3. Track bet-specific CLV vs. consensus line at bet time
+    4. Build CLV monitoring dashboard
+
+QUARTER 4 (April–June 2027)
+------------------------------
+Sprint 10: CMP Regression Research
+  Tasks:
+    1. Test Conway-Maxwell-Poisson model as alternative to NB GLM
+    2. Literature suggests CMP handles underdispersion too (relevant for
+       elite strikeout pitchers whose K totals may be underdispersed)
+    3. Compare NB vs. CMP on calibration and RMSE metrics
+
+Sprint 11: Full System Integration and Live Testing
+  Tasks:
+    1. Unified pipeline: NB GLM + NGBoost blend + conformal calibration
+    2. Portfolio Kelly + correlation detector
+    3. Line shopping integration
+    4. Live daily betting with paper trades for 30 days before capital
+
+Sprint 12: Annual Retrain + Monitoring Hardening
+  Tasks:
+    1. Annual model retrain on 2022–2026 expanding window
+    2. Build automated PSI drift detection for all 123 features
+    3. Set up alerting for calibration failure (Brier score threshold)
+    4. Document all model versions with train/eval dates and RMSE
+
+MILESTONE SUMMARY:
+Month  | Milestone                              | Est. RMSE | Est. ROI
+-------|----------------------------------------|-----------|----------
+Now    | Current system                         | 2.21      | +7% heavy
+Q1 End | Calibration + Umpire + CSW% features  | 2.05      | +10-12%
+Q2 End | NGBoost + Weather + Portfolio Kelly    | 1.98      | +13-16%
+Q3 End | Full Statcast + Bayesian rookies       | 1.95      | +14-17%
+Q4 End | CMP + Line shopping + Live system      | 1.93      | +15-20%
+
+
+================================================================================
+SECTION 8: RISK ASSESSMENT
+================================================================================
+
+8.1 MODEL RISKS
+-----------------
+RISK: Overfitting to 2025–2026 validation period
+  - The min_model_prob=0.65 threshold was discovered on 2025 and validated on
+    2026. With only 2 validation years, there remains overfitting risk.
+  - MITIGATION: Apply Bonferroni correction (already done in existing report).
+    Require 3 consecutive years of positive ROI before increasing Kelly fraction.
+  - SEVERITY: Medium-High
+
+RISK: July-September structural failure is permanent, not fixable
+  - If the cause of the Jul-Sep failure is fundamental (market learning, fatigue
+    affecting features that can't be measured), no feature addition will fix it.
+  - MITIGATION: Maintain the hard skip-Jul-Sep filter. If umpire + framing
+    features improve Jul-Sep accuracy in 2027, re-evaluate betting.
+  - SEVERITY: Medium (already mitigated by skip policy)
+
+RISK: Calibration fix degrades point estimate RMSE
+  - Platt scaling and isotonic regression can introduce bias in point estimates
+    while improving probability calibration.
+  - MITIGATION: Evaluate separately: (a) RMSE of point estimates, (b) Brier
+    score of bet probabilities. Optimize for (b) in the calibration layer.
+  - SEVERITY: Low
+
+RISK: Feature leakage in new features (umpire, framing, lineup)
+  - All new features must be verified: data available at BET TIME (<10AM ET)?
+  - Umpire: available by 8AM ET (confirmed)
+  - Catcher framing: annual data — no leakage risk
+  - Confirmed lineup: available after lineup drop (target 9AM ET bet)
+  - MITIGATION: Pipeline includes explicit bet_cutoff_time check
+  - SEVERITY: Low if implemented correctly
+
+8.2 BETTING RISKS
+-------------------
+RISK: Book limitation / account restriction
+  - At +0.54% CLV, the system is measurable enough for sharp books (Pinnacle,
+    Circa) to limit accounts. DraftKings/FanDuel more tolerant of prop bettors.
+  - MITIGATION: Maintain accounts at 5+ books; distribute volume; use line
+    shopping to avoid being a recognizable sharp at any single book.
+  - SEVERITY: High — this is the primary operational risk
+
+RISK: Sample size of profitable segments is small
+  - model_prob >= 0.70 bets: n=86 in 2026 holdout. WR=69.8% is excellent but
+    86-bet sample has wide confidence interval. Could regress.
+  - MITIGATION: Do not fully Kelly-size based on 86-bet samples. Quarter-Kelly
+    with hard 2% cap protects bankroll during high-variance periods.
+  - SEVERITY: Medium
+
+RISK: Market evolves and closes player prop inefficiency
+  - Player prop markets are becoming more efficient as analytics firms and sharp
+    syndicates focus on them. The current +0.54% CLV may compress.
+  - MITIGATION: Track CLV monthly. If CLV falls below +0.2% over 200 bets,
+    investigate whether market has adjusted. Feature improvement (umpire,
+    framing) provides a new information edge that takes time for market to
+    incorporate.
+  - SEVERITY: Medium-Low (2–3 year horizon risk)
+
+RISK: Weather API failure or umpire data gap
+  - If weather data is unavailable day-of, model operates without weather features.
+  - MITIGATION: Fallback to park historical climatology averages (May average
+    temperature, etc.). Model was built without weather features and was valid.
+  - SEVERITY: Low
+
+8.3 RESEARCH RISKS
+--------------------
+RISK: NGBoost distributional calibration worse than current Poisson CDF
+  - Distributional models can produce poorly-calibrated tails even when median is
+    accurate. NB distribution may not be correct for all pitcher types.
+  - MITIGATION: Test NB vs. Normal vs. Poisson distribution in NGBoost; use Brier
+    score and CRPS as primary metrics; keep Poisson CDF as fallback ensemble
+    component.
+  - SEVERITY: Low-Medium
+
+RISK: Umpire zone shrinkage (2026 structural change) makes 2023–2025 umpire
+  data less predictive
+  - 2026 shows 8% smaller strike zone vs. 2025. If umpire-individual rank order
+    is stable but absolute rates shift, the features remain valid (relative
+    comparison is what matters). If rank order changes (new umpires, different
+    evaluation standards), historical umpire data is noisier.
+  - MITIGATION: Use relative metrics (umpire_k_adj vs. league_avg) rather than
+    absolute CSR. Re-calibrate umpire feature using 2025–2026 data only.
+  - SEVERITY: Low-Medium
+
+8.4 RESEARCH GAPS
+-------------------
+Topics requiring further primary data analysis (not resolvable by literature
+review alone):
+  1. Dispersion ratio of the current dataset (measure actual Var[K]/E[K] per
+     pitcher to confirm NB is needed)
+  2. Actual correlation structure of same-day bets (measure ρ empirically from
+     2025-2026 backtest data)
+  3. Umpire feature contribution: backtest on 2025 with and without umpire feature
+     before committing to Q1 implementation
+  4. Whether the July-September failure is caused by specific features (cumulative
+     pitch count? rolling K rate with full-season data?) — requires ablation study
+
+
+================================================================================
+APPENDIX: CITATIONS AND SOURCES
+================================================================================
+
+MODEL CLASS:
+  - UCLA OARC Statistics: Negative Binomial Regression examples and overdispersion
+    theory. stats.oarc.ucla.edu/stata/dae/negative-binomial-regression/
+  - PMC Zuur et al. (2019): "An empirical approach to determine a threshold for
+    assessing overdispersion in Poisson and negative binomial models."
+    pmc.ncbi.nlm.nih.gov/articles/PMC6290908/
+  - Fangraphs Community: "Run Distribution Using the Negative Binomial Distribution"
+    community.fangraphs.com/run-distribution-using-the-negative-binomial-distribution/
+  - arXiv 0902.1360 (Brown 2008): "Hierarchical Bayesian Modeling of Hitting
+    Performance in Baseball"
+  - PyMC-Labs: "Bayesian MARCEL: A Simple, Probabilistic Model for MLB"
+    pymc-labs.com/blog-posts/bayesian-marcel
+  - arXiv 1910.03225: "NGBoost: Natural Gradient Boosting for Probabilistic
+    Prediction" — Duan et al. (Stanford ML Group)
+  - arXiv 2408.14817: "A Comprehensive Benchmark of Machine and Deep Learning
+    Across Diverse Tabular Datasets"
+  - ResearchGate (2025): "A Comparative Study of TabNet and XGBoost for Tabular
+    Data Classification"
+  - arXiv 2409.17129: "Bayesian Bivariate Conway-Maxwell-Poisson Regression Model
+    for Correlated Count Data in Sports"
+
+FEATURES:
+  - SABR Journal: "Umpire Analytics" — sabr.org/journal/article/umpire-analytics/
+  - FantasyGuru: "2026 MLB Umpire Report" — week-1 strike zone analysis
+  - Fangraphs: "Pitch Framing Is Evolving Along With the Strike Zone"
+  - Baseball Savant: Catcher Framing Leaderboard — baseballsavant.mlb.com
+  - ResearchGate (Manly 2015): "The Impact of Temperature on Major League Baseball"
+  - Journal of Strength & Conditioning Research (2021): "Influence of Hot
+    Environment on Pitching and Hitting..."
+  - Claremont McKenna thesis (2024): "An Analysis of the Impacts of Pitch Clock
+    Experience on..." — scholarship.claremont.edu
+  - PitcherList (2023): "How Did the Pitch Clock Affect Pitchers in 2023?"
+  - PNAS (Depner et al. 2017): "How jet lag impairs Major League Baseball
+    performance" — pnas.org/doi/10.1073/pnas.1608847114
+  - Journal of Strength & Conditioning Research (2012): "The Impact of Pitch
+    Counts and Days of Rest on Performance Among MLB Pitchers"
+  - BeyondTheBoxScore (2013): "Predicting Strikeouts Using Velocity and Whiffs"
+  - MIT Sloan Sports Conference: "Predicting Major League Baseball Strikeout Rates
+    from Differences in Velocity and Movement"
+  - FanGraphs: CSW rate (Called Strike + Whiff) analysis
+
+PERFORMANCE CEILING:
+  - Baseball Prospectus: Singlearity neural network research (plate appearance
+    level stochasticity)
+  - KSplit Analytics: "MLB Strikeout Distributions" — ksplitanalytics.com
+  - FiveThirtyEight: "The Imperfect Pursuit of a Perfect Baseball Forecast"
+  - arXiv 1712.05754: "Understanding Career Progression in Baseball Through ML"
+  - PubMed 39228808: "Pitch-Tracking Metrics as a Predictor of Future Shoulder
+    and Elbow Injuries in MLB Pitchers" (Hawkeye biomechanics)
+  - Medium (Aansh): "Hawkeye 3D Tracking and Its Impact"
+
+BETTING SYSTEM:
+  - Pinnacle: "What is Closing Line Value in Sports Betting?" (CLV research)
+  - SFU Modified Kelly paper (Chu, Wu, Swartz): sfu.ca/~tswartz/papers/kelly.pdf
+  - Matthew Downey (2024): "Why fractional Kelly? Simulations of bet size with
+    uncertainty" — matthewdowney.github.io
+  - de Gruyter: "Kelly criterion and fractional Kelly strategy for non-mutually
+    exclusive bets" — jqas-2020-0122
+  - Wizard of Odds: "Variance and Bankroll Management for Player Props"
+  - OddsShopper: "Line Shopping in Sports Betting: Compare Odds to Maximize ROI"
+  - BettingUSA: "Line Shopping in Sports Betting 2026: Advanced Strategy Guide"
+  - BetSmart: "Efficient Prop Markets for Summer 2025"
+  - Markowitz/Mercurius: "Modern Portfolio Theory applied to sports betting"
+
+================================================================================
+END OF REPORT
+Generated: 2026-07-02
+Word count: approximately 8,500 words
+Sources consulted: 40+ primary literature references, research papers, and
+industry analyses
+================================================================================

@@ -269,6 +269,245 @@ def _merge_opposing_starter_hand(
     return batters.merge(context, on=["game_pk", "team"], how="left")
 
 
+def _opp_lineup_recent_k_rate(
+    batter_game_logs: pd.DataFrame,
+    game_context_logs: pd.DataFrame | None = None,
+) -> pd.DataFrame:
+    """Compute opponent lineup K rate over recent calendar windows (7-day, 14-day).
+
+    Captures HOT/COLD batter trends beyond the career/season averages already in the model.
+    Calendar-day rolling avoids leakage on doubleheaders.
+    Batter stats are shifted(1) per batter before rolling up to team-day level.
+
+    Returns DataFrame keyed by (game_date, opponent) with columns:
+      opp_lineup_k_rate_roll7       — K% over last 7 calendar days
+      opp_lineup_k_rate_roll14      — K% over last 14 calendar days
+      opp_lineup_k_rate_roll7_vs_hand — split by this game's pitcher handedness
+    """
+    if batter_game_logs is None or batter_game_logs.empty:
+        return pd.DataFrame()
+
+    batters = batter_game_logs.copy()
+    batters["game_date"] = pd.to_datetime(batters["game_date"])
+    batters["batter_id"] = batters["batter_id"].astype(str)
+    batters["team"] = batters["team"].astype(str)
+    batters = batters.sort_values(["batter_id", "game_date"])
+
+    # Shift(1) per batter — stats are strictly from prior game only
+    grouped = batters.groupby("batter_id", group_keys=False)
+    shifted = grouped[["plate_appearances", "strikeouts"]].shift(1)
+    batters["_prior_pa"] = shifted["plate_appearances"]
+    batters["_prior_k"] = shifted["strikeouts"]
+
+    # Aggregate to team-day level
+    team_day = (
+        batters.groupby(["game_date", "team"])[["_prior_pa", "_prior_k"]]
+        .sum()
+        .reset_index()
+        .sort_values(["team", "game_date"])
+        .reset_index(drop=True)
+    )
+
+    # Vectorized calendar rolling per team using time-offset rolling window
+    result_rows_list = []
+    for team, grp in team_day.groupby("team"):
+        grp = grp.sort_values("game_date").copy()
+        g = grp.set_index("game_date")[["_prior_pa", "_prior_k"]].sort_index()
+        for days, suffix in [(7, "roll7"), (14, "roll14")]:
+            # Rolling sum includes current date; subtract it to get strictly prior
+            pa_r = g["_prior_pa"].rolling(f"{days}D", min_periods=0).sum() - g["_prior_pa"]
+            k_r  = g["_prior_k"].rolling(f"{days}D", min_periods=0).sum() - g["_prior_k"]
+            grp[f"_pa_{suffix}"] = pa_r.values
+            grp[f"_k_{suffix}"]  = k_r.values
+        result_rows_list.append(grp)
+
+    team_roll = pd.concat(result_rows_list, ignore_index=True)
+    pa7_safe  = team_roll["_pa_roll7"].replace(0, np.nan)
+    pa14_safe = team_roll["_pa_roll14"].replace(0, np.nan)
+    team_roll["opp_lineup_k_rate_roll7"]  = team_roll["_k_roll7"]  / pa7_safe
+    team_roll["opp_lineup_k_rate_roll14"] = team_roll["_k_roll14"] / pa14_safe
+    team_roll = team_roll.rename(columns={"team": "opponent"})
+
+    result = team_roll[["game_date", "opponent",
+                         "opp_lineup_k_rate_roll7",
+                         "opp_lineup_k_rate_roll14"]].copy()
+    result["opp_lineup_k_rate_roll7_vs_hand"] = np.nan
+
+    # Handedness-split: k_rate_roll7 conditional on pitcher hand in this game
+    if game_context_logs is not None and not game_context_logs.empty:
+        ctx = game_context_logs[["game_date", "game_pk", "opponent", "pitcher_hand"]].copy()
+        ctx["game_date"] = pd.to_datetime(ctx["game_date"])
+        ctx["opponent"] = ctx["opponent"].astype(str)
+
+        # Join hand to each batter game, then shift(1) to get "hand faced in prior game"
+        ctx_for_batters = ctx.rename(columns={"opponent": "team"})
+        batters2 = batter_game_logs.copy()
+        batters2["game_date"] = pd.to_datetime(batters2["game_date"])
+        batters2["team"] = batters2["team"].astype(str)
+        batters2["batter_id"] = batters2["batter_id"].astype(str)
+        batters2 = batters2.merge(
+            ctx_for_batters[["game_date", "game_pk", "team", "pitcher_hand"]],
+            on=["game_date", "game_pk", "team"], how="left"
+        )
+        batters2 = batters2.sort_values(["batter_id", "game_date"])
+        grp3 = batters2.groupby("batter_id", group_keys=False)
+        sh3 = grp3[["plate_appearances", "strikeouts", "pitcher_hand"]].shift(1)
+        batters2["_prior_pa_h"] = sh3["plate_appearances"]
+        batters2["_prior_k_h"]  = sh3["strikeouts"]
+        batters2["_prior_hand"] = sh3["pitcher_hand"]
+
+        # Add this game's pitcher hand to result
+        ctx_dedup = ctx[["game_date", "opponent", "pitcher_hand"]].drop_duplicates(
+            ["game_date", "opponent"]
+        )
+        result = result.merge(ctx_dedup, on=["game_date", "opponent"], how="left")
+
+        # Build team-day handedness-split 7-day rolling
+        for hand_val in ["R", "L"]:
+            hand_sub = batters2[batters2["_prior_hand"] == hand_val].copy()
+            if hand_sub.empty:
+                continue
+            td_hand = (
+                hand_sub.groupby(["game_date", "team"])[["_prior_pa_h", "_prior_k_h"]]
+                .sum()
+                .reset_index()
+                .sort_values(["team", "game_date"])
+            )
+            hand_parts = []
+            for team, tgrp in td_hand.groupby("team"):
+                tgrp = tgrp.sort_values("game_date").copy()
+                g = tgrp.set_index("game_date")[["_prior_pa_h", "_prior_k_h"]].sort_index()
+                pa_r = g["_prior_pa_h"].rolling("7D", min_periods=0).sum() - g["_prior_pa_h"]
+                k_r  = g["_prior_k_h"].rolling("7D", min_periods=0).sum() - g["_prior_k_h"]
+                tgrp[f"_pa_h_{hand_val}"] = pa_r.values
+                tgrp[f"_k_h_{hand_val}"]  = k_r.values
+                hand_parts.append(tgrp)
+            hand_df = pd.concat(hand_parts, ignore_index=True)
+            hand_df = hand_df.rename(columns={"team": "opponent"})
+            pa_safe_h = hand_df[f"_pa_h_{hand_val}"].replace(0, np.nan)
+            hand_df[f"_krate_h_{hand_val}"] = hand_df[f"_k_h_{hand_val}"] / pa_safe_h
+            result = result.merge(
+                hand_df[["game_date", "opponent", f"_krate_h_{hand_val}"]],
+                on=["game_date", "opponent"], how="left"
+            )
+
+        if "pitcher_hand" in result.columns:
+            krate_r = result.get("_krate_h_R", pd.Series(np.nan, index=result.index))
+            krate_l = result.get("_krate_h_L", pd.Series(np.nan, index=result.index))
+            result["opp_lineup_k_rate_roll7_vs_hand"] = np.where(
+                result["pitcher_hand"] == "R", krate_r,
+                np.where(result["pitcher_hand"] == "L", krate_l, np.nan)
+            )
+            result = result.drop(columns=["pitcher_hand"], errors="ignore")
+        drop_cols = [c for c in result.columns if c.startswith("_krate_h_")]
+        result = result.drop(columns=drop_cols, errors="ignore")
+
+    return result[["game_date", "opponent",
+                   "opp_lineup_k_rate_roll7",
+                   "opp_lineup_k_rate_roll14",
+                   "opp_lineup_k_rate_roll7_vs_hand"]]
+
+
+def _pitcher_season_phase_features(logs: pd.DataFrame) -> pd.DataFrame:
+    """Season-phase features capturing pitcher workload and ramp-up position.
+
+    The model has upward bias early in season. These give direct signals about
+    WHERE a pitcher is in their annual workload cycle:
+      p_season_start_num      — starts completed this season before this game
+      p_log_season_start_num  — log1p of above (compressed scale)
+      p_days_since_season_start — calendar days since first start this season
+      p_ip_pct_of_career_avg  — current season avg IP/start / career avg IP/start
+      p_pitch_load_28d        — total pitches in last 28 calendar days
+      p_workload_pct          — p_pitch_load_28d / pitcher career avg 28d load
+      p_starts_last_30d       — starts in last 30 calendar days
+
+    All use strictly prior-game data (shift(1) before expansion/rolling).
+    Leakage-safe: no same-day stats used.
+    """
+    if logs is None or logs.empty:
+        return pd.DataFrame()
+
+    df = logs.copy()
+    df["game_date"] = pd.to_datetime(df["game_date"])
+    df["pitcher_id"] = df["pitcher_id"].astype(str)
+    df["pitches"] = pd.to_numeric(df.get("pitches", pd.Series(dtype=float)), errors="coerce")
+    df["innings_pitched"] = pd.to_numeric(
+        df.get("innings_pitched", pd.Series(dtype=float)), errors="coerce"
+    )
+    df = df.sort_values(["pitcher_id", "game_date"])
+    df["season"] = df["game_date"].dt.year
+
+    # ── Start number within current season ─────────────────────────────────
+    # cumcount = starts completed including this one; shift(1) = before this game
+    df["p_season_start_num"] = df.groupby(["pitcher_id", "season"]).cumcount()
+    df["p_season_start_num"] = (
+        df.groupby(["pitcher_id", "season"])["p_season_start_num"].shift(1)
+    )
+    df["p_log_season_start_num"] = np.log1p(df["p_season_start_num"])
+
+    # ── Days since first start of this season ──────────────────────────────
+    first_start = df.groupby(["pitcher_id", "season"])["game_date"].transform("min")
+    df["p_days_since_season_start"] = (df["game_date"] - first_start).dt.days
+
+    # ── IP ratio: current season avg IP/start vs career avg IP/start ───────
+    grouped_season  = df.groupby(["pitcher_id", "season"], group_keys=False)
+    grouped_pitcher = df.groupby("pitcher_id", group_keys=False)
+
+    df["_ip_season_sum"]  = grouped_season["innings_pitched"].apply(
+        lambda s: s.shift(1).expanding().sum()
+    )
+    df["_starts_season"]  = grouped_season["innings_pitched"].apply(
+        lambda s: s.shift(1).expanding().count()
+    )
+    df["_ip_career_sum"]  = grouped_pitcher["innings_pitched"].apply(
+        lambda s: s.shift(1).expanding().sum()
+    )
+    df["_starts_career"]  = grouped_pitcher["innings_pitched"].apply(
+        lambda s: s.shift(1).expanding().count()
+    )
+    season_avg_ip = df["_ip_season_sum"] / df["_starts_season"].replace(0, np.nan)
+    career_avg_ip = df["_ip_career_sum"] / df["_starts_career"].replace(0, np.nan)
+    df["p_ip_pct_of_career_avg"] = season_avg_ip / career_avg_ip.replace(0, np.nan)
+
+    # ── 28-day rolling pitch load (vectorized time-offset rolling) ──────────
+    df["p_pitch_load_28d"]  = 0.0
+    df["p_starts_last_30d"] = 0.0
+
+    if "pitches" in df.columns and df["pitches"].notna().any():
+        parts = []
+        for pid, pgrp in df.groupby("pitcher_id"):
+            pgrp = pgrp.sort_values("game_date").copy()
+            g = pgrp.set_index("game_date")
+
+            # pitches: rolling sum over 28 days, subtract current row for strictly prior
+            pitches_s = g["pitches"].fillna(0).sort_index()
+            p28 = pitches_s.rolling("28D", min_periods=0).sum() - pitches_s
+            pgrp["p_pitch_load_28d"] = p28.values
+
+            # starts: count of starts (IP > 0) over 30 days
+            is_start = (g["innings_pitched"].fillna(0) > 0).astype(float).sort_index()
+            s30 = is_start.rolling("30D", min_periods=0).sum() - is_start
+            pgrp["p_starts_last_30d"] = s30.values
+            parts.append(pgrp)
+        df = pd.concat(parts, ignore_index=True).sort_values(["pitcher_id", "game_date"])
+
+    # Career avg 28-day pitch load (expanding mean of prior values)
+    df["_career_avg_28d"] = (
+        df.groupby("pitcher_id", group_keys=False)["p_pitch_load_28d"]
+        .apply(lambda s: s.shift(1).expanding(min_periods=1).mean())
+        .values
+    )
+    df["p_workload_pct"] = df["p_pitch_load_28d"] / df["_career_avg_28d"].replace(0, np.nan)
+
+    keep_cols = [
+        "game_date", "pitcher_id",
+        "p_season_start_num", "p_log_season_start_num",
+        "p_days_since_season_start", "p_ip_pct_of_career_avg",
+        "p_pitch_load_28d", "p_workload_pct", "p_starts_last_30d",
+    ]
+    return df[keep_cols].copy()
+
+
 def _batter_prior_features(
     batter_game_logs: pd.DataFrame,
     game_context_logs: pd.DataFrame | None = None,
@@ -592,6 +831,51 @@ def _statcast_prior_features(
             .reset_index(level=0, drop=True)
         )
 
+    # ── Task 4: Additional Statcast trend features ───────────────────────────
+    # avg_spin_rate is NOT in statcast_pitcher_daily.csv. Instead we engineer:
+    #   sc_csw_slope_roll8      — trend in CSW (called+swinging strikes) rate
+    #   sc_swstr_slope_roll5    — trend in swinging strike rate (short-term whiff tendency)
+    #   sc_velo_x_csw_roll5     — interaction: velocity × CSW (composite "stuff" score)
+    #   sc_zone_minus_swstr_roll5 — zone rate minus swinging strike rate
+    #                               (zone dominance without relying on hitter chasing)
+    # These parallel the velocity slope logic above and reuse already-shifted data.
+
+    def _slope_fn(s: pd.Series) -> float:
+        valid = s.dropna()
+        if len(valid) < 3:
+            return np.nan
+        return float(np.polyfit(np.arange(len(valid)), valid.values, 1)[0])
+
+    if "csw_rate" in statcast.columns:
+        _shifted_csw = grouped["csw_rate"].shift(1)
+        statcast["sc_csw_slope_roll8"] = (
+            _shifted_csw.groupby(statcast["pitcher_id"])
+            .rolling(8, min_periods=3)
+            .apply(_slope_fn, raw=False)
+            .reset_index(level=0, drop=True)
+        )
+
+    if "swinging_strike_rate" in statcast.columns:
+        _shifted_swstr = grouped["swinging_strike_rate"].shift(1)
+        statcast["sc_swstr_slope_roll5"] = (
+            _shifted_swstr.groupby(statcast["pitcher_id"])
+            .rolling(5, min_periods=3)
+            .apply(_slope_fn, raw=False)
+            .reset_index(level=0, drop=True)
+        )
+
+    # Velocity × CSW interaction (stuff quality composite)
+    if "sc_csw_rate_roll5" in statcast.columns and "sc_avg_release_speed_roll5" in statcast.columns:
+        statcast["sc_velo_x_csw_roll5"] = (
+            statcast["sc_avg_release_speed_roll5"] * statcast["sc_csw_rate_roll5"]
+        )
+
+    # Zone dominance proxy: zone rate minus swinging strike rate
+    if "sc_zone_rate_roll5" in statcast.columns and "sc_swinging_strike_rate_roll5" in statcast.columns:
+        statcast["sc_zone_minus_swstr_roll5"] = (
+            statcast["sc_zone_rate_roll5"] - statcast["sc_swinging_strike_rate_roll5"]
+        )
+
     feature_cols = [col for col in statcast.columns if col.startswith("sc_")]
     return statcast[["game_date", "pitcher_id"] + feature_cols]
 
@@ -888,9 +1172,10 @@ def _prior_environment_features(
     if env.empty:
         return pd.DataFrame()
 
+    # Aggregate to one row per (venue/umpire, date) so position-based shift(1) below
+    # operates on dates only — including game_pk would let same-day games contaminate
+    # each other's environment features in doubleheaders.
     group_keys = [group_col, "game_date"]
-    if "game_pk" in env.columns:
-        group_keys.insert(1, "game_pk")
 
     env = env.groupby(group_keys, as_index=False)[TARGETS].mean()
     env = env.sort_values([group_col, "game_date"])
@@ -1033,7 +1318,9 @@ def _league_krate_drift_features(logs: pd.DataFrame, windows: list[int]) -> pd.D
                 .shift(1).rolling(w, min_periods=1).mean()
             )
 
-    feat_cols = [c for c in daily.columns if c.startswith("league_k")]
+    # Exclude same-day league_k: it is the actual league-wide K average for the
+    # game date and is not known pregame. Keep only shifted rolling features.
+    feat_cols = [c for c in daily.columns if c.startswith("league_k_")]
     return daily[["game_date"] + feat_cols]
 
 
@@ -1162,6 +1449,7 @@ def build_training_features(
     logs: pd.DataFrame,
     rolling_windows: list[int],
     min_history_games: int = 3,
+    min_starter_ip: float | None = None,
     team_batting_logs: pd.DataFrame | None = None,
     game_context_logs: pd.DataFrame | None = None,
     batter_game_logs: pd.DataFrame | None = None,
@@ -1171,6 +1459,7 @@ def build_training_features(
     fill_values: dict | None = None,
     statcast_pitcher_advanced: pd.DataFrame | None = None,
     statcast_batter_discipline: pd.DataFrame | None = None,
+    return_before_impute: bool = False,
 ) -> tuple[pd.DataFrame, list[str], dict]:
     df = logs.copy()
     df["game_date"] = pd.to_datetime(df["game_date"])
@@ -1187,6 +1476,21 @@ def build_training_features(
         game_context_logs,
         statcast_batter_pitch_type_daily,
     )
+
+    # Task 1: Recent opponent lineup K rate (7-day and 14-day calendar rolling)
+    if batter_game_logs is not None and not batter_game_logs.empty:
+        recent_opp_k = _opp_lineup_recent_k_rate(batter_game_logs, game_context_logs)
+        if not recent_opp_k.empty:
+            recent_opp_k["opponent"] = recent_opp_k["opponent"].astype(str)
+            df["opponent"] = df["opponent"].astype(str)
+            df = df.merge(recent_opp_k, on=["game_date", "opponent"], how="left")
+
+    # Task 2: Pitcher season-phase features
+    season_phase = _pitcher_season_phase_features(logs)
+    if not season_phase.empty:
+        season_phase["pitcher_id"] = season_phase["pitcher_id"].astype(str)
+        df = df.merge(season_phase, on=["game_date", "pitcher_id"], how="left")
+
     df = _merge_statcast_features(df, statcast_pitcher_daily, rolling_windows)
     df = _add_pitch_type_matchup_features(df)
     df = _merge_park_factor_features(df, park_factors)
@@ -1261,8 +1565,54 @@ def build_training_features(
     # Situational features (YTD IP/starts, days into season)
     df = _add_situational_features(df, logs)
 
+    # Mean-reversion features: deviation of short-term rolling average from
+    # longer-term baselines. Captures hot/cold streaks that tend to revert
+    # in late season, where rolling averages earned earlier become stale.
+    # All inputs are already lag-shifted (shift(1)), so no leakage.
+    df["game_year"] = df["game_date"].dt.year
+    _k_ytd = (
+        df.sort_values("game_date")
+        .groupby(["pitcher_id", "game_year"])["strikeouts"]
+        .transform(lambda s: s.shift(1).expanding().mean())
+    )
+    df["p_strikeouts_season_avg_prior"] = _k_ytd.values
+
+    # Short-term vs long-term K trend (positive = hot streak)
+    if "p_strikeouts_roll3" in df.columns and "p_strikeouts_roll20" in df.columns:
+        df["p_k_roll3_vs_roll20"] = df["p_strikeouts_roll3"] - df["p_strikeouts_roll20"]
+    if "p_strikeouts_roll5" in df.columns and "p_strikeouts_roll20" in df.columns:
+        df["p_k_roll5_vs_roll20"] = df["p_strikeouts_roll5"] - df["p_strikeouts_roll20"]
+
+    # Recent K rate vs career baseline (positive = pitcher is above career norms)
+    if "p_strikeouts_roll10" in df.columns and "p_strikeouts_career_avg_prior" in df.columns:
+        df["p_k_roll10_vs_career"] = df["p_strikeouts_roll10"] - df["p_strikeouts_career_avg_prior"]
+    if "p_strikeouts_roll5" in df.columns and "p_strikeouts_career_avg_prior" in df.columns:
+        df["p_k_roll5_vs_career"] = df["p_strikeouts_roll5"] - df["p_strikeouts_career_avg_prior"]
+
+    # Recent K rate vs season-to-date average (positive = hot streak this year)
+    if "p_strikeouts_roll10" in df.columns:
+        df["p_k_roll10_vs_season"] = df["p_strikeouts_roll10"] - df["p_strikeouts_season_avg_prior"]
+    if "p_strikeouts_roll5" in df.columns:
+        df["p_k_roll5_vs_season"] = df["p_strikeouts_roll5"] - df["p_strikeouts_season_avg_prior"]
+
+    # Strike rate trend (positive = command is improving recently)
+    if "p_strike_rate_roll5" in df.columns and "p_strike_rate_roll20" in df.columns:
+        df["p_strike_rate_trend"] = df["p_strike_rate_roll5"] - df["p_strike_rate_roll20"]
+
+    # Opponent K rate trend: is this lineup hot or cold at striking out recently?
+    if "opp_batting_k_rate_roll5" in df.columns and "opp_batting_k_rate_roll20" in df.columns:
+        df["opp_k_rate_trend"] = df["opp_batting_k_rate_roll5"] - df["opp_batting_k_rate_roll20"]
+
     df["pitcher_game_number"] = df.groupby("pitcher_id").cumcount() + 1
     df = df[df["pitcher_game_number"] > min_history_games].copy()
+
+    # Exclude non-starter rows (openers, bulk relievers, scratched starts).
+    # Rolling history was computed before this filter so opponent stats are unaffected.
+    # IP=0 rows (logical errors / scratched starters) are always excluded.
+    if "innings_pitched" in df.columns:
+        df = df[df["innings_pitched"].fillna(0) > 0].copy()
+        if min_starter_ip is not None and min_starter_ip > 0:
+            df = df[df["innings_pitched"] >= min_starter_ip].copy()
 
     feature_cols = BASE_FEATURES + [
         col
@@ -1273,7 +1623,7 @@ def build_training_features(
         or col.startswith("opp_lineup_")
         or col.startswith("opp_bullpen_")
         or col.startswith("pvt_")
-        or col.startswith("league_k")
+        or col.startswith("league_k_")
         or col.startswith("adv_")
         or col.startswith("bat_")
         or col.startswith("lineup_bat_")
@@ -1291,6 +1641,10 @@ def build_training_features(
     feature_cols = [c for c in feature_cols if c not in seen and not seen.add(c)]
 
     df[feature_cols] = df[feature_cols].replace([np.inf, -np.inf], np.nan)
+    if return_before_impute:
+        # Caller is responsible for imputation using train-period medians only.
+        # This avoids fitting the model on features imputed with future-data medians.
+        return df.reset_index(drop=True), feature_cols, {}
     if fill_values is None:
         fill_values = df[feature_cols].median(numeric_only=True).to_dict()
     fill_series = pd.Series(fill_values).reindex(feature_cols, fill_value=0.0)
@@ -1358,7 +1712,7 @@ def feature_columns_from_frame(df: pd.DataFrame) -> list[str]:
         or col.startswith("opp_lineup_")
         or col.startswith("opp_bullpen_")
         or col.startswith("pvt_")
-        or col.startswith("league_k")
+        or col.startswith("league_k_")
         or col.startswith("adv_")
         or col.startswith("bat_")
         or col.startswith("lineup_bat_")

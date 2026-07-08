@@ -286,6 +286,10 @@ def _daily_market_rows(
         odds_drop = [c for c in market_odds.columns if c in base_cols and c not in key_cols]
         market_odds = market_odds.drop(columns=odds_drop, errors="ignore")
         market_proj = projections[base_cols + [f"{market}_projection"]].copy()
+        if "game_date" in market_proj.columns:
+            market_proj["game_date"] = market_proj["game_date"].astype(str).str[:10]
+        if "game_date" in market_odds.columns:
+            market_odds["game_date"] = market_odds["game_date"].astype(str).str[:10]
         merged = market_proj.merge(market_odds, on=key_cols, how="left")
         merged["market"] = market
         merged["betting_disabled"] = market in disabled
@@ -415,7 +419,16 @@ def main() -> None:
     disabled_markets = config["betting"].get("disabled_markets", [])
 
     odds = load_odds(config["data"]["odds_file"])
+    daily_odds_path = Path("data/odds/pitcher_props.csv")
+    if daily_odds_path.exists():
+        daily_odds = load_odds(str(daily_odds_path))
+        odds = pd.concat([odds, daily_odds], ignore_index=True).drop_duplicates(
+            subset=["game_date", "pitcher_id", "market", "bookmaker", "line"], keep="last"
+        )
+    odds["game_date"] = pd.to_datetime(odds["game_date"], errors="coerce")
     odds = odds[odds["game_date"] == pd.to_datetime(args.date)].copy()
+    if not odds.empty:
+        odds["game_date"] = odds["game_date"].dt.strftime("%Y-%m-%d")
 
     # Fit NB dispersion from historical K distribution (method of moments)
     _ks = logs["strikeouts"].dropna().values if "strikeouts" in logs.columns else np.array([])
@@ -484,18 +497,56 @@ def main() -> None:
     print(f"Styled daily board saved to {excel_path}")
     min_e = config["betting"]["min_edge_pct"]
     max_e = config["betting"].get("max_edge_pct", float("inf"))
-    flagged = picks[
-        picks.get("edge_pct", pd.Series(dtype=float)).between(min_e, max_e, inclusive="both")
-    ] if "edge_pct" in picks.columns else pd.DataFrame()
+    min_egp = float(config["betting"].get("min_edge_gap_product", 0.0))
+    skip_months = config["betting"].get("skip_months", [])
+    overs_only = bool(config["betting"].get("overs_only", False))
+    min_model_prob = float(config["betting"].get("min_model_prob", 0.0))
 
-    # Filter: projection must agree with direction (over→proj>line, under→proj<line)
-    if not flagged.empty and "strikeouts_projection" in flagged.columns:
-        proj_col = flagged["strikeouts_projection"]
-        agrees = (
-            ((flagged["best_side"] == "over")  & (proj_col > flagged["line"])) |
-            ((flagged["best_side"] == "under") & (proj_col < flagged["line"]))
-        )
-        flagged = flagged[agrees].copy()
+    # Seasonal filter: skip configured months (Jul-Sep by default, p<0.00001 evidence)
+    target_month = pd.to_datetime(args.date).month
+    if target_month in (skip_months or []):
+        print(f"[Seasonal filter] Skipping month {target_month} (configured in skip_months). No bets today.")
+        flagged = pd.DataFrame()
+    elif "edge_pct" in picks.columns:
+        flagged = picks[
+            picks["edge_pct"].between(min_e, max_e, inclusive="both")
+        ].copy()
+        # V2 primary filter: edge * abs_proj_gap >= min_edge_gap_product
+        if min_egp > 0 and "edge_gap_product" in flagged.columns:
+            flagged = flagged[flagged["edge_gap_product"] >= min_egp].copy()
+        # Projection must agree with direction (over→proj>line, under→proj<line)
+        if not flagged.empty and "strikeouts_projection" in flagged.columns:
+            proj_col = flagged["strikeouts_projection"]
+            agrees = (
+                ((flagged["best_side"] == "over")  & (proj_col > flagged["line"])) |
+                ((flagged["best_side"] == "under") & (proj_col < flagged["line"]))
+            )
+            flagged = flagged[agrees].copy()
+        # Probability floor: reject bets where model win probability < min_model_prob.
+        # Discovery on 2025, validated on 2026 holdout (p=0.016 at 65%, p=0.002 at 70%).
+        # The 55-60% probability band has WR=36-48% in both years — below breakeven.
+        if min_model_prob > 0 and not flagged.empty:
+            n_before = len(flagged)
+            prob_col = flagged.apply(
+                lambda r: r.get("over_probability", 0) if r["best_side"] == "over"
+                          else r.get("under_probability", 0),
+                axis=1,
+            )
+            flagged = flagged[prob_col >= min_model_prob].copy()
+            n_dropped = n_before - len(flagged)
+            if n_dropped:
+                print(f"[Prob floor filter] Dropped {n_dropped} bet(s) with model_prob < {min_model_prob:.0%}.")
+        # V3 direction filter: overs only
+        # Evidence: 2025 WF under bets ROI=+5.6%, p=0.104 (not significant at edge*gap>=12)
+        # Re-evaluate after full 2026 season (Jul-Sep) before restoring under bets
+        if overs_only and not flagged.empty:
+            n_before = len(flagged)
+            flagged = flagged[flagged["best_side"] == "over"].copy()
+            n_after = len(flagged)
+            if n_before > n_after:
+                print(f"[V3 overs-only filter] Dropped {n_before - n_after} under bet(s).")
+    else:
+        flagged = pd.DataFrame()
 
     # Deduplicate: one bet per pitcher (highest edge)
     _name_col = "pitcher_name" if "pitcher_name" in flagged.columns else "player_name"

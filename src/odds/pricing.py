@@ -176,4 +176,15 @@ def add_betting_columns(
         ),
         axis=1,
     )
+    # Derived confidence metrics (validated V2 research, 2025+2026 OOS)
+    out["abs_proj_gap"] = (out[projection_col] - out["line"]).abs()
+    out["edge_gap_product"] = out["edge_pct"] * out["abs_proj_gap"]
+    out["norm_proj_gap"] = out["abs_proj_gap"] / out["line"].clip(lower=0.01)
+    # Platt-calibrated probability (monitoring only — not used in betting decisions)
+    # Params: a=0.4992, b=0.0767, fit on 2025 WF OOS via MLE. T_opt=2.06 (temperature scaling).
+    # Interpretation: a<1 confirms model is overconfident; shrinks toward 0.5 by ~50%.
+    # Brier improvement: 0.24965 -> 0.24566 (2025 train). Does not affect edge_pct or best_side.
+    _raw = out["raw_over_probability"].clip(lower=1e-7, upper=1-1e-7)
+    _logit = np.log(_raw / (1 - _raw))
+    out["platt_over_prob"] = 1 / (1 + np.exp(-(0.4992 * _logit + 0.0767)))
     return out

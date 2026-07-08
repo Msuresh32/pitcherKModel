@@ -1,0 +1,424 @@
+path,kind,bytes,modified,classification,reason
+data/processed_noopp_wf2025_ext/bt_noopp_oos_edges.csv,csv,74949880,2026-06-29T16:53:52.810168982,canonical,"primary no-opportunity matrix, but raw league_k column must be excluded"
+reports/adversarial_master_2026_06_29/artifact_inventory.csv,csv,54673,2026-06-30T07:23:10.481523514,canonical,created for no-leak audit/comparison
+reports/adversarial_master_2026_06_29/best_candidate_bets_through_2026_06_29.csv,csv,7457308,2026-06-30T07:23:10.769165516,canonical,created for no-leak audit/comparison
+reports/adversarial_master_2026_06_29/clv_audit.csv,csv,3786,2026-06-30T07:23:10.770169497,canonical,created for no-leak audit/comparison
+reports/adversarial_master_2026_06_29/execution_sensitivity.csv,csv,747,2026-06-30T07:23:10.770666122,canonical,created for no-leak audit/comparison
+reports/adversarial_master_2026_06_29/feature_leakage_audit.csv,csv,11875,2026-06-30T07:23:10.482027054,canonical,created for no-leak audit/comparison
+reports/adversarial_master_2026_06_29/final_recommendation.md,md,2621,2026-06-30T07:23:10.828589201,canonical,created for no-leak audit/comparison
+reports/adversarial_master_2026_06_29/grouped_performance.csv,csv,29644,2026-06-30T07:23:10.773670197,canonical,created for no-leak audit/comparison
+reports/adversarial_master_2026_06_29/model_audit_master_summary.csv,csv,15023,2026-06-30T07:23:10.776673794,canonical,created for no-leak audit/comparison
+reports/adversarial_master_2026_06_29/robustness_grid.csv,csv,12565,2026-06-30T07:23:10.771667480,canonical,created for no-leak audit/comparison
+reports/adversarial_master_2026_06_29/valid_model_comparison.csv,csv,1984,2026-06-30T07:23:10.483546734,canonical,created for no-leak audit/comparison
+reports/no_leak_2025_to_2026/bets_2026_elastic_top120_e5_eg0_under.csv,csv,7544299,2026-06-29T23:19:03.230831861,canonical,created for no-leak audit/comparison
+reports/no_leak_2025_to_2026/bets_2026_poisson_top120_a2_e0_eg3_under.csv,csv,5032014,2026-06-29T23:19:03.810052872,canonical,created for no-leak audit/comparison
+reports/no_leak_2025_to_2026/bets_2026_poisson_top120_a2_e3_eg0_all.csv,csv,14577286,2026-06-29T23:19:02.878124475,canonical,created for no-leak audit/comparison
+reports/no_leak_2025_to_2026/bets_2026_poisson_top120_a2_e3_eg3_under.csv,csv,5032014,2026-06-29T23:19:04.084110260,canonical,created for no-leak audit/comparison
+reports/no_leak_2025_to_2026/bets_2026_poisson_top120_a2_e7_eg0_under.csv,csv,6617770,2026-06-29T23:19:03.575067520,canonical,created for no-leak audit/comparison
+reports/no_leak_2025_to_2026/eligible_from_2025_validation.csv,csv,1659,2026-06-29T23:19:02.146697283,canonical,created for no-leak audit/comparison
+reports/no_leak_2025_to_2026/prediction_scores.csv,csv,881,2026-06-29T23:19:02.125174761,canonical,created for no-leak audit/comparison
+reports/no_leak_2025_to_2026/test_2026_for_eligible_2025_configs.csv,csv,1660,2026-06-29T23:19:04.086616278,canonical,created for no-leak audit/comparison
+reports/no_leak_2025_to_2026/top_candidate_2026_breakdowns.csv,csv,7603,2026-06-29T23:19:04.677852154,canonical,created for no-leak audit/comparison
+reports/no_leak_2025_to_2026/validation_2025_filter_grid.csv,csv,342698,2026-06-29T23:19:02.123164654,canonical,created for no-leak audit/comparison
+reports/walk_forward_comparison/walk_forward_bets.csv,csv,54378162,2026-06-30T07:27:15.235536098,canonical,created for no-leak audit/comparison
+reports/walk_forward_comparison/walk_forward_daily_diff_test.csv,csv,256,2026-06-30T07:27:22.506542206,canonical,created for no-leak audit/comparison
+reports/walk_forward_comparison/walk_forward_edge_buckets.csv,csv,4829,2026-06-30T07:27:12.954140425,canonical,created for no-leak audit/comparison
+reports/walk_forward_comparison/walk_forward_monthly.csv,csv,4449,2026-06-30T07:27:12.953640699,canonical,created for no-leak audit/comparison
+reports/walk_forward_comparison/walk_forward_research_review.md,md,3147,2026-06-30T07:27:22.509040833,canonical,created for no-leak audit/comparison
+reports/walk_forward_comparison/walk_forward_scored_opportunities.csv,csv,191732254,2026-06-30T07:27:22.505541801,canonical,created for no-leak audit/comparison
+reports/walk_forward_comparison/walk_forward_summary.csv,csv,4367,2026-06-30T07:27:12.952641010,canonical,created for no-leak audit/comparison
+scripts/no_leak_2025_to_2026_model_search.py,py,16559,2026-06-29T23:18:16.512673378,canonical,created for no-leak audit/comparison
+data/processed_ensemble_wf2025/bt_ensemble_2025_bet_summary.csv,csv,200,2026-06-29T16:53:51.967085600,deprecated,saved artifact family affected by prior league_k leakage risk
+data/processed_ensemble_wf2025/bt_ensemble_2025_clv.csv,csv,13126958,2026-06-29T16:53:52.038208246,deprecated,saved artifact family affected by prior league_k leakage risk
+data/processed_ensemble_wf2025/bt_ensemble_2025_edge_buckets.csv,csv,455,2026-06-29T16:53:52.039207697,deprecated,saved artifact family affected by prior league_k leakage risk
+data/processed_ensemble_wf2025/bt_ensemble_2025_edges.csv,csv,51036187,2026-06-29T16:53:52.322647810,deprecated,saved artifact family affected by prior league_k leakage risk
+data/processed_ensemble_wf2025/bt_ensemble_2025_predictions.csv,csv,58241477,2026-06-29T16:53:52.466510057,deprecated,saved artifact family affected by prior league_k leakage risk
+data/processed_ensemble_wf2025/bt_ensemble_2025_prob_calibration.csv,csv,191,2026-06-29T16:53:52.466510057,deprecated,saved artifact family affected by prior league_k leakage risk
+data/processed_ensemble_wf2025/bt_ensemble_2025_scores.csv,csv,182,2026-06-29T16:53:52.466510057,deprecated,saved artifact family affected by prior league_k leakage risk
+data/processed_ensemble_wf2025/bt_ensemble_2025_sequential_pnl.csv,csv,128863,2026-06-29T16:53:52.468024492,deprecated,saved artifact family affected by prior league_k leakage risk
+data/processed_ensemble_wf2025/models/expected_innings_pitched.joblib,joblib,41098006,2026-06-29T16:53:52.602773190,deprecated,saved artifact family affected by prior league_k leakage risk
+data/processed_ensemble_wf2025/models/fill_values.json,json,32009,2026-06-29T16:53:52.604278564,deprecated,saved artifact family affected by prior league_k leakage risk
+data/processed_ensemble_wf2025/models/hits_allowed.joblib,joblib,369906,2026-06-29T16:53:52.606277466,deprecated,saved artifact family affected by prior league_k leakage risk
+data/processed_ensemble_wf2025/models/strikeouts.joblib,joblib,371271,2026-06-29T16:53:52.607277393,deprecated,saved artifact family affected by prior league_k leakage risk
+data/processed_ensemble_wf2025/models/walks.joblib,joblib,371946,2026-06-29T16:53:52.608277559,deprecated,saved artifact family affected by prior league_k leakage risk
+data/processed_ensemble_wf2025/opportunity_train_metrics.csv,csv,82,2026-06-29T16:53:52.608277559,deprecated,saved artifact family affected by prior league_k leakage risk
+data/processed_ensemble_wf2025/train_metrics.csv,csv,185,2026-06-29T16:53:52.608777523,deprecated,saved artifact family affected by prior league_k leakage risk
+data/processed_oos2025/calibration.json,json,820,2026-06-29T16:53:52.815179586,deprecated,saved artifact family affected by prior league_k leakage risk
+data/processed_oos2025/models/expected_innings_pitched.joblib,joblib,27245556,2026-06-29T16:53:52.983446121,deprecated,saved artifact family affected by prior league_k leakage risk
+data/processed_oos2025/models/fill_values.json,json,31772,2026-06-29T16:53:52.983945608,deprecated,saved artifact family affected by prior league_k leakage risk
+data/processed_oos2025/models/hits_allowed.joblib,joblib,372288,2026-06-29T16:53:53.020500898,deprecated,saved artifact family affected by prior league_k leakage risk
+data/processed_oos2025/models/strikeouts.joblib,joblib,370653,2026-06-29T16:53:53.022006989,deprecated,saved artifact family affected by prior league_k leakage risk
+data/processed_oos2025/models/walks.joblib,joblib,372007,2026-06-29T16:53:53.023009539,deprecated,saved artifact family affected by prior league_k leakage risk
+data/processed_poisson/backtest_poisson_bet_summary.csv,csv,185,2026-06-29T16:53:53.023509502,deprecated,saved artifact family affected by prior league_k leakage risk
+data/processed_poisson/backtest_poisson_clv.csv,csv,1069937,2026-06-29T16:53:53.026509523,deprecated,saved artifact family affected by prior league_k leakage risk
+data/processed_poisson/backtest_poisson_edge_buckets.csv,csv,450,2026-06-29T16:53:53.027009487,deprecated,saved artifact family affected by prior league_k leakage risk
+data/processed_poisson/backtest_poisson_edges.csv,csv,3425378,2026-06-29T16:53:53.074083567,deprecated,saved artifact family affected by prior league_k leakage risk
+data/processed_poisson/backtest_poisson_predictions.csv,csv,7583522,2026-06-29T16:53:53.081593513,deprecated,saved artifact family affected by prior league_k leakage risk
+data/processed_poisson/backtest_poisson_prob_calibration.csv,csv,191,2026-06-29T16:53:53.082592249,deprecated,saved artifact family affected by prior league_k leakage risk
+data/processed_poisson/backtest_poisson_scores.csv,csv,179,2026-06-29T16:53:53.083092690,deprecated,saved artifact family affected by prior league_k leakage risk
+data/processed_poisson/backtest_poisson_sequential_pnl.csv,csv,9985,2026-06-29T16:53:53.083592653,deprecated,saved artifact family affected by prior league_k leakage risk
+data/processed_poisson/bt_pois_2026_e20_bet_summary.csv,csv,198,2026-06-29T16:53:53.083592653,deprecated,saved artifact family affected by prior league_k leakage risk
+data/processed_poisson/bt_pois_2026_e20_clv.csv,csv,4822983,2026-06-29T16:53:53.111141205,deprecated,saved artifact family affected by prior league_k leakage risk
+data/processed_poisson/bt_pois_2026_e20_edge_buckets.csv,csv,439,2026-06-29T16:53:53.111644745,deprecated,saved artifact family affected by prior league_k leakage risk
+data/processed_poisson/bt_pois_2026_e20_edges.csv,csv,23632425,2026-06-29T16:53:53.151691675,deprecated,saved artifact family affected by prior league_k leakage risk
+data/processed_poisson/bt_pois_2026_e20_prob_calibration.csv,csv,191,2026-06-29T16:53:53.152692556,deprecated,saved artifact family affected by prior league_k leakage risk
+data/processed_poisson/bt_pois_2026_e20_scores.csv,csv,183,2026-06-29T16:53:53.153196096,deprecated,saved artifact family affected by prior league_k leakage risk
+data/processed_poisson/bt_pois_2026_e20_sequential_pnl.csv,csv,45217,2026-06-29T16:53:53.153196096,deprecated,saved artifact family affected by prior league_k leakage risk
+data/processed_poisson/bt_pois_2026_e25_bet_summary.csv,csv,194,2026-06-29T16:53:53.153696775,deprecated,saved artifact family affected by prior league_k leakage risk
+data/processed_poisson/bt_pois_2026_e25_clv.csv,csv,3350871,2026-06-29T16:53:53.160202742,deprecated,saved artifact family affected by prior league_k leakage risk
+data/processed_poisson/bt_pois_2026_e25_edge_buckets.csv,csv,439,2026-06-29T16:53:53.161206245,deprecated,saved artifact family affected by prior league_k leakage risk
+data/processed_poisson/bt_pois_2026_e25_edges.csv,csv,23632425,2026-06-29T16:53:53.199756384,deprecated,saved artifact family affected by prior league_k leakage risk
+data/processed_poisson/bt_pois_2026_e25_prob_calibration.csv,csv,191,2026-06-29T16:53:53.200257301,deprecated,saved artifact family affected by prior league_k leakage risk
+data/processed_poisson/bt_pois_2026_e25_scores.csv,csv,183,2026-06-29T16:53:53.200257301,deprecated,saved artifact family affected by prior league_k leakage risk
+data/processed_poisson/bt_pois_2026_e25_sequential_pnl.csv,csv,31177,2026-06-29T16:53:53.200257301,deprecated,saved artifact family affected by prior league_k leakage risk
+data/processed_poisson/bt_poisson_2026_full_bet_summary.csv,csv,198,2026-06-29T16:53:53.201260328,deprecated,saved artifact family affected by prior league_k leakage risk
+data/processed_poisson/bt_poisson_2026_full_clv.csv,csv,8683248,2026-06-29T16:53:53.209769249,deprecated,saved artifact family affected by prior league_k leakage risk
+data/processed_poisson/bt_poisson_2026_full_edge_buckets.csv,csv,440,2026-06-29T16:53:53.210271835,deprecated,saved artifact family affected by prior league_k leakage risk
+data/processed_poisson/bt_poisson_2026_full_edges.csv,csv,24191328,2026-06-29T16:53:53.231297731,deprecated,saved artifact family affected by prior league_k leakage risk
+data/processed_poisson/bt_poisson_2026_full_predictions.csv,csv,25496532,2026-06-29T16:53:53.253477812,deprecated,saved artifact family affected by prior league_k leakage risk
+data/processed_poisson/bt_poisson_2026_full_prob_calibration.csv,csv,191,2026-06-29T16:53:53.253978013,deprecated,saved artifact family affected by prior league_k leakage risk
+data/processed_poisson/bt_poisson_2026_full_scores.csv,csv,183,2026-06-29T16:53:53.254478692,deprecated,saved artifact family affected by prior league_k leakage risk
+data/processed_poisson/bt_poisson_2026_full_sequential_pnl.csv,csv,80942,2026-06-29T16:53:53.254978894,deprecated,saved artifact family affected by prior league_k leakage risk
+data/processed_poisson/cv_metrics.csv,csv,1213,2026-06-29T16:53:53.255478621,deprecated,saved artifact family affected by prior league_k leakage risk
+data/processed_poisson/models/expected_batters_faced.joblib,joblib,4764971,2026-06-29T16:53:53.271494865,deprecated,saved artifact family affected by prior league_k leakage risk
+data/processed_poisson/models/expected_innings_pitched.joblib,joblib,45399074,2026-06-29T16:53:53.415206671,deprecated,saved artifact family affected by prior league_k leakage risk
+data/processed_poisson/models/expected_pitches.joblib,joblib,4772008,2026-06-29T16:53:53.432226419,deprecated,saved artifact family affected by prior league_k leakage risk
+data/processed_poisson/models/fill_values.json,json,32066,2026-06-29T16:53:53.432226419,deprecated,saved artifact family affected by prior league_k leakage risk
+data/processed_poisson/models/hits_allowed.joblib,joblib,7558,2026-06-29T16:53:53.432729721,deprecated,saved artifact family affected by prior league_k leakage risk
+data/processed_poisson/models/strikeouts.joblib,joblib,7556,2026-06-29T16:53:53.433233261,deprecated,saved artifact family affected by prior league_k leakage risk
+data/processed_poisson/models/walks.joblib,joblib,7551,2026-06-29T16:53:53.433233261,deprecated,saved artifact family affected by prior league_k leakage risk
+data/processed_poisson/opportunity_train_metrics.csv,csv,189,2026-06-29T16:53:53.433732986,deprecated,saved artifact family affected by prior league_k leakage risk
+data/processed_poisson/train_metrics.csv,csv,185,2026-06-29T16:53:53.434233189,deprecated,saved artifact family affected by prior league_k leakage risk
+data/processed_poisson_wf2025/bt_pois_2025_e12_bet_summary.csv,csv,190,2026-06-29T16:53:53.434233189,deprecated,saved artifact family affected by prior league_k leakage risk
+data/processed_poisson_wf2025/bt_pois_2025_e12_clv.csv,csv,13559333,2026-06-29T16:53:53.473796844,deprecated,saved artifact family affected by prior league_k leakage risk
+data/processed_poisson_wf2025/bt_pois_2025_e12_edge_buckets.csv,csv,454,2026-06-29T16:53:53.474798918,deprecated,saved artifact family affected by prior league_k leakage risk
+data/processed_poisson_wf2025/bt_pois_2025_e12_edges.csv,csv,49872481,2026-06-29T16:53:53.684686661,deprecated,saved artifact family affected by prior league_k leakage risk
+data/processed_poisson_wf2025/bt_pois_2025_e12_prob_calibration.csv,csv,191,2026-06-29T16:53:53.685186625,deprecated,saved artifact family affected by prior league_k leakage risk
+data/processed_poisson_wf2025/bt_pois_2025_e12_scores.csv,csv,182,2026-06-29T16:53:53.685686588,deprecated,saved artifact family affected by prior league_k leakage risk
+data/processed_poisson_wf2025/bt_pois_2025_e12_sequential_pnl.csv,csv,136673,2026-06-29T16:53:53.686186790,deprecated,saved artifact family affected by prior league_k leakage risk
+data/processed_poisson_wf2025/bt_pois_2025_e15_bet_summary.csv,csv,200,2026-06-29T16:53:53.686686516,deprecated,saved artifact family affected by prior league_k leakage risk
+data/processed_poisson_wf2025/bt_pois_2025_e15_clv.csv,csv,10245259,2026-06-29T16:53:53.717240095,deprecated,saved artifact family affected by prior league_k leakage risk
+data/processed_poisson_wf2025/bt_pois_2025_e15_edge_buckets.csv,csv,454,2026-06-29T16:53:53.718240261,deprecated,saved artifact family affected by prior league_k leakage risk
+data/processed_poisson_wf2025/bt_pois_2025_e15_edges.csv,csv,49872481,2026-06-29T16:53:53.804886341,deprecated,saved artifact family affected by prior league_k leakage risk
+data/processed_poisson_wf2025/bt_pois_2025_e15_prob_calibration.csv,csv,191,2026-06-29T16:53:53.805887938,deprecated,saved artifact family affected by prior league_k leakage risk
+data/processed_poisson_wf2025/bt_pois_2025_e15_scores.csv,csv,182,2026-06-29T16:53:53.805887938,deprecated,saved artifact family affected by prior league_k leakage risk
+data/processed_poisson_wf2025/bt_pois_2025_e15_sequential_pnl.csv,csv,102104,2026-06-29T16:53:53.805887938,deprecated,saved artifact family affected by prior league_k leakage risk
+data/processed_poisson_wf2025/bt_pois_2025_e18_bet_summary.csv,csv,199,2026-06-29T16:53:53.806894302,deprecated,saved artifact family affected by prior league_k leakage risk
+data/processed_poisson_wf2025/bt_pois_2025_e18_clv.csv,csv,7676568,2026-06-29T16:53:53.820138693,deprecated,saved artifact family affected by prior league_k leakage risk
+data/processed_poisson_wf2025/bt_pois_2025_e18_edge_buckets.csv,csv,454,2026-06-29T16:53:53.822144270,deprecated,saved artifact family affected by prior league_k leakage risk
+data/processed_poisson_wf2025/bt_pois_2025_e18_edges.csv,csv,49872481,2026-06-29T16:53:53.917811155,deprecated,saved artifact family affected by prior league_k leakage risk
+data/processed_poisson_wf2025/bt_pois_2025_e18_prob_calibration.csv,csv,191,2026-06-29T16:53:53.918315887,deprecated,saved artifact family affected by prior league_k leakage risk
+data/processed_poisson_wf2025/bt_pois_2025_e18_scores.csv,csv,182,2026-06-29T16:53:53.918816090,deprecated,saved artifact family affected by prior league_k leakage risk
+data/processed_poisson_wf2025/bt_pois_2025_e18_sequential_pnl.csv,csv,76492,2026-06-29T16:53:53.919815540,deprecated,saved artifact family affected by prior league_k leakage risk
+data/processed_poisson_wf2025/bt_pois_2025_e20_bet_summary.csv,csv,197,2026-06-29T16:53:53.920315981,deprecated,saved artifact family affected by prior league_k leakage risk
+data/processed_poisson_wf2025/bt_pois_2025_e20_clv.csv,csv,6323453,2026-06-29T16:53:53.945854187,deprecated,saved artifact family affected by prior league_k leakage risk
+data/processed_poisson_wf2025/bt_pois_2025_e20_edge_buckets.csv,csv,454,2026-06-29T16:53:53.946354628,deprecated,saved artifact family affected by prior league_k leakage risk
+data/processed_poisson_wf2025/bt_pois_2025_e20_edges.csv,csv,49872481,2026-06-29T16:53:54.039505243,deprecated,saved artifact family affected by prior league_k leakage risk
+data/processed_poisson_wf2025/bt_pois_2025_e20_prob_calibration.csv,csv,191,2026-06-29T16:53:54.040006399,deprecated,saved artifact family affected by prior league_k leakage risk
+data/processed_poisson_wf2025/bt_pois_2025_e20_scores.csv,csv,182,2026-06-29T16:53:54.040505886,deprecated,saved artifact family affected by prior league_k leakage risk
+data/processed_poisson_wf2025/bt_pois_2025_e20_sequential_pnl.csv,csv,62198,2026-06-29T16:53:54.040505886,deprecated,saved artifact family affected by prior league_k leakage risk
+data/processed_poisson_wf2025/bt_pois_2025_e25_bet_summary.csv,csv,199,2026-06-29T16:53:54.041509390,deprecated,saved artifact family affected by prior league_k leakage risk
+data/processed_poisson_wf2025/bt_pois_2025_e25_clv.csv,csv,3558472,2026-06-29T16:53:54.044523239,deprecated,saved artifact family affected by prior league_k leakage risk
+data/processed_poisson_wf2025/bt_pois_2025_e25_edge_buckets.csv,csv,454,2026-06-29T16:53:54.046032667,deprecated,saved artifact family affected by prior league_k leakage risk
+data/processed_poisson_wf2025/bt_pois_2025_e25_edges.csv,csv,49872481,2026-06-29T16:53:54.133157491,deprecated,saved artifact family affected by prior league_k leakage risk
+data/processed_poisson_wf2025/bt_pois_2025_e25_prob_calibration.csv,csv,191,2026-06-29T16:53:54.133657217,deprecated,saved artifact family affected by prior league_k leakage risk
+data/processed_poisson_wf2025/bt_pois_2025_e25_scores.csv,csv,182,2026-06-29T16:53:54.134657145,deprecated,saved artifact family affected by prior league_k leakage risk
+data/processed_poisson_wf2025/bt_pois_2025_e25_sequential_pnl.csv,csv,34638,2026-06-29T16:53:54.135656595,deprecated,saved artifact family affected by prior league_k leakage risk
+data/processed_poisson_wf2025/bt_pois_2025_e30_bet_summary.csv,csv,197,2026-06-29T16:53:54.135656595,deprecated,saved artifact family affected by prior league_k leakage risk
+data/processed_poisson_wf2025/bt_pois_2025_e30_clv.csv,csv,2051767,2026-06-29T16:53:54.138658285,deprecated,saved artifact family affected by prior league_k leakage risk
+data/processed_poisson_wf2025/bt_pois_2025_e30_edge_buckets.csv,csv,454,2026-06-29T16:53:54.138658285,deprecated,saved artifact family affected by prior league_k leakage risk
+data/processed_poisson_wf2025/bt_pois_2025_e30_edges.csv,csv,49872481,2026-06-29T16:53:54.232337713,deprecated,saved artifact family affected by prior league_k leakage risk
+data/processed_poisson_wf2025/bt_pois_2025_e30_prob_calibration.csv,csv,191,2026-06-29T16:53:54.233341455,deprecated,saved artifact family affected by prior league_k leakage risk
+data/processed_poisson_wf2025/bt_pois_2025_e30_scores.csv,csv,182,2026-06-29T16:53:54.233844995,deprecated,saved artifact family affected by prior league_k leakage risk
+data/processed_poisson_wf2025/bt_pois_2025_e30_sequential_pnl.csv,csv,19243,2026-06-29T16:53:54.234344959,deprecated,saved artifact family affected by prior league_k leakage risk
+data/processed_poisson_wf2025/bt_poisson_2025_bet_summary.csv,csv,190,2026-06-29T16:53:54.234844923,deprecated,saved artifact family affected by prior league_k leakage risk
+data/processed_poisson_wf2025/bt_poisson_2025_clv.csv,csv,13876303,2026-06-29T16:53:54.272396326,deprecated,saved artifact family affected by prior league_k leakage risk
+data/processed_poisson_wf2025/bt_poisson_2025_edge_buckets.csv,csv,454,2026-06-29T16:53:54.272396326,deprecated,saved artifact family affected by prior league_k leakage risk
+data/processed_poisson_wf2025/bt_poisson_2025_edges.csv,csv,51034099,2026-06-29T16:53:54.423167706,deprecated,saved artifact family affected by prior league_k leakage risk
+data/processed_poisson_wf2025/bt_poisson_2025_predictions.csv,csv,58241636,2026-06-29T16:53:54.562361479,deprecated,saved artifact family affected by prior league_k leakage risk
+data/processed_poisson_wf2025/bt_poisson_2025_prob_calibration.csv,csv,191,2026-06-29T16:53:54.562862158,deprecated,saved artifact family affected by prior league_k leakage risk
+data/processed_poisson_wf2025/bt_poisson_2025_scores.csv,csv,182,2026-06-29T16:53:54.563360214,deprecated,saved artifact family affected by prior league_k leakage risk
+data/processed_poisson_wf2025/bt_poisson_2025_sequential_pnl.csv,csv,136673,2026-06-29T16:53:54.564859867,deprecated,saved artifact family affected by prior league_k leakage risk
+data/processed_poisson_wf2025/models/expected_innings_pitched.joblib,joblib,41108862,2026-06-29T16:53:54.775205612,deprecated,saved artifact family affected by prior league_k leakage risk
+data/processed_poisson_wf2025/models/fill_values.json,json,32009,2026-06-29T16:53:54.776206493,deprecated,saved artifact family affected by prior league_k leakage risk
+data/processed_poisson_wf2025/models/hits_allowed.joblib,joblib,7234,2026-06-29T16:53:54.787734509,deprecated,saved artifact family affected by prior league_k leakage risk
+data/processed_poisson_wf2025/models/strikeouts.joblib,joblib,7232,2026-06-29T16:53:54.787734509,deprecated,saved artifact family affected by prior league_k leakage risk
+data/processed_poisson_wf2025/models/walks.joblib,joblib,7227,2026-06-29T16:53:54.788233757,deprecated,saved artifact family affected by prior league_k leakage risk
+data/processed_poisson_wf2025/opportunity_train_metrics.csv,csv,83,2026-06-29T16:53:54.791235685,deprecated,saved artifact family affected by prior league_k leakage risk
+data/processed_poisson_wf2025/train_metrics.csv,csv,183,2026-06-29T16:53:54.791740417,deprecated,saved artifact family affected by prior league_k leakage risk
+README.md,md,5160,2026-06-29T16:53:51.958570004,experimental,general repo artifact
+analyze_detailed.py,py,6309,2026-06-29T16:53:51.958570004,experimental,general repo artifact
+analyze_final.py,py,4583,2026-06-29T16:53:51.959069490,experimental,general repo artifact
+analyze_final2.py,py,3602,2026-06-29T16:53:51.959569693,experimental,general repo artifact
+analyze_temp.py,py,1526,2026-06-29T16:53:51.959569693,experimental,general repo artifact
+check_cols.py,py,272,2026-06-29T16:53:51.960069895,experimental,general repo artifact
+config/_test_config.yaml,yaml,1962,2026-06-29T16:53:51.960069895,experimental,general repo artifact
+config/config.yaml,yaml,2021,2026-06-29T16:53:51.961073399,experimental,general repo artifact
+config/config_2024only.yaml,yaml,2054,2026-06-29T16:53:51.961578131,experimental,general repo artifact
+config/config_apr2026.yaml,yaml,2034,2026-06-29T16:53:51.961578131,experimental,general repo artifact
+config/config_ensemble_wf2025.yaml,yaml,2052,2026-06-29T16:53:51.962078094,experimental,general repo artifact
+config/config_oos2025.yaml,yaml,2060,2026-06-29T16:53:51.962078094,experimental,general repo artifact
+config/config_poisson.yaml,yaml,1978,2026-06-29T16:53:51.962578297,experimental,general repo artifact
+config/config_poisson_wf2025.yaml,yaml,2000,2026-06-29T16:53:51.962578297,experimental,general repo artifact
+config/config_v2_production.yaml,yaml,4007,2026-06-29T21:40:26.647347212,experimental,general repo artifact
+config/config_v4_production.yaml,yaml,4663,2026-06-30T03:33:47.280675888,experimental,general repo artifact
+dashboard.py,py,14890,2026-06-29T16:53:51.963577509,experimental,general repo artifact
+data/daily/exchange_price_template.csv,csv,53,2026-06-29T22:08:58.199135303,experimental,general repo artifact
+data/exports/2025_backtest.csv,csv,84964,2026-06-29T16:53:51.964077950,experimental,general repo artifact
+data/exports/high_edge_picks_jun2026.csv,csv,1885,2026-06-29T16:53:51.965584755,experimental,general repo artifact
+data/logs/live_bets_log.csv,csv,258,2026-06-30T05:44:47.995807409,experimental,general repo artifact
+data/novig_raw.json,json,77196,2026-06-29T23:07:48.418457747,experimental,general repo artifact
+data/odds/pitcher_props.csv,csv,24680,2026-06-30T06:23:18.336392164,experimental,live snapshot only unless tied to audited bet file
+data/odds/snapshots/2026-06-30_morning.csv,csv,24680,2026-06-30T06:23:18.334382534,experimental,live snapshot only unless tied to audited bet file
+data/raw/game_context_logs.csv,csv,32976,2026-06-30T06:56:22.881845236,experimental,general repo artifact
+data/raw/probable_pitchers.csv,csv,1584,2026-06-30T05:45:13.320219040,experimental,general repo artifact
+data/raw/team_batting_game_logs.csv,csv,13477,2026-06-30T06:56:22.878823996,experimental,general repo artifact
+docs/STRIKEOUTS.md,md,8921,2026-06-29T16:53:54.796745300,experimental,general repo artifact
+docs/picks/backtest_2025_edge_buckets.csv,csv,155,2026-06-29T16:53:54.803251266,experimental,general repo artifact
+docs/picks/backtest_2025_gap_buckets.csv,csv,190,2026-06-29T16:53:54.803251266,experimental,general repo artifact
+docs/picks/backtest_2025_log.csv,csv,38178,2026-06-29T16:53:54.806757689,experimental,general repo artifact
+docs/picks/backtest_2026_edge_buckets.csv,csv,152,2026-06-29T16:53:54.807258368,experimental,general repo artifact
+docs/picks/backtest_2026_gap_buckets.csv,csv,186,2026-06-29T16:53:54.807757616,experimental,general repo artifact
+docs/picks/backtest_2026_log.csv,csv,19612,2026-06-29T16:53:54.807757616,experimental,general repo artifact
+docs/picks/backtest_summary.csv,csv,276,2026-06-29T16:53:54.808758497,experimental,general repo artifact
+docs/picks/todays_picks_2026-06-18.csv,csv,1611,2026-06-29T16:53:54.809757710,experimental,general repo artifact
+docs/picks/todays_picks_2026-06-18.xlsx,xlsx,6825,2026-06-29T16:53:54.810258389,experimental,general repo artifact
+docs/picks/todays_picks_2026-06-19.xlsx,xlsx,7868,2026-06-29T16:53:54.810258389,experimental,general repo artifact
+generate_dashboard.py,py,63649,2026-06-29T16:53:54.810258389,experimental,general repo artifact
+lekobe/README.md,md,1596,2026-06-29T16:53:54.811262131,experimental,general repo artifact
+lekobe/analysis/README.md,md,988,2026-06-29T16:53:54.811765671,experimental,general repo artifact
+lekobe/analysis/outputs/band_analysis/mani_edge15plus_sharp3_by_side.csv,csv,372,2026-06-29T16:53:54.811765671,experimental,general repo artifact
+lekobe/analysis/outputs/band_analysis/mani_edge15plus_sharp3_by_year.csv,csv,370,2026-06-29T16:53:54.812769413,experimental,general repo artifact
+lekobe/analysis/outputs/band_analysis/mani_edge15plus_vs_lekobe_whole_rule.csv,csv,268,2026-06-29T16:53:54.815033197,experimental,general repo artifact
+lekobe/analysis/outputs/band_analysis/mani_edge_band_sharp3_breakdown.csv,csv,792,2026-06-29T16:53:54.815033197,experimental,general repo artifact
+lekobe/analysis/outputs/band_analysis/mani_edge_band_side_win_rates.csv,csv,300,2026-06-29T16:53:54.815534115,experimental,general repo artifact
+lekobe/analysis/outputs/calibration/book_sharpness_2025_pitcher_k_all_benchmarks.csv,csv,4187,2026-06-29T16:53:54.816033363,experimental,general repo artifact
+lekobe/analysis/outputs/calibration/book_sharpness_2025_pitcher_k_calibration_curves.csv,csv,10741,2026-06-29T16:53:54.818532705,experimental,general repo artifact
+lekobe/analysis/outputs/calibration/book_sharpness_2025_pitcher_k_common_market_checks.csv,csv,959,2026-06-29T16:53:54.819032907,experimental,general repo artifact
+lekobe/analysis/outputs/calibration/book_sharpness_2025_pitcher_k_consensus_curves.csv,csv,4370,2026-06-29T16:53:54.819032907,experimental,general repo artifact
+lekobe/analysis/outputs/calibration/book_sharpness_2025_pitcher_k_consensus_ranking.csv,csv,1189,2026-06-29T16:53:54.819533110,experimental,general repo artifact
+lekobe/analysis/outputs/calibration/book_sharpness_2025_pitcher_k_consensus_rows.csv,csv,3994711,2026-06-29T16:53:54.831056118,experimental,general repo artifact
+lekobe/analysis/outputs/calibration/book_sharpness_2025_pitcher_k_ranking.csv,csv,3344,2026-06-29T16:53:54.831562519,experimental,general repo artifact
+lekobe/analysis/outputs/execution_capture/kalshi_13_execution_capture_vs_entry_fair.csv,csv,3945,2026-06-29T16:53:54.832063437,experimental,general repo artifact
+lekobe/analysis/outputs/execution_capture/running_optimized_kprop_ledger_sharp3_regrade.csv,csv,3362,2026-06-29T16:53:54.833060503,experimental,general repo artifact
+lekobe/analysis/outputs/fade_rule_scale/fade_favored_overs_sharp3_scale_backtest.csv,csv,1099503,2026-06-29T16:53:54.837071896,experimental,general repo artifact
+lekobe/analysis/outputs/fade_rule_scale/fade_favored_overs_sharp3_scale_summary.csv,csv,1533,2026-06-29T16:53:54.837570429,experimental,general repo artifact
+lekobe/analysis/outputs/mani_regrades/mani_2025_sharp_regrade_including_dk_fallback_probe.csv,csv,189969,2026-06-29T16:53:54.839076519,experimental,general repo artifact
+lekobe/analysis/outputs/mani_regrades/mani_2025_sharp_regrade_strict.csv,csv,147923,2026-06-29T16:53:54.840077877,experimental,general repo artifact
+lekobe/analysis/outputs/mani_regrades/mani_2026_dk_drift_exhibit.csv,csv,8650,2026-06-29T16:53:54.840077877,experimental,general repo artifact
+lekobe/analysis/outputs/mani_regrades/mani_2026_dk_drift_summary.csv,csv,1299,2026-06-29T16:53:54.840077877,experimental,general repo artifact
+lekobe/analysis/outputs/mani_regrades/mani_2026_picks_sharp_regrade_by_date.csv,csv,5821,2026-06-29T16:53:54.841081142,experimental,general repo artifact
+lekobe/analysis/outputs/mani_regrades/mani_2026_picks_sharp_regrade_by_sharp_clv.csv,csv,5821,2026-06-29T16:53:54.841081142,experimental,general repo artifact
+lekobe/analysis/outputs/mani_regrades/mani_full_history_2025_2026_sharp3_consensus_regrade.csv,csv,316154,2026-06-29T16:53:54.842583656,experimental,general repo artifact
+lekobe/analysis/outputs/mani_regrades/mani_full_history_2025_2026_sharp3_consensus_summary.csv,csv,754,2026-06-29T16:53:54.842583656,experimental,general repo artifact
+lekobe/analysis/outputs/mani_regrades/mani_full_history_2025_2026_sharp_regrade.csv,csv,161438,2026-06-29T16:53:54.843585730,experimental,general repo artifact
+lekobe/analysis/scripts/analyze_kalshi_maker_taker.py,py,10089,2026-06-29T16:53:54.844085932,experimental,general repo artifact
+lekobe/analysis/scripts/grade_jun17_and_card_jun18.py,py,31396,2026-06-29T16:53:54.844585657,experimental,general repo artifact
+lekobe/analysis/scripts/grade_optimized_unders_sharp_20260615_16.py,py,10685,2026-06-29T16:53:54.845086813,experimental,general repo artifact
+lekobe/analysis/scripts/reconcile_6208_vs_964.py,py,22374,2026-06-29T16:53:54.845593214,experimental,general repo artifact
+lekobe/analysis/scripts/regrade_vwap_fill_collapse.py,py,7869,2026-06-29T16:53:54.845593214,experimental,general repo artifact
+lekobe/analysis/scripts/scan_fade_heavy_over_unders.py,py,10822,2026-06-29T16:53:54.846087933,experimental,general repo artifact
+lekobe/analysis/scripts/sharp_benchmark.py,py,3237,2026-06-29T16:53:54.846087933,experimental,general repo artifact
+lekobe/ledgers/jun17_sharp_grade.csv,csv,1486,2026-06-29T16:53:54.846087933,experimental,general repo artifact
+lekobe/ledgers/running_optimized_kprop_ledger.csv,csv,1397,2026-06-29T16:53:54.847094059,experimental,general repo artifact
+lekobe/scripts/analyze_kalshi_maker_taker.py,py,10134,2026-06-29T16:53:54.847599983,experimental,general repo artifact
+lekobe/scripts/build_full_record_since_20260615.py,py,6197,2026-06-29T16:53:54.848101377,experimental,general repo artifact
+lekobe/scripts/fast_kprop_close_coverage.py,py,7112,2026-06-29T16:53:54.848598480,experimental,general repo artifact
+lekobe/scripts/fetch_historical_pitcher_k_clv.py,py,13139,2026-06-29T16:53:54.848598480,experimental,general repo artifact
+lekobe/scripts/grade_jun17_and_card_jun18.py,py,31094,2026-06-29T16:53:54.849101305,experimental,general repo artifact
+lekobe/scripts/grade_optimized_unders_sharp_20260615_16.py,py,11072,2026-06-29T16:53:54.849601507,experimental,general repo artifact
+lekobe/scripts/ingest_historical_dk_pitcher_k_odds.py,py,12184,2026-06-29T16:53:54.849601507,experimental,general repo artifact
+lekobe/scripts/kalshi_auth.py,py,2227,2026-06-29T16:53:54.850101233,experimental,general repo artifact
+lekobe/scripts/main_line_after_2pm_card.py,py,13725,2026-06-29T16:53:54.850101233,experimental,general repo artifact
+lekobe/scripts/mlb_identity.py,py,10395,2026-06-29T16:53:54.850101233,experimental,general repo artifact
+lekobe/scripts/pull_today_over_favored_unders.py,py,7632,2026-06-29T16:53:54.851107121,experimental,general repo artifact
+lekobe/scripts/read_kalshi_fills.py,py,7800,2026-06-29T16:53:54.851107121,experimental,general repo artifact
+lekobe/scripts/regrade_vwap_fill_collapse.py,py,7869,2026-06-29T16:53:54.851612568,experimental,general repo artifact
+lekobe/scripts/scan_fade_heavy_over_unders.py,py,10294,2026-06-29T16:53:54.851612568,experimental,general repo artifact
+logs/fetch_historical.ps1,ps1,1697,2026-06-30T06:59:22.073543549,experimental,general repo artifact
+push.ps1,ps1,251,2026-06-29T16:53:54.852614403,experimental,general repo artifact
+reports/adversarial_strikeout_model_review_2026-06-29.md,md,8979,2026-06-29T23:21:04.520775318,experimental,general repo artifact
+reports/adversarial_validation/deduped_noopp_oos_edges.csv,csv,64581628,2026-06-29T23:13:06.984408140,experimental,general repo artifact
+reports/adversarial_validation/feature_prediction_drift.csv,csv,1317,2026-06-29T23:13:17.817600489,experimental,general repo artifact
+reports/adversarial_validation/monthly_summary.csv,csv,53601,2026-06-29T23:13:13.876752615,experimental,general repo artifact
+reports/adversarial_validation/reliability_tables.csv,csv,19383,2026-06-29T23:13:13.881764412,experimental,general repo artifact
+reports/adversarial_validation/side_summary.csv,csv,21676,2026-06-29T23:13:13.879755259,experimental,general repo artifact
+reports/adversarial_validation/strategy_summary.csv,csv,12231,2026-06-29T23:13:13.872252703,experimental,general repo artifact
+reports/adversarial_validation/threshold_grid_train2025_test2026.csv,csv,13387,2026-06-29T23:13:17.812601328,experimental,general repo artifact
+reports/final_model_workbook/MLB_Pitcher_K_Final_Model_Bet_Ledger.xlsx,xlsx,990639,2026-06-30T06:48:49.100620985,experimental,general repo artifact
+reports/final_model_workbook/final_model_all_bets.csv,csv,420311,2026-06-30T06:48:44.349905729,experimental,general repo artifact
+reports/final_model_workbook/final_model_workbook_summary.md,md,2298,2026-06-30T06:48:49.103620529,experimental,general repo artifact
+reports/final_model_workbook/~$MLB_Pitcher_K_Final_Model_Bet_Ledger.xlsx,xlsx,165,2026-06-30T06:51:28.952968359,experimental,general repo artifact
+reports/lekobe_reconciliation_audit.md,md,8851,2026-06-29T16:53:54.853112221,experimental,general repo artifact
+reports/mlb_pitcher_k_model_research_audit_2026-06-29.md,md,11241,2026-06-29T22:48:08.846207857,experimental,general repo artifact
+reports/performance/V4_Performance_Workbook.xlsx,xlsx,322778,2026-06-30T06:34:37.297989130,experimental,general repo artifact
+reports/performance/V4_all_bets.csv,csv,160767,2026-06-30T06:34:37.309521437,experimental,general repo artifact
+reports/unders_market_analysis.md,md,2464,2026-06-29T16:53:54.853612423,experimental,general repo artifact
+research_unders_diagnostic.py,py,15211,2026-06-29T16:53:54.854611635,experimental,general repo artifact
+run_daily_pipeline.ps1,ps1,2482,2026-06-29T16:53:54.854611635,experimental,general repo artifact
+scripts/_analyze_full2026.py,py,1980,2026-06-29T16:53:54.856122971,experimental,general repo artifact
+scripts/_audit_checks.py,py,14331,2026-06-29T16:53:54.856623411,experimental,general repo artifact
+scripts/_bol_bug_fix_verify.py,py,9945,2026-06-29T16:53:54.857123137,experimental,general repo artifact
+scripts/_bol_clean_check.py,py,6710,2026-06-29T16:53:54.857123137,experimental,general repo artifact
+scripts/_bol_deep_check.py,py,9525,2026-06-29T16:53:54.857624531,experimental,general repo artifact
+scripts/_bol_spot_check.py,py,5114,2026-06-29T16:53:54.858123064,experimental,general repo artifact
+scripts/_bol_trace.py,py,5033,2026-06-29T16:53:54.858123064,experimental,general repo artifact
+scripts/_build_daily_excel.py,py,16494,2026-06-29T16:53:54.858623505,experimental,general repo artifact
+scripts/_build_excel.py,py,35756,2026-06-29T16:53:54.858623505,experimental,general repo artifact
+scripts/_check_edges.py,py,686,2026-06-29T16:53:54.859123945,experimental,general repo artifact
+scripts/_clv_breakdown.py,py,900,2026-06-29T16:53:54.859123945,experimental,general repo artifact
+scripts/_clv_corrected.py,py,8150,2026-06-29T16:53:54.859624624,experimental,general repo artifact
+scripts/_clv_sides.py,py,2865,2026-06-29T16:53:54.860123158,experimental,general repo artifact
+scripts/_combine_odds.py,py,753,2026-06-29T16:53:54.860123158,experimental,general repo artifact
+scripts/_combined_view.py,py,2404,2026-06-29T16:53:54.860123158,experimental,general repo artifact
+scripts/_compare_odds.py,py,969,2026-06-29T16:53:54.860123158,experimental,general repo artifact
+scripts/_devigged_clv.py,py,7959,2026-06-29T16:53:54.861129284,experimental,general repo artifact
+scripts/_fd_clv_benchmark.py,py,5565,2026-06-29T16:53:54.861635447,experimental,general repo artifact
+scripts/_fetch_pinnacle_close.py,py,6810,2026-06-29T16:53:54.862136602,experimental,general repo artifact
+scripts/_filter_dk.py,py,420,2026-06-29T16:53:54.862136602,experimental,general repo artifact
+scripts/_filter_scan.py,py,2300,2026-06-29T16:53:54.862636566,experimental,general repo artifact
+scripts/_full2026_analysis.py,py,2896,2026-06-29T16:53:54.862636566,experimental,general repo artifact
+scripts/_kobe_verify.py,py,11414,2026-06-29T16:53:54.863137007,experimental,general repo artifact
+scripts/_lineup_audit.py,py,5087,2026-06-29T16:53:54.863137007,experimental,general repo artifact
+scripts/_mb_clv_all_edges.py,py,8989,2026-06-29T16:53:54.863137007,experimental,general repo artifact
+scripts/_mb_clv_local.py,py,7182,2026-06-29T16:53:54.863137007,experimental,general repo artifact
+scripts/_mk_2025_dk.py,py,490,2026-06-29T16:53:54.864142895,experimental,general repo artifact
+scripts/_multibook_clv.py,py,11898,2026-06-29T16:53:54.864650011,experimental,general repo artifact
+scripts/_odds_audit.py,py,4379,2026-06-29T16:53:54.864650011,experimental,general repo artifact
+scripts/_our_band_breakdown.py,py,3298,2026-06-29T16:53:54.865149975,experimental,general repo artifact
+scripts/_pick_threshold.py,py,1848,2026-06-29T16:53:54.865149975,experimental,general repo artifact
+scripts/_profit_ttest.py,py,6994,2026-06-29T16:53:54.865650415,experimental,general repo artifact
+scripts/_sharp_clv_2025.py,py,4859,2026-06-29T16:53:54.865650415,experimental,general repo artifact
+scripts/_sharp_clv_check.py,py,7343,2026-06-29T16:53:54.866149187,experimental,general repo artifact
+scripts/_sig_test_2026.py,py,1174,2026-06-29T16:53:54.866149187,experimental,general repo artifact
+scripts/_significance.py,py,4247,2026-06-29T16:53:54.866650105,experimental,general repo artifact
+scripts/_wf_bands.py,py,4526,2026-06-29T16:53:54.867149591,experimental,general repo artifact
+scripts/_wf_results.py,py,3555,2026-06-29T16:53:54.867649555,experimental,general repo artifact
+scripts/adversarial_strikeout_validation.py,py,15895,2026-06-29T23:13:00.673391342,experimental,general repo artifact
+scripts/analyze_edge.py,py,5087,2026-06-29T16:53:54.867649555,experimental,general repo artifact
+scripts/analyze_picks.py,py,7644,2026-06-29T16:53:54.868149996,experimental,general repo artifact
+scripts/analyze_strikeout_filters.py,py,5390,2026-06-29T16:53:54.868149996,experimental,general repo artifact
+scripts/backfill_june_19_30_final_model.py,py,19979,2026-06-30T07:02:24.878187895,experimental,general repo artifact
+scripts/backfill_june_clv.py,py,6366,2026-06-29T16:53:54.868650198,experimental,general repo artifact
+scripts/backtest.py,py,23683,2026-06-29T21:28:12.065680027,experimental,general repo artifact
+scripts/backtest_2026_rolling.py,py,8925,2026-06-29T16:53:54.869648218,experimental,general repo artifact
+scripts/backtest_historical_odds.py,py,6103,2026-06-29T16:53:54.870150089,experimental,general repo artifact
+scripts/build_backtest_spreadsheet.py,py,22233,2026-06-29T16:53:54.870150089,experimental,general repo artifact
+scripts/build_bets_spreadsheet.py,py,13594,2026-06-29T16:53:54.870150089,experimental,general repo artifact
+scripts/build_closing_odds_master.py,py,5562,2026-06-29T16:53:54.871156216,experimental,general repo artifact
+scripts/build_combined_spreadsheet.py,py,21218,2026-06-29T16:53:54.871156216,experimental,general repo artifact
+scripts/build_sizing_spreadsheet.py,py,20649,2026-06-29T16:53:54.871659994,experimental,general repo artifact
+scripts/build_strikeout_dashboard.py,py,15018,2026-06-29T16:53:54.871659994,experimental,general repo artifact
+scripts/build_strikeout_strategy_dashboard.py,py,12786,2026-06-29T16:53:54.871659994,experimental,general repo artifact
+scripts/build_walk_forward_selector_report.py,py,10155,2026-06-29T16:53:54.872663021,experimental,general repo artifact
+scripts/calibrate_probabilities.py,py,9819,2026-06-29T16:53:54.873169899,experimental,general repo artifact
+scripts/check_data_dupes.py,py,1881,2026-06-29T16:53:54.873169899,experimental,general repo artifact
+scripts/clv_analysis.py,py,8502,2026-06-29T16:53:54.874174595,experimental,general repo artifact
+scripts/compare_models.py,py,3367,2026-06-29T16:53:54.874174595,experimental,general repo artifact
+scripts/compute_live_clv.py,py,9515,2026-06-29T16:53:54.874680281,experimental,general repo artifact
+scripts/daily_runner.py,py,17767,2026-06-30T03:33:32.062542915,experimental,general repo artifact
+scripts/dashboard.py,py,19795,2026-06-29T16:53:54.874680281,experimental,general repo artifact
+scripts/diagnose_2026.py,py,6786,2026-06-29T16:53:54.875178814,experimental,general repo artifact
+scripts/edge_analysis.py,py,4114,2026-06-29T16:53:54.875681639,experimental,general repo artifact
+scripts/experiment_market_aware_strikeouts.py,py,10172,2026-06-29T16:53:54.875681639,experimental,general repo artifact
+scripts/export_picks_excel.py,py,20180,2026-06-29T16:53:54.876178503,experimental,general repo artifact
+scripts/fetch_2025_missing_closes.py,py,8797,2026-06-29T16:53:54.876178503,experimental,general repo artifact
+scripts/fetch_closing_odds_historical.py,py,6446,2026-06-29T16:53:54.877180099,experimental,general repo artifact
+scripts/fetch_fangraphs.py,py,2560,2026-06-29T16:53:54.877180099,experimental,general repo artifact
+scripts/fetch_historical_clv_snapshots.py,py,11886,2026-06-29T16:53:54.877681971,experimental,general repo artifact
+scripts/fetch_historical_odds.py,py,8964,2026-06-29T16:53:54.877681971,experimental,general repo artifact
+scripts/fetch_mlb_data.py,py,8190,2026-06-29T16:53:54.878181458,experimental,general repo artifact
+scripts/fetch_odds.py,py,2323,2026-06-29T16:53:54.878681421,experimental,general repo artifact
+scripts/fetch_odds_daily.py,py,2371,2026-06-29T16:53:54.878681421,experimental,general repo artifact
+scripts/fetch_park_factors.py,py,1017,2026-06-29T16:53:54.879181385,experimental,general repo artifact
+scripts/fetch_pregame_lineups.py,py,10849,2026-06-29T16:53:54.879679680,experimental,general repo artifact
+scripts/fetch_pregame_odds.py,py,6590,2026-06-29T16:53:54.879679680,experimental,general repo artifact
+scripts/fetch_probables_daily.py,py,1441,2026-06-29T16:53:54.880181313,experimental,general repo artifact
+scripts/fetch_statcast.py,py,2674,2026-06-29T16:53:54.880181313,experimental,general repo artifact
+scripts/fetch_statcast_batter_pitch_types.py,py,2468,2026-06-29T16:53:54.880181313,experimental,general repo artifact
+scripts/fetch_statcast_pitchlevel.py,py,11064,2026-06-29T16:53:54.881187201,experimental,general repo artifact
+scripts/find_gap_threshold.py,py,3745,2026-06-29T16:53:54.881187201,experimental,general repo artifact
+scripts/find_profitable_bets.py,py,5012,2026-06-29T16:53:54.881694555,experimental,general repo artifact
+scripts/gap_analysis_2025.py,py,2358,2026-06-29T16:53:54.881694555,experimental,general repo artifact
+scripts/generate_excel_report.py,py,49375,2026-06-30T06:34:24.110694170,experimental,general repo artifact
+scripts/generate_final_model_excel_workbook.py,py,41737,2026-06-30T06:48:36.827503681,experimental,general repo artifact
+scripts/inject_lineups.py,py,7707,2026-06-29T16:53:54.882194519,experimental,general repo artifact
+scripts/june_analysis.py,py,2181,2026-06-29T16:53:54.882694244,experimental,general repo artifact
+scripts/june_detail.py,py,2686,2026-06-29T16:53:54.882694244,experimental,general repo artifact
+scripts/master_adversarial_audit_2026_06_29.py,py,26115,2026-06-30T07:22:49.214775801,experimental,general repo artifact
+scripts/novig_edge_calc.py,py,10563,2026-06-29T16:53:54.883194685,experimental,general repo artifact
+scripts/novig_login.py,py,2030,2026-06-29T23:15:26.469266653,experimental,general repo artifact
+scripts/optimize_filters_new.py,py,3241,2026-06-29T16:53:54.883194685,experimental,general repo artifact
+scripts/performance_report.py,py,15860,2026-06-30T03:46:52.738801956,experimental,general repo artifact
+scripts/project_daily.py,py,25986,2026-06-29T21:07:11.251508236,experimental,general repo artifact
+scripts/recalibrate.py,py,2505,2026-06-29T16:53:54.883194685,experimental,general repo artifact
+scripts/resolve_picks.py,py,9445,2026-06-29T16:53:54.884200811,experimental,general repo artifact
+scripts/run_daily.ps1,ps1,541,2026-06-29T16:53:54.884705782,experimental,general repo artifact
+scripts/run_experiments.py,py,9721,2026-06-29T16:53:54.885205984,experimental,general repo artifact
+scripts/run_retrain.ps1,ps1,968,2026-06-29T16:53:54.885708094,experimental,general repo artifact
+scripts/scheduled/task_1130am_rerun.ps1,ps1,2917,2026-06-29T16:53:54.886207104,experimental,general repo artifact
+scripts/scheduled/task_11am_scrape.ps1,ps1,1177,2026-06-29T16:53:54.886706114,experimental,general repo artifact
+scripts/scheduled/task_11pm_lines.ps1,ps1,1135,2026-06-29T16:53:54.887206554,experimental,general repo artifact
+scripts/scheduled/task_2am_dashboard.ps1,ps1,607,2026-06-29T16:53:54.887706518,experimental,general repo artifact
+scripts/scheduled/task_530pm_final.ps1,ps1,2912,2026-06-29T16:53:54.887706518,experimental,general repo artifact
+scripts/scheduled/task_7am_daily.ps1,ps1,3588,2026-06-30T03:45:40.890774488,experimental,general repo artifact
+scripts/scheduled/task_8am_scrape.ps1,ps1,1194,2026-06-29T16:53:54.888204813,experimental,general repo artifact
+scripts/scheduled/task_9am_lineups.ps1,ps1,1818,2026-06-29T16:53:54.888707161,experimental,general repo artifact
+scripts/scheduled/task_nightly_11pm.ps1,ps1,3341,2026-06-29T16:53:54.888707161,experimental,general repo artifact
+scripts/scheduled/task_pregame_odds_30min.ps1,ps1,721,2026-06-29T16:53:54.888707161,experimental,general repo artifact
+scripts/scrape_daily_odds.py,py,3156,2026-06-29T16:53:54.889712572,experimental,general repo artifact
+scripts/significance_test.py,py,10153,2026-06-29T16:53:54.889712572,experimental,general repo artifact
+scripts/threshold_selection_2025.py,py,4538,2026-06-29T16:53:54.890217781,experimental,general repo artifact
+scripts/track_live_bets.py,py,9730,2026-06-29T16:53:54.890217781,experimental,general repo artifact
+scripts/train.py,py,9618,2026-06-29T16:53:54.890217781,experimental,general repo artifact
+scripts/train_clv_predictor.py,py,5865,2026-06-29T16:53:54.891223669,experimental,general repo artifact
+scripts/train_strikeout_bet_selector.py,py,9364,2026-06-29T16:53:54.891730547,experimental,general repo artifact
+scripts/tune_alpha.py,py,6233,2026-06-29T16:53:54.892228842,experimental,general repo artifact
+scripts/update_calibration.py,py,5348,2026-06-29T16:53:54.892730236,experimental,general repo artifact
+scripts/update_results.py,py,18525,2026-06-30T03:47:18.963920116,experimental,general repo artifact
+scripts/validate_2026_final.py,py,5022,2026-06-29T16:53:54.892730236,experimental,general repo artifact
+scripts/validate_model_edge.py,py,20104,2026-06-29T16:53:54.893228769,experimental,general repo artifact
+scripts/validate_results.py,py,4421,2026-06-29T16:53:54.893228769,experimental,general repo artifact
+scripts/verify_clv.py,py,4899,2026-06-29T16:53:54.893728971,experimental,general repo artifact
+scripts/verify_results.py,py,3714,2026-06-29T16:53:54.893728971,experimental,general repo artifact
+scripts/walk_forward_final_model_compare.py,py,23597,2026-06-30T07:26:18.368548870,experimental,general repo artifact
+scripts/walk_forward_strikeout_selector.py,py,14134,2026-06-29T16:53:54.894228697,experimental,general repo artifact
+scripts/walkforward_2026.py,py,7193,2026-06-29T16:53:54.894728184,experimental,general repo artifact
+src/__init__.py,py,2,2026-06-29T16:53:54.895228386,experimental,general repo artifact
+src/backtesting/__init__.py,py,2,2026-06-29T16:53:54.895729780,experimental,general repo artifact
+src/backtesting/backtest.py,py,14542,2026-06-29T18:43:07.357919693,experimental,general repo artifact
+src/config.py,py,561,2026-06-29T16:53:54.896229982,experimental,general repo artifact
+src/data/__init__.py,py,2,2026-06-29T16:53:54.896728992,experimental,general repo artifact
+src/data/fangraphs_source.py,py,5421,2026-06-29T16:53:54.896728992,experimental,general repo artifact
+src/data/loaders.py,py,6929,2026-06-29T16:53:54.897229671,experimental,general repo artifact
+src/data/mlb_source.py,py,21168,2026-06-29T16:53:54.897229671,experimental,general repo artifact
+src/data/park_factors_source.py,py,2680,2026-06-29T16:53:54.898236513,experimental,general repo artifact
+src/data/schema.py,py,3033,2026-06-29T16:53:54.898742199,experimental,general repo artifact
+src/data/statcast_source.py,py,5852,2026-06-29T16:53:54.898742199,experimental,general repo artifact
+src/export/__init__.py,py,2,2026-06-29T16:53:54.899241447,experimental,general repo artifact
+src/export/exporters.py,py,6212,2026-06-29T16:53:54.899740696,experimental,general repo artifact
+src/features/__init__.py,py,2,2026-06-29T16:53:54.900241375,experimental,general repo artifact
+src/features/build_features.py,py,60508,2026-06-29T23:16:32.965785265,experimental,general repo artifact
+src/models/__init__.py,py,2,2026-06-29T16:53:54.901245117,experimental,general repo artifact
+src/models/calibration.py,py,7696,2026-06-29T16:53:54.901749134,experimental,general repo artifact
+src/models/opportunity.py,py,3121,2026-06-29T16:53:54.901749134,experimental,general repo artifact
+src/models/train.py,py,12030,2026-06-29T16:53:54.902249336,experimental,general repo artifact
+src/odds/__init__.py,py,2,2026-06-29T16:53:54.902749062,experimental,general repo artifact
+src/odds/odds_api.py,py,12694,2026-06-29T16:53:54.903248787,experimental,general repo artifact
+src/odds/pricing.py,py,7486,2026-06-29T21:07:24.819364786,experimental,general repo artifact
+src/odds/scrapers/__init__.py,py,427,2026-06-30T03:46:59.849458456,experimental,general repo artifact
+src/odds/scrapers/base.py,py,4871,2026-06-29T16:53:54.904248953,experimental,general repo artifact
+src/odds/scrapers/draftkings.py,py,10443,2026-06-29T16:53:54.904248953,experimental,general repo artifact
+src/odds/scrapers/novig.py,py,10386,2026-06-29T23:15:39.493812084,experimental,general repo artifact
+V2_RESEARCH_REPORT.md,md,17356,2026-06-29T18:42:02.403859615,stale,superseded by leakage audit
+V3_RESEARCH_REPORT.md,md,18608,2026-06-29T19:28:24.474849939,stale,superseded by leakage audit
+V4_RESEARCH_REPORT.md,md,14063,2026-06-29T21:39:46.935148716,stale,superseded by leakage audit
+data/exports/2026_backtest_extended.csv,csv,33594,2026-06-29T16:53:51.965584755,suspicious,mixed/live export; not canonical for no-leak proof
+data/exports/picks_log.csv,csv,10605,2026-06-29T16:53:51.966085196,suspicious,mixed/live export; not canonical for no-leak proof
+data/raw/pitcher_game_logs.csv,csv,24361,2026-06-30T06:56:54.453078270,suspicious,currently partial local raw cache; not full historical source
+reports/june_19_30_backfill/final_model_bets_2026-06-19_2026-06-30.csv,csv,789375,2026-06-30T07:02:37.863971710,suspicious,useful extension but full feature cache was incomplete
+reports/june_19_30_backfill/final_model_daily_2026-06-19_2026-06-30.csv,csv,1808,2026-06-30T07:02:37.871987104,suspicious,useful extension but full feature cache was incomplete
+reports/june_19_30_backfill/final_model_june_19_30_report.md,md,3007,2026-06-30T07:04:47.764258385,suspicious,useful extension but full feature cache was incomplete
+reports/june_19_30_backfill/final_model_summary_2026-06-19_2026-06-30.csv,csv,397,2026-06-30T07:02:37.870980501,suspicious,useful extension but full feature cache was incomplete
+reports/june_19_30_backfill/final_model_unsettled_2026-06-30_candidates.csv,csv,2370,2026-06-30T07:04:10.187436342,suspicious,useful extension but full feature cache was incomplete
+reports/june_19_30_backfill/historical_pitcher_props_2026-06-19_2026-06-30.csv,csv,1475701,2026-06-30T06:59:58.571343184,suspicious,useful extension but full feature cache was incomplete

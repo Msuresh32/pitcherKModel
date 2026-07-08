@@ -1,0 +1,342 @@
+================================================================================
+DATA QUALITY AUDIT — MLB Pitcher K Model
+Audit date: 2026-07-08
+Auditor: Claude Code (read-only investigation, no files modified)
+Files audited:
+  data/raw/pitcher_game_logs.csv         (22,272 rows × 14 cols)
+  data/processed_poisson_wf2025/bt_2026_new_model_edges.csv  (1,957 rows × 428 cols)
+  config/config_v4_production.yaml
+================================================================================
+
+
+================================================================================
+CRITICAL ISSUES
+================================================================================
+
+CRITICAL-1: EXACT INGESTION DUPLICATES IN PITCHER GAME LOGS (June 2026)
+─────────────────────────────────────────────────────────────────────────
+Finding:
+  604 rows are exact duplicates across all 14 columns.
+  302 pitcher-date pairs have identical (pitcher_id, game_date, game_pk) values —
+  the same game was fetched and appended twice.
+  1 additional pair has the same (pitcher_id, game_date) but different game_pk
+  values — this is a true doubleheader, the only one in the dataset.
+  2 duplicate rows also exist from 2025-04 (1 pair).
+
+Year breakdown of duplicated rows:
+  2025-04:     2 rows  (1 pair)
+  2026-06:   604 rows  (302 pairs)
+
+Mechanism: The ingestion process appears to have re-fetched and appended June
+2026 games without deduplication. All 302 pairs have IDENTICAL game_pk values
+confirming these are not doubleheaders but repeated writes.
+
+Impact (HIGH):
+  a) Rolling feature contamination: The build_features pipeline computes
+     rolling windows (roll3, roll5, roll10, roll20) over the full game log.
+     For any pitcher whose duplicate rows fall within a rolling window, recent
+     performance is double-counted. Example: a pitcher with 6 Ks on June 22
+     appears to have 12 Ks in the roll3 window, inflating their projection
+     for subsequent games.
+  b) July 2026 production projections are currently CORRUPTED for every pitcher
+     who started in June 2026 (295 active pitchers in the file; the duplicates
+     span most of the roster given ~302 affected pitcher-starts).
+  c) The bt_2026_new_model_edges.csv backtest ends on 2026-06-18, before the
+     first duplicate (2026-06-19), so COMPLETED BACKTEST RESULTS ARE UNAFFECTED.
+     Future live projections after a June 2026 retrain would be corrupted.
+
+Action required: Deduplicate pitcher_game_logs.csv on (game_pk, pitcher_id)
+before any retraining or projection run. Drop 302 duplicate rows to restore
+22,272 - 302 = 21,970 clean rows.
+
+
+CRITICAL-2: PURE RELIEVER CONTAMINATION — NO STARTER FLAG
+──────────────────────────────────────────────────────────
+Finding:
+  The dataset has no 'game_type', 'GS' (games started), 'role', or 'starter'
+  flag. There is no way to identify whether a low-IP row represents:
+    (a) a true starter who exited early (legitimate outcome to train on), or
+    (b) a genuine opener or bulk reliever who was never intended to go deep.
+
+  IP < 3 rows: 1,534 (6.9% of dataset), mean K = 1.63, std = 1.25
+  IP < 2 rows:   780 (3.5%), mean K = 1.13
+  IP < 1 rows:   151 (0.7%), mean K = 0.57
+
+  Pitcher classification:
+    599 unique pitchers have at least one game with IP < 3.
+    Of those, 378 ALSO have games with IP >= 5 (early exits from true starts).
+    221 pitchers NEVER have IP >= 5 in ANY game — these are pure relievers.
+    The 221 pure-reliever pitchers contribute rows where K prop bets would
+    never be offered, but their low-K appearances contaminate training.
+
+  IP cohort K distributions:
+    IP < 3:       n=1,534,  mean K=1.63  (contaminant distribution)
+    IP [3, 5):    n=5,058,  mean K=3.71  (short/early-exit starts)
+    IP [5, 7):    n=12,906, mean K=5.21  (typical quality starts)
+    IP [7, 9+]:   n=2,774,  mean K=6.54  (dominant outings)
+
+  The betting market sets K prop lines for pitchers expected to throw 5+ innings.
+  Including the 1,534 IP < 3 rows pulls the training mean down by approximately
+  0.23 Ks (from 5.0 to 4.78), causing a systematic downward bias in projections.
+  More importantly, 221 pure-reliever pitchers pollute the feature space with
+  zero-history rolling stats from non-competitive starts.
+
+Impact (HIGH for model accuracy; MEDIUM for rolling features):
+  Pure reliever rows bias the K distribution learned by the model.
+  Rolling features (p_k_rate_roll3, p_short_start_rate_under5ip_roll3, etc.)
+  for pitchers with mixed starter/reliever rows will blend different populations.
+
+Action required:
+  Option A (Recommended): Filter training data to IP >= 4 before feature
+    engineering. This removes 3,043 rows (13.7%) and eliminates the pure
+    reliever population while retaining legitimate short starts.
+  Option B (Strict): Filter to IP >= 5 (removes 6,592 rows, 29.6%).
+    This most closely mirrors the K prop market's definition of a "start."
+  Option C (Best but requires work): Add a 'GS' (game_started) flag from
+    the MLB Stats API game feed (available per game_pk) to precisely tag
+    the listed starter vs. an opener.
+
+  See Task 9 for quantified threshold impact.
+
+
+================================================================================
+MODERATE ISSUES
+================================================================================
+
+MODERATE-1: MULTIPLE ODDS LINES PER PITCHER-DATE IN EDGES FILE
+───────────────────────────────────────────────────────────────
+Finding:
+  bt_2026_new_model_edges.csv (1,957 rows) contains 478 pitcher-date-market
+  combinations with 2 distinct lines (e.g., 6.5 AND 7.5 for the same pitcher
+  on the same date). This results in 1,001 single-line entries + 478 pairs =
+  1,957 total rows.
+
+  Sample (confirmed by deep dive):
+    Pitcher 686613, 2026-03-26: line=6.5 (over -140, under +120)
+                                 line=7.5 (over +135, under -139)
+    Pitcher 665795, 2026-03-30: line=6.5 (over -135, under +109)
+                                 line=7.5 (over +135, under -164)
+
+  Config states: main_line_only: true, main_line_min_odds: -160,
+  main_line_max_odds: 140. If main_line_only filtering were applied correctly,
+  exactly one line per pitcher-date should appear.
+
+  Clarification: These are NOT duplicate errors (no exact row duplicates exist
+  in the edges file). They are alternate lines that were included despite the
+  config flag.
+
+Impact (MODERATE — overstates backtest bet count):
+  If the backtest counts both lines as separate bet opportunities, the stated
+  bet count (n) is overstated by up to 478. Win rates and ROI are unaffected
+  if both sides are treated symmetrically, but Kelly sizing and total stake
+  calculations will be inflated. More importantly, a system that bets BOTH
+  6.5 and 7.5 lines on the same pitcher is effectively doubling exposure in
+  a correlated way.
+
+Action required:
+  Run the pricing step with main_line_only=True strictly enforced, keeping
+  only the single line closest to the model's projection per pitcher-date.
+  Recheck edges file row count; it should be ~1,479 rows (1,957 - 478).
+
+
+MODERATE-2: IP = 0 ROWS (20 ROWS ACROSS ALL YEARS)
+────────────────────────────────────────────────────
+Finding:
+  20 rows have innings_pitched = 0.0. These fall into two categories:
+
+  Category A — Zero pitches, zero BF (6 rows): Clearly bad records.
+    Blake Snell      2022-04-10: 0 IP, 0 pitches, 0 BF
+    Shane McClanahan 2022-08-30: 0 IP, 0 pitches, 0 BF
+    Matt Manning     2022-09-28: 0 IP, 0 pitches, 0 BF
+    Jon Gray         2024-07-28: 0 IP, 0 pitches, 0 BF
+    Mick Abel        2025-06-27: 0 IP, 0 pitches, 0 BF
+    Kyle Freeland    2026-04-12: 0 IP, 0 pitches, 0 BF
+  These are likely scratched starts (pitcher listed as starter but did not pitch).
+
+  Category B — Some pitches, positive BF, but 0 IP (14 rows):
+    Carlos Rodón     2023-09-30: 0 IP, 35 pitches, 8 BF
+    Zac Gallen       2024-05-30: 0 IP, 6 pitches, 1 BF
+    Several others with 4-31 pitches.
+  These appear to be warm-up sessions or games where the pitcher was removed
+  before completing a third of an inning. The data is logically inconsistent
+  (you cannot face 8 batters and throw 35 pitches without recording any IP
+  if you got an out or a strikeout).
+
+Impact (MODERATE — corrupts rolling averages for affected pitchers):
+  A 0 K / 0 IP appearance in a 3-game rolling window halves the effective
+  K rate and IP rate for the pitcher at that time. If the pitcher is injured
+  (true scratch), including this row falsely signals a "poor recent outing."
+  For Category B (35 pitches, 8 BF, 0 K, 0 IP): the IP=0 is a data error;
+  this pitcher absolutely had innings pitched in this appearance.
+
+Action required:
+  Filter out all rows with IP = 0 from training (20 rows, 0.09% of data).
+  Investigate Category B cases — if BF > 0 but IP = 0, this is a data
+  collection error that should be corrected at the source (Statcast API).
+
+
+MODERATE-3: PITCH CLOCK REGIME SHIFT (2022 vs 2023+)
+──────────────────────────────────────────────────────
+Finding:
+  Mean strikeouts per start by year:
+    2022: 4.73  (n=4,860, pre-pitch-clock)
+    2023: 4.84  (n=4,860, pitch-clock introduced)
+    2024: 4.83  (n=4,858)
+    2025: 4.78  (n=4,860)
+    2026: 4.76  (n=2,834, partial season)
+
+  The +0.11 jump from 2022 to 2023 reflects the well-documented pitch clock
+  effect (faster pace → more swings → higher K rate). The difference between
+  pre-clock (4.73) and post-clock mean (4.80 average 2023-2025) = +0.07 Ks.
+
+  This is a structural break: 2022 data represents a fundamentally different
+  run-environment than 2023+. Including 2022 in training creates a mild
+  downward bias on projections (4,860 below-average rows in training).
+
+Impact (MODERATE — systematic projection bias):
+  Training on a blended pre/post-clock population downward-biases the
+  expected K rate by approximately 0.07 Ks/start for the current era.
+  At the margin this may cause the model to systematically undershoot
+  lines in the current (2026) environment.
+
+Action required (optional):
+  Weight 2022 rows at 0.5 (half-weight) relative to 2023+ rows in training,
+  or use train_start: 2023-01-01 and accept the smaller training set.
+  Alternative: add a binary `post_pitch_clock` indicator feature.
+
+
+================================================================================
+MINOR ISSUES
+================================================================================
+
+MINOR-1: NO LEAGUE COLUMN — CANNOT VERIFY NL DH ADOPTION IMPACT
+─────────────────────────────────────────────────────────────────
+Finding:
+  No 'league' column in pitcher_game_logs.csv. 2022 was the first year of the
+  universal DH (NL adopted DH permanently). Prior to 2022, NL pitchers batted,
+  which reduced opposing pitcher K opportunities in those games. Since 2022 is
+  the earliest training year, this is not a direct problem for the current
+  dataset. However, the absence of a league column means venue-level K rate
+  signals (venue_strikeouts_roll*) cannot be partitioned by league context.
+
+Action: Low priority; add league from team_batting_game_logs.csv if needed.
+
+
+MINOR-2: MARCH 2026 OPENING WEEK GAMES
+────────────────────────────────────────
+Finding:
+  142 pitcher log rows and 135 edges rows from March 26-31, 2026.
+  These are legitimate Opening Series games (not spring training; MLB schedule
+  confirms the 2026 season opened on March 26). Mean IP = 4.90 and mean
+  pitches = 81.8 — slightly below the full-season averages (5.18 IP, 84.95
+  pitches). This reflects opening-week pitch count management and aggressive
+  bullpen use. No action required — these are real starts with valid outcomes.
+
+
+MINOR-3: EDGES FILE DATE RANGE ENDS JUNE 18 (INCOMPLETE JUNE)
+──────────────────────────────────────────────────────────────
+Finding:
+  bt_2026_new_model_edges.csv covers 2026-03-26 to 2026-06-18 (partial June).
+  June 2026 has only 327 rows vs ~750/month in April and May. This is
+  expected (file was created mid-month) but should be noted in any performance
+  summary that quotes June metrics — they are based on an incomplete month.
+
+
+================================================================================
+CLEAN
+================================================================================
+
+- Pitcher ID format: All 784 unique pitcher_ids are valid 6-digit MLB integers.
+  No nulls, no malformed IDs.
+- Core column nulls: Zero null values in game_date, pitcher_id, innings_pitched,
+  strikeouts, walks, hits_allowed for all 22,272 rows.
+- Actual K range in edges: 0 to 15 — no impossible values.
+- Projection range in edges: 1.2 to 7.9 — reasonable for starting pitchers.
+- Odds values: over_odds and under_odds both within -190 to +188 American odds
+  format; no corrupted or extreme values.
+- Date continuity: No gaps in the seasonal schedule; months 3-10 covered
+  across 2022-2026 with expected row counts.
+- Year-over-year row counts: 2022-2025 each show 4,858-4,860 rows,
+  consistent with a complete 162-game season (30 teams × 162 games × 1
+  starter per team = 4,860 theoretical max). Not a data cap — this is
+  expected completeness.
+- Team/opponent IDs: Integer format, consistent across years.
+- No negative stat values anywhere in the dataset.
+
+
+================================================================================
+RECOMMENDATION: FILTER THRESHOLDS FOR PRODUCTION
+================================================================================
+
+IMMEDIATE ACTIONS (block live production until resolved):
+──────────────────────────────────────────────────────────
+1. Deduplicate pitcher_game_logs.csv on (game_pk, pitcher_id) BEFORE any
+   feature build or projection run. Removes 302 confirmed duplicate rows.
+   Expected clean row count: 21,970 (or 22,272 - 302 = 21,970).
+
+2. Apply main_line_only=True filtering strictly in the pricing/edges step.
+   For each (pitcher_id, game_date, market), keep only the single line that
+   satisfies the odds constraints. The edges file should have ~1,479 rows
+   (not 1,957) after this fix.
+
+TRAINING FILTERS (apply in build_features.py or at load time):
+───────────────────────────────────────────────────────────────
+3. Starter filter (IP threshold):
+   Recommended: IP >= 4  →  removes 3,043 rows (13.7%), retains 19,229
+
+   Rationale: The K prop market sets lines only for expected 5+ inning
+   starters. Including IP < 4 rows from pure relievers (221 pitchers never
+   exceed IP=5) teaches the model a wrong K distribution. IP < 4 cohort
+   has mean K = 3.30 vs 5.21 for IP 5+ — a 1.91 K gap.
+
+   IP threshold impact summary:
+   ┌───────────┬───────────┬────────┬───────────┬─────────┐
+   │ Threshold │  Excluded │  Excl% │ Remaining │ Remain% │
+   ├───────────┼───────────┼────────┼───────────┼─────────┤
+   │ IP >= 1   │       151 │   0.7% │    22,121 │  99.3%  │
+   │ IP >= 2   │       780 │   3.5% │    21,492 │  96.5%  │
+   │ IP >= 3   │     1,534 │   6.9% │    20,738 │  93.1%  │
+   │ IP >= 4   │     3,043 │  13.7% │    19,229 │  86.3%  │ ← RECOMMENDED
+   │ IP >= 5   │     6,592 │  29.6% │    15,680 │  70.4%  │
+   └───────────┴───────────┴────────┴───────────┴─────────┘
+
+   If a 'GS' (game_started) flag is added from the MLB Stats API, use that
+   instead of the IP threshold to precisely exclude openers while retaining
+   legitimate short starters.
+
+4. Remove IP = 0 rows (20 rows, 0.09% of data) regardless of threshold.
+   These represent either scratched starts or data collection errors.
+
+MONITORING:
+──────────────────────────────────────────────────────────────────────────
+5. Add a deduplication check to the data ingestion pipeline (fetch step):
+   After each Statcast pull, run:
+     pitcher_game_logs.drop_duplicates(subset=['game_pk', 'pitcher_id'], inplace=True)
+   before writing back to disk.
+
+6. Log a warning if any pitcher appears more than once on the same game_date
+   in the game log (the only legitimate case is a true doubleheader where two
+   game_pk values exist for the same pitcher-date; these should be kept).
+
+7. Track mean annual K rate monthly to detect pitch-clock-like regime shifts
+   in real time. If current season mean diverges >0.15 Ks from prior season,
+   evaluate whether to down-weight older training years.
+
+================================================================================
+SUMMARY TABLE
+================================================================================
+
+Issue                                   Severity  Rows Affected   Action
+─────────────────────────────────────── ──────────────────────── ─────────────
+Ingestion duplicates (June 2026)        CRITICAL  604 rows        Dedup now
+Pure reliever contamination (no flag)   CRITICAL  1,534 rows      IP >= 4 filter
+Multi-line edges (main_line_only bug)   MODERATE  478 rows        Fix pricing step
+IP = 0 corrupt/scratch rows             MODERATE  20 rows         Exclude always
+Pitch clock regime shift (2022)         MODERATE  4,860 rows      Consider downweight
+No league column                        MINOR     n/a             Low priority
+March partial-season dynamics           MINOR     142 rows        Accept, monitor
+Incomplete June in edges file           MINOR     n/a             Documentation only
+
+================================================================================
+END OF AUDIT
+================================================================================

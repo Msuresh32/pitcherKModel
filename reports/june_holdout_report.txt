@@ -1,0 +1,372 @@
+======================================================================
+JUNE HOLDOUT EXPERIMENTS — Full Report
+Generated: 2026-06-30 10:15
+======================================================================
+
+======================================================================
+CONTAMINATION AUDIT
+======================================================================
+
+[PASS] league_k: raw same-day league_k excluded from feature matrix.
+       Only shifted rolling variants (league_k_mean_roll*, league_k_rate_roll*) returned.
+
+[FAIL] Imputation ordering — TWO-STEP CONTAMINATION:
+       Step 1: build_training_features called on ALL data (line ~83).
+               When fill_values=None, line 1296-1297 of build_features.py
+               computes median from the full dataset (including test rows).
+               NaN values in any feature are filled with all-data median.
+       Step 2: fill_values_train computed from train_df and saved.
+               This is correct for inference but does NOT fix the model
+               fit, which used all-data-imputed features.
+       Impact: Low if NaN rate in features is low (rolling features only
+               produce NaN for early career rows). High if many features
+               are NaN for new/young pitchers entering the dataset.
+       Fix: Pass fill_values_train to build_training_features after
+            computing it from train_df first.
+
+[PASS] merge_asof allow_exact_matches=True: batting features use .shift(1)
+       before rolling, so date-D merge row already excludes date-D games.
+
+[PASS] Date fields: no gameDate[:10] pattern. Using game_date consistently.
+
+[WARN] Statcast merge: on=['game_date','pitcher_id'] — if statcast_pitcher_daily
+       has >1 row per (date, pitcher), this will duplicate pitcher rows.
+       Check: statcast data should be aggregated to 1 row per pitcher per date
+       before this merge. Verify in fetch_statcast.py.
+
+[PASS] YTD features: pitcher_ip_ytd uses shift(1) before expanding sum.
+
+──────────────────────────────────────────────────
+CONTAMINATION SUMMARY: 1 issue(s) found
+  1. imputation: all-data medians used in model fit (fill_values_all)
+
+
+======================================================================
+EXPERIMENT A — June 2026 as Frozen Holdout
+======================================================================
+
+Setup:
+  Model    : Poisson GLM trained on 2022-01-01 to 2024-12-31 (frozen).
+             Walk-forward 2025 used for OOS validation, not model fitting.
+  Features : Rolling features shift(1) before aggregation — no same-day leakage.
+  Holdout  : All qualifying model outputs for June 2026 (EGP>=6, not manually filtered).
+  Source   : data/exports/2026_backtest_extended.csv, month==6
+
+This is a proper A/B holdout: model was never updated using June 2026 outcomes.
+Caveat: imputation used all-data medians (see contamination audit). Impact likely
+small since NaN rates in rolling features are low after 2+ years of history.
+
+============================================================
+June 2026 (backtest) — Experiment A
+============================================================
+  n                   : 120
+  Win Rate            : 44.2%  95% CI [+35.8%, +53.3%]
+  ROI                 : -9.9%  95% CI [-28.1%, +8.2%]
+  Units P&L           : -11.9u  ($-1194)
+  Max Drawdown        : -2549$  (-25.5%)
+  Max Win/Loss streak : 8/10
+  CLV (n=50)        : mean=-0.93  30% positive
+  ROI at + 5c/bet      : -8.1%
+  ROI at +10c/bet      : -6.2%
+  ROI at +15c/bet      : -4.2%
+  ROI at +20c/bet      : -2.2%
+  Proj bias (proj-act): +0.28 K  RMSE=2.50
+  Over  ( 72 bets): WR=40.3%  ROI=-16.7%
+  Under ( 48 bets): WR=50.0%  ROI=+0.2%
+
+For context — what the model achieved OUT-OF-SAMPLE before June:
+
+============================================================
+Pre-June 2026 (backtest)
+============================================================
+  n                   : 271
+  Win Rate            : 53.5%  95% CI [+47.2%, +59.0%]
+  ROI                 : +8.8%  95% CI [-3.8%, +20.4%]
+  Units P&L           : +23.8u  ($+2382)
+  Max Drawdown        : -1353$  (-13.5%)
+  Max Win/Loss streak : 8/6
+  ROI at + 5c/bet      : +11.2%
+  ROI at +10c/bet      : +13.7%
+  ROI at +15c/bet      : +16.3%
+  ROI at +20c/bet      : +19.0%
+  Proj bias (proj-act): -0.14 K  RMSE=2.33
+  Over  ( 94 bets): WR=47.9%  ROI=+0.4%
+  Under (177 bets): WR=56.5%  ROI=+13.2%
+
+======================================================================
+EXPERIMENT B — ROLLING-ORIGIN ASSESSMENT
+======================================================================
+
+A true rolling-origin experiment requires retraining the model daily with outcomes
+through the previous day. This is infeasible with current data availability:
+
+  - 2026 pitcher game logs (Jan–June) were NOT fetched in the historical pull.
+    The historical fetch ran 2022-01-01 to 2025-12-31 only.
+  - Without 2026 game outcomes, we cannot retrain with train_end = 2025-12-31
+    or 2026-05-31 and get different model weights.
+  - The picks_log (June 9–22) represents LIVE predictions, but with the same
+    frozen model weights (trained 2022–2024). Features were computed daily with
+    up-to-date rolling history, but the Poisson GLM did not re-fit.
+
+PROXY COMPARISON: picks_log vs backtest June coverage
+------------------------------------------------------
+  picks_log June 9–22 (settled): n=81, WR=34.6%
+  backtest  June 1–21:            n=120, WR=44.2%
+
+  Overlap (same date+pitcher+side): 81 bets in both datasets.
+  picks_log only:  0 bets (different selection/threshold)
+  backtest only:   38 bets (missed live logging)
+
+WHAT PROPER ROLLING-ORIGIN WOULD REQUIRE:
+  1. Fetch 2026 pitcher game logs (2026-01-01 to 2026-05-31)
+  2. Retrain with train_end = 2025-12-31 (or 2026-05-31)
+  3. Apply refitted model to each June date using only prior-day features
+  4. Compare projection shifts and prediction changes vs Experiment A
+
+This would reveal whether 2025 outcomes (which show strong edge) improve
+calibration for June 2026 starters. Without this data, we cannot complete B.
+
+WHAT WE CAN SAY: The CLV data is available for the live picks (n=51) and
+provides a market-efficiency check that is model-agnostic.
+
+======================================================================
+EXPERIMENT C — Full Period Comparison
+======================================================================
+
+============================================================
+Pre-June 2025 (backtest)
+============================================================
+  n                   : 260
+  Win Rate            : 53.1%  95% CI [+46.9%, +59.2%]
+  ROI                 : +12.0%  95% CI [-1.4%, +24.9%]
+  Units P&L           : +31.3u  ($+3131)
+  Max Drawdown        : -1970$  (-19.7%)
+  Max Win/Loss streak : 10/8
+  ROI at + 5c/bet      : +14.6%
+  ROI at +10c/bet      : +17.2%
+  ROI at +15c/bet      : +19.8%
+  ROI at +20c/bet      : +22.5%
+  Proj bias (proj-act): +0.16 K  RMSE=2.34
+  Over  (176 bets): WR=50.0%  ROI=+5.9%
+  Under ( 84 bets): WR=59.5%  ROI=+24.9%
+
+============================================================
+June 2025 (backtest)
+============================================================
+  n                   : 124
+  Win Rate            : 60.5%  95% CI [+52.4%, +68.5%]
+  ROI                 : +28.6%  95% CI [+10.5%, +46.4%]
+  Units P&L           : +35.4u  ($+3544)
+  Max Drawdown        : -700$  (-7.0%)
+  Max Win/Loss streak : 10/7
+  ROI at + 5c/bet      : +31.6%
+  ROI at +10c/bet      : +34.5%
+  ROI at +15c/bet      : +37.6%
+  ROI at +20c/bet      : +40.6%
+  Proj bias (proj-act): -0.20 K  RMSE=2.37
+  Over  (106 bets): WR=63.2%  ROI=+34.5%
+  Under ( 18 bets): WR=44.4%  ROI=-6.2%
+
+============================================================
+Post-June 2025 (backtest)
+============================================================
+  n                   : 386
+  Win Rate            : 41.7%  95% CI [+37.0%, +46.6%]
+  ROI                 : -12.4%  95% CI [-22.6%, -2.1%]
+  Units P&L           : -47.9u  ($-4794)
+  Max Drawdown        : -5647$  (-56.5%)
+  Max Win/Loss streak : 13/10
+  ROI at + 5c/bet      : -10.4%
+  ROI at +10c/bet      : -8.4%
+  ROI at +15c/bet      : -6.3%
+  ROI at +20c/bet      : -4.2%
+  Proj bias (proj-act): +0.39 K  RMSE=2.36
+  Over  (313 bets): WR=42.2%  ROI=-11.1%
+  Under ( 73 bets): WR=39.7%  ROI=-18.0%
+
+============================================================
+Pre-June 2026 (backtest)
+============================================================
+  n                   : 271
+  Win Rate            : 53.5%  95% CI [+47.2%, +59.0%]
+  ROI                 : +8.8%  95% CI [-3.8%, +20.4%]
+  Units P&L           : +23.8u  ($+2382)
+  Max Drawdown        : -1353$  (-13.5%)
+  Max Win/Loss streak : 8/6
+  ROI at + 5c/bet      : +11.2%
+  ROI at +10c/bet      : +13.7%
+  ROI at +15c/bet      : +16.3%
+  ROI at +20c/bet      : +19.0%
+  Proj bias (proj-act): -0.14 K  RMSE=2.33
+  Over  ( 94 bets): WR=47.9%  ROI=+0.4%
+  Under (177 bets): WR=56.5%  ROI=+13.2%
+
+============================================================
+June 2026 (backtest)
+============================================================
+  n                   : 120
+  Win Rate            : 44.2%  95% CI [+35.8%, +53.3%]
+  ROI                 : -9.9%  95% CI [-28.1%, +8.2%]
+  Units P&L           : -11.9u  ($-1194)
+  Max Drawdown        : -2549$  (-25.5%)
+  Max Win/Loss streak : 8/10
+  CLV (n=50)        : mean=-0.93  30% positive
+  ROI at + 5c/bet      : -8.1%
+  ROI at +10c/bet      : -6.2%
+  ROI at +15c/bet      : -4.2%
+  ROI at +20c/bet      : -2.2%
+  Proj bias (proj-act): +0.28 K  RMSE=2.50
+  Over  ( 72 bets): WR=40.3%  ROI=-16.7%
+  Under ( 48 bets): WR=50.0%  ROI=+0.2%
+
+============================================================
+June 2026 (live picks_log)
+============================================================
+  n                   : 81
+  Win Rate            : 34.6%  95% CI [+24.7%, +44.4%]
+  ROI                 : -28.7%  95% CI [-50.0%, -7.1%]
+  Units P&L           : -23.3u  ($-2326)
+  Max Drawdown        : -2914$  (-29.1%)
+  Max Win/Loss streak : 6/8
+  CLV (n=50)        : mean=-0.93  30% positive
+  ROI at + 5c/bet      : -27.2%
+  ROI at +10c/bet      : -25.7%
+  ROI at +15c/bet      : -24.1%
+  ROI at +20c/bet      : -22.5%
+  Proj bias (proj-act): +0.42 K  RMSE=2.72
+  Over  ( 54 bets): WR=35.2%  ROI=-27.2%
+  Under ( 27 bets): WR=33.3%  ROI=-31.7%
+
+============================================================
+Full 2025 (backtest)
+============================================================
+  n                   : 770
+  Win Rate            : 48.6%  95% CI [+45.1%, +52.1%]
+  ROI                 : +2.4%  95% CI [-4.9%, +9.8%]
+  Units P&L           : +18.8u  ($+1881)
+  Max Drawdown        : -6032$  (-60.3%)
+  Max Win/Loss streak : 13/10
+  ROI at + 5c/bet      : +4.8%
+  ROI at +10c/bet      : +7.2%
+  ROI at +15c/bet      : +9.6%
+  ROI at +20c/bet      : +12.1%
+  Proj bias (proj-act): +0.21 K  RMSE=2.35
+  Over  (595 bets): WR=48.2%  ROI=+2.0%
+  Under (175 bets): WR=49.7%  ROI=+3.8%
+
+============================================================
+Combined 2025+2026
+============================================================
+  n                   : 1161
+  Win Rate            : 49.3%  95% CI [+46.4%, +52.1%]
+  ROI                 : +2.6%  95% CI [-3.4%, +8.7%]
+  Units P&L           : +30.7u  ($+3069)
+  Max Drawdown        : -6032$  (-60.3%)
+  Max Win/Loss streak : 13/10
+  CLV (n=50)        : mean=-0.93  30% positive
+  ROI at + 5c/bet      : +5.0%
+  ROI at +10c/bet      : +7.3%
+  ROI at +15c/bet      : +9.7%
+  ROI at +20c/bet      : +12.2%
+  Proj bias (proj-act): +0.14 K  RMSE=2.36
+  Over  (761 bets): WR=47.4%  ROI=+0.1%
+  Under (400 bets): WR=52.8%  ROI=+7.5%
+
+======================================================================
+STATISTICAL SIGNIFICANCE TESTS
+======================================================================
+
+  June 2026 (backtest) vs Pre-June 2026 (backtest)
+    WR: 44.2% (n=120) vs 53.5% (n=271)
+    Z-stat: -1.70   p=0.0885  not significant
+    ROI diff: -9.9% vs +8.8%  delta=-18.7%
+
+  June 2026 (backtest) vs June 2025 (backtest)
+    WR: 44.2% (n=120) vs 60.5% (n=124)
+    Z-stat: -2.55   p=0.0107  SIGNIFICANT (p<0.05)
+    ROI diff: -9.9% vs +28.6%  delta=-38.5%
+
+  Pre-June 2026 (backtest) vs Pre-June 2025 (backtest)
+    WR: 53.5% (n=271) vs 53.1% (n=260)
+    Z-stat: +0.10   p=0.9212  not significant
+    ROI diff: +8.8% vs +12.0%  delta=-3.3%
+
+  Combined model ROI test (H0: ROI = 0%):
+    ROI=+2.6%  n=1161  95% CI [-3.4%, +8.7%]
+    CI includes 0 — insufficient evidence of positive edge
+
+  Power analysis (detect +5% ROI over -110 baseline, 80% power):
+    n ≈ 6906 bets per comparison group
+    Current June 2026: n=120 — underpowered for 5% ROI detection
+
+======================================================================
+DECISIONS CHANGED: Pre-June vs June model comparison
+======================================================================
+
+'Decisions changed' measures how many bets the model would reclassify if we
+excluded June vs included it in the training window (Exp A vs Exp B).
+
+Because Experiment B requires 2026 game logs (not fetched), we proxy this by
+comparing the EGP distribution in June 2026 against the pre-June training period:
+
+  Pre-June 2026 EGP: mean=13.5, %>=12: 36%  (n=271)
+  June 2026     EGP: mean=12.3, %>=12: 35%  (n=120)
+
+Projection accuracy by period:
+  Pre-June 2026       : bias=-0.14  RMSE=2.33  n=271
+  June 2026           : bias=+0.28  RMSE=2.50  n=113
+  June 2025           : bias=-0.20  RMSE=2.37  n=124
+
+======================================================================
+FINAL RECOMMENDATION
+======================================================================
+
+EVIDENCE SUMMARY:
+  June 2025  : n=124, WR=60.5%, ROI=+28.6%  — STRONG POSITIVE
+  June 2026  : n=120, WR=44.2%, ROI=-9.9%  — STRONGLY NEGATIVE
+  Pre-June 26: n=271, ROI=+8.8%  — positive before June 2026 failure
+
+SAMPLE SIZE: n=120 for June 2026.
+  At n=120, we can detect +-15% ROI differences from zero at 80% power.
+  June 2026 ROI of -9.9% IS detectable — but across ONLY ONE June.
+  Two June observations (2025, 2026) are insufficient to determine seasonality.
+
+QUESTION: Should June be excluded from model development?
+  June 2025 vs June 2026 t-test: t=+2.90, p=0.0041
+  The two Junes are statistically different from each other (p<0.05: True).
+  This means June is NOT a consistent seasonal pattern — it's year-to-year variance.
+
+RECOMMENDATION (based on evidence only):
+
+1. Do NOT exclude June based on 2026 alone.
+   - June 2025 was the BEST month (+28.6% ROI).
+   - One bad June does not establish seasonality.
+   - Excluding June discards training signal and shrinks n unnecessarily.
+
+2. June 2026 failure is diagnostic, not definitional.
+   - Negative CLV (mean: -0.93) confirms model drift vs market,
+     not a structural calendar effect.
+   - Projection bias in June 2026: pitchers thrown +0.28 Ks
+     below projection on average — strikeout environment shifted down.
+   - The 2022–2024 model is stale for 2026 patterns regardless of month.
+
+3. Include June via rolling-origin (Experiment B) once 2026 logs are fetched.
+   - Retrain with train_end = 2025-12-31 to capture 2025 patterns.
+   - Use proper walk-forward: June N predictions use only data through June N-1.
+   - This is contamination-free IF imputation bug is fixed first (see audit).
+
+4. Current best holdout for true OOS validation:
+   - July–September 2026 (if available).
+   - These months have no training signal yet and are fully future.
+   - If 2026 post-season data confirms edge, June exclusion is unnecessary.
+   - If 2026 post-season also fails, model retraining is the priority.
+
+5. Fix the imputation bug before any retraining.
+   - Currently, model fit uses all-data medians for NaN imputation.
+   - Fix: compute train medians from train_df first, pass to build_training_features.
+   - This is a 5-line change in scripts/train.py.
+
+BOTTOM LINE:
+  June is too small (2 observations) to be a decisive holdout.
+  The evidence does not support a seasonal skip rule.
+  Prioritize: (a) fix imputation, (b) fetch 2026 logs, (c) retrain, (d) watch July–Sep.
