@@ -2,6 +2,7 @@ import argparse
 import sys
 from pathlib import Path
 
+import numpy as np
 import pandas as pd
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
@@ -335,16 +336,15 @@ def main() -> None:
             odds["over_odds"].between(min_o, max_o) | odds["under_odds"].between(min_o, max_o)
         ].copy()
 
-        def _implied(american_odds):
-            o = pd.to_numeric(american_odds, errors="coerce")
-            return o.where(o > 0, -o).div(o.where(o > 0, -o).add(100)).where(
-                o > 0, (-o).div((-o).add(100))
-            )
-
         if {"over_odds", "under_odds"}.issubset(odds.columns):
-            odds["_vig"] = (
-                _implied(odds["over_odds"]) + _implied(odds["under_odds"])
-            )
+            # implied(+x) = 100/(100+x); implied(-x) = |x|/(|x|+100)
+            def _implied(o_series):
+                o = pd.to_numeric(o_series, errors="coerce")
+                return pd.Series(
+                    np.where(o > 0, 100 / (100 + o), (-o) / (-o + 100)),
+                    index=o.index,
+                )
+            odds["_vig"] = _implied(odds["over_odds"]) + _implied(odds["under_odds"])
             dedup_key = [c for c in ["game_date", "pitcher_id", "market", "bookmaker"]
                          if c in odds.columns]
             odds = (
