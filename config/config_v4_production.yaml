@@ -35,6 +35,7 @@ data:
   # catcher_framing_file is optional — generate with: python scripts/fetch_statcast.py --framing
   # When the file doesn't exist, catcher framing features are silently skipped.
   catcher_framing_file: data/raw/statcast_catcher_framing_daily.csv
+  pitcher_catcher_file: data/raw/statcast_pitcher_catcher_daily.csv
   closing_odds_file: data/odds/historical_pitcher_props_2025.csv
 
 training:

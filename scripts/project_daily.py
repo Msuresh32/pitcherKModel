@@ -23,6 +23,7 @@ from src.data.loaders import (
     load_statcast_pitcher_advanced,
     load_statcast_batter_discipline,
     load_statcast_catcher_framing_daily,
+    load_statcast_pitcher_catcher_daily,
     load_team_batting_game_logs,
 )
 from src.data.schema import TARGETS
@@ -372,6 +373,9 @@ def main() -> None:
     catcher_framing_path = config["data"].get("catcher_framing_file", "")
     catcher_framing = load_statcast_catcher_framing_daily(catcher_framing_path) if catcher_framing_path else pd.DataFrame()
 
+    pitcher_catcher_path = config["data"].get("pitcher_catcher_file", "")
+    pitcher_catcher = load_statcast_pitcher_catcher_daily(pitcher_catcher_path) if pitcher_catcher_path else pd.DataFrame()
+
     # Load fill_values from training run for leak-free imputation
     model_dir = Path(config["data"]["processed_dir"]) / "models"
     fill_values = load_fill_values(model_dir / "fill_values.json")
@@ -393,6 +397,7 @@ def main() -> None:
         statcast_pitcher_advanced=statcast_pitcher_adv if not statcast_pitcher_adv.empty else None,
         statcast_batter_discipline=statcast_bat_disc if not statcast_bat_disc.empty else None,
         catcher_framing_daily=catcher_framing if not catcher_framing.empty else None,
+        pitcher_catcher_map=pitcher_catcher if not pitcher_catcher.empty else None,
     )
 
     if not fangraphs.empty:

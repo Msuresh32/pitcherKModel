@@ -159,6 +159,48 @@ def _aggregate_catcher_framing_daily(raw: pd.DataFrame) -> pd.DataFrame:
     return pd.DataFrame(rows).sort_values(["catcher_id", "game_date"]).reset_index(drop=True)
 
 
+def _aggregate_pitcher_catcher_daily(raw: pd.DataFrame) -> pd.DataFrame:
+    """Maps (game_date, pitcher_id) -> most frequent catcher_id (fielder_2 mode)."""
+    if raw.empty or "fielder_2" not in raw.columns:
+        return pd.DataFrame()
+
+    df = raw.copy()
+    df["game_date"] = pd.to_datetime(df["game_date"]).dt.date.astype(str)
+    df["pitcher_id"] = df["pitcher"].astype(str)
+    df["catcher_id"] = pd.to_numeric(df["fielder_2"], errors="coerce")
+    df = df.dropna(subset=["catcher_id"])
+    df["catcher_id"] = df["catcher_id"].astype(int).astype(str)
+
+    rows = []
+    for (game_date, pitcher_id), group in df.groupby(["game_date", "pitcher_id"]):
+        mode = group["catcher_id"].mode()
+        if not mode.empty:
+            rows.append({"game_date": game_date, "pitcher_id": pitcher_id, "catcher_id": mode.iloc[0]})
+
+    if not rows:
+        return pd.DataFrame()
+    return pd.DataFrame(rows).sort_values(["pitcher_id", "game_date"]).reset_index(drop=True)
+
+
+def fetch_statcast_pitcher_catcher_daily(start_date: str, end_date: str) -> pd.DataFrame:
+    try:
+        from pybaseball import cache, statcast
+    except ImportError as exc:
+        raise ImportError("Install pybaseball to fetch Statcast data.") from exc
+
+    cache.enable()
+    raw = statcast(start_dt=start_date, end_dt=end_date)
+    return _aggregate_pitcher_catcher_daily(raw)
+
+
+def save_statcast_pitcher_catcher_daily(start_date: str, end_date: str, output: str | Path) -> Path:
+    output = Path(output)
+    output.parent.mkdir(parents=True, exist_ok=True)
+    df = fetch_statcast_pitcher_catcher_daily(start_date, end_date)
+    df.to_csv(output, index=False)
+    return output
+
+
 def fetch_statcast_catcher_framing_daily(start_date: str, end_date: str) -> pd.DataFrame:
     try:
         from pybaseball import cache, statcast

@@ -11,8 +11,10 @@ from src.config import ensure_directories, load_config
 from src.data.statcast_source import (
     fetch_statcast_pitcher_daily,
     fetch_statcast_catcher_framing_daily,
+    fetch_statcast_pitcher_catcher_daily,
     save_statcast_pitcher_daily,
     save_statcast_catcher_framing_daily,
+    save_statcast_pitcher_catcher_daily,
 )
 
 
@@ -52,9 +54,13 @@ def main() -> None:
             framing_output = config["data"].get("catcher_framing_file", "data/raw/statcast_catcher_framing_daily.csv")
             save_statcast_catcher_framing_daily(args.start, args.end, framing_output)
             print(f"Saved catcher framing data to {framing_output}")
+            pc_output = config["data"].get("pitcher_catcher_file", "data/raw/statcast_pitcher_catcher_daily.csv")
+            save_statcast_pitcher_catcher_daily(args.start, args.end, pc_output)
+            print(f"Saved pitcher-catcher map to {pc_output}")
     else:
         pitcher_frames = []
         framing_frames = []
+        pitcher_catcher_frames = []
         for chunk_start, chunk_end in _date_chunks(args.start, args.end, args.chunk_days):
             print(f"Fetching Statcast {chunk_start} to {chunk_end}")
             try:
@@ -70,6 +76,12 @@ def main() -> None:
                         framing_frames.append(framing_frame)
                 except Exception as exc:
                     print(f"  WARNING: skipped {chunk_start}–{chunk_end} framing data: {exc}")
+                try:
+                    pc_frame = fetch_statcast_pitcher_catcher_daily(chunk_start, chunk_end)
+                    if not pc_frame.empty:
+                        pitcher_catcher_frames.append(pc_frame)
+                except Exception as exc:
+                    print(f"  WARNING: skipped {chunk_start}–{chunk_end} pitcher-catcher data: {exc}")
 
         # ── Pitcher daily ──
         path = Path(output)
@@ -97,6 +109,19 @@ def main() -> None:
                 cf = combined_cf.drop_duplicates(subset=["game_date", "catcher_id"], keep="last").reset_index(drop=True)
             cf.to_csv(framing_path, index=False)
             print(f"Saved catcher framing data to {framing_path}")
+
+        # ── Pitcher→catcher map ──
+        if args.framing and pitcher_catcher_frames:
+            pc_output = config["data"].get("pitcher_catcher_file", "data/raw/statcast_pitcher_catcher_daily.csv")
+            pc_path = Path(pc_output)
+            pc_path.parent.mkdir(parents=True, exist_ok=True)
+            pc = pd.concat(pitcher_catcher_frames, ignore_index=True, sort=False)
+            if pc_path.exists():
+                existing_pc = pd.read_csv(pc_path)
+                combined_pc = pd.concat([existing_pc, pc], ignore_index=True, sort=False)
+                pc = combined_pc.drop_duplicates(subset=["game_date", "pitcher_id"], keep="last").reset_index(drop=True)
+            pc.to_csv(pc_path, index=False)
+            print(f"Saved pitcher-catcher map to {pc_path}")
 
     print(f"Saved Statcast pitcher daily data to {path}")
 

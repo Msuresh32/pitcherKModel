@@ -116,6 +116,20 @@ def load_statcast_catcher_framing_daily(path: str | Path) -> pd.DataFrame:
     return df.sort_values(["catcher_id", "game_date"]).reset_index(drop=True)
 
 
+def load_statcast_pitcher_catcher_daily(path: str | Path) -> pd.DataFrame:
+    """Load (game_date, pitcher_id) -> catcher_id mapping derived from Statcast fielder_2 mode."""
+    path = Path(path)
+    if not path.exists():
+        return pd.DataFrame()
+    df = pd.read_csv(path)
+    if not {"game_date", "pitcher_id", "catcher_id"}.issubset(df.columns):
+        return pd.DataFrame()
+    df["game_date"] = pd.to_datetime(df["game_date"])
+    df["pitcher_id"] = df["pitcher_id"].astype(str)
+    df["catcher_id"] = df["catcher_id"].astype(str)
+    return df.sort_values(["pitcher_id", "game_date"]).reset_index(drop=True)
+
+
 def load_park_factors(path: str | Path) -> pd.DataFrame:
     path = Path(path)
     if not path.exists():

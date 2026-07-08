@@ -1277,6 +1277,7 @@ def _umpire_called_strike_features(
 def _catcher_framing_features(
     game_context_logs: pd.DataFrame,
     catcher_framing_daily: pd.DataFrame,
+    pitcher_catcher_map: pd.DataFrame | None = None,
 ) -> pd.DataFrame:
     """
     Per-catcher prior called-strike rate on non-swing pitches (take-pitch CSR),
@@ -1296,12 +1297,20 @@ def _catcher_framing_features(
     ):
         return pd.DataFrame()
 
-    # game_context_logs needs a catcher_id column; it comes from fetch_mlb_data (fielder_2)
     if "catcher_id" not in game_context_logs.columns:
-        return pd.DataFrame()
-
-    ctx = game_context_logs[["game_date", "game_pk", "pitcher_id", "catcher_id"]].copy()
-    ctx["game_date"] = pd.to_datetime(ctx["game_date"])
+        # Use Statcast pitcher-catcher map (mode of fielder_2 per pitcher-game) as fallback.
+        if pitcher_catcher_map is None or pitcher_catcher_map.empty:
+            return pd.DataFrame()
+        ctx_base = game_context_logs[["game_date", "game_pk", "pitcher_id"]].copy()
+        ctx_base["game_date"] = pd.to_datetime(ctx_base["game_date"])
+        ctx_base["pitcher_id"] = ctx_base["pitcher_id"].astype(str)
+        pcm = pitcher_catcher_map[["game_date", "pitcher_id", "catcher_id"]].copy()
+        pcm["game_date"] = pd.to_datetime(pcm["game_date"])
+        pcm["pitcher_id"] = pcm["pitcher_id"].astype(str)
+        ctx = ctx_base.merge(pcm, on=["game_date", "pitcher_id"], how="left")
+    else:
+        ctx = game_context_logs[["game_date", "game_pk", "pitcher_id", "catcher_id"]].copy()
+        ctx["game_date"] = pd.to_datetime(ctx["game_date"])
     ctx["catcher_id"] = ctx["catcher_id"].astype(str)
 
     cf = catcher_framing_daily[["game_date", "catcher_id", "catcher_take_csr"]].copy()
@@ -1606,6 +1615,7 @@ def build_training_features(
     statcast_pitcher_advanced: pd.DataFrame | None = None,
     statcast_batter_discipline: pd.DataFrame | None = None,
     catcher_framing_daily: pd.DataFrame | None = None,
+    pitcher_catcher_map: pd.DataFrame | None = None,
     return_before_impute: bool = False,
 ) -> tuple[pd.DataFrame, list[str], dict]:
     df = logs.copy()
@@ -1659,7 +1669,7 @@ def build_training_features(
     # Catcher framing: prior take-pitch CSR vs league average.
     # Skips gracefully when catcher_framing_daily is None (file not yet fetched).
     if catcher_framing_daily is not None and not catcher_framing_daily.empty:
-        cf_features = _catcher_framing_features(game_context_logs, catcher_framing_daily)
+        cf_features = _catcher_framing_features(game_context_logs, catcher_framing_daily, pitcher_catcher_map)
         if not cf_features.empty and "game_pk" in df.columns:
             cf_features["pitcher_id"] = cf_features["pitcher_id"].astype(str)
             df["pitcher_id"] = df["pitcher_id"].astype(str)
@@ -1841,6 +1851,7 @@ def build_daily_features(
     statcast_pitcher_advanced: pd.DataFrame | None = None,
     statcast_batter_discipline: pd.DataFrame | None = None,
     catcher_framing_daily: pd.DataFrame | None = None,
+    pitcher_catcher_map: pd.DataFrame | None = None,
 ) -> pd.DataFrame:
     hist = historical_logs.copy()
     prob = probable_pitchers.copy()
@@ -1868,6 +1879,7 @@ def build_daily_features(
         statcast_pitcher_advanced=statcast_pitcher_advanced,
         statcast_batter_discipline=statcast_batter_discipline,
         catcher_framing_daily=catcher_framing_daily,
+        pitcher_catcher_map=pitcher_catcher_map,
     )
     daily_keys = prob[["game_date", "pitcher_id", "team", "opponent"]]
     out = featured.merge(
