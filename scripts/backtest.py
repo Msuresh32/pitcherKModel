@@ -325,7 +325,8 @@ def main() -> None:
     else:
         odds = load_odds(config["data"]["odds_file"])
 
-    # Main-line only filter: discard alt lines at extreme odds
+    # Main-line only filter: discard alt lines at extreme odds, then keep one
+    # line per (pitcher, date, market, bookmaker) — the lowest-vig line.
     if config["betting"].get("main_line_only", False):
         min_o = config["betting"].get("main_line_min_odds", -160)
         max_o = config["betting"].get("main_line_max_odds", 140)
@@ -333,7 +334,27 @@ def main() -> None:
         odds = odds[
             odds["over_odds"].between(min_o, max_o) | odds["under_odds"].between(min_o, max_o)
         ].copy()
-        print(f"Main-line filter: {len(odds)} of {before} lines kept (odds in [{min_o}, {max_o}])")
+
+        def _implied(american_odds):
+            o = pd.to_numeric(american_odds, errors="coerce")
+            return o.where(o > 0, -o).div(o.where(o > 0, -o).add(100)).where(
+                o > 0, (-o).div((-o).add(100))
+            )
+
+        if {"over_odds", "under_odds"}.issubset(odds.columns):
+            odds["_vig"] = (
+                _implied(odds["over_odds"]) + _implied(odds["under_odds"])
+            )
+            dedup_key = [c for c in ["game_date", "pitcher_id", "market", "bookmaker"]
+                         if c in odds.columns]
+            odds = (
+                odds.sort_values("_vig")
+                    .drop_duplicates(subset=dedup_key, keep="first")
+                    .drop(columns=["_vig"])
+                    .reset_index(drop=True)
+            )
+        after = len(odds)
+        print(f"Main-line filter: {after} of {before} lines kept (odds in [{min_o}, {max_o}], one per pitcher/market/book)")
 
     bias_corrections = bias_corrections_from_calibration(config, existing_calibration)
     probability_calibrators = probability_calibrators_from_calibration(existing_calibration)

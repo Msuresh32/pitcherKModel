@@ -435,6 +435,26 @@ def main() -> None:
     if not odds.empty:
         odds["game_date"] = odds["game_date"].dt.strftime("%Y-%m-%d")
 
+    # Main-line only: keep one line per (pitcher, market, bookmaker) — lowest-vig line.
+    if config["betting"].get("main_line_only", False) and not odds.empty:
+        min_o = config["betting"].get("main_line_min_odds", -160)
+        max_o = config["betting"].get("main_line_max_odds", 140)
+        odds = odds[
+            odds["over_odds"].between(min_o, max_o) | odds["under_odds"].between(min_o, max_o)
+        ].copy()
+        if {"over_odds", "under_odds"}.issubset(odds.columns):
+            def _impl(o):
+                o = pd.to_numeric(o, errors="coerce")
+                return np.where(o > 0, 100 / (100 + o), -o / (-o + 100))
+            odds = odds.copy()
+            odds["_vig"] = _impl(odds["over_odds"]) + _impl(odds["under_odds"])
+            dedup_key = [c for c in ["game_date", "pitcher_id", "market", "bookmaker"]
+                         if c in odds.columns]
+            odds = (odds.sort_values("_vig")
+                        .drop_duplicates(subset=dedup_key, keep="first")
+                        .drop(columns=["_vig"])
+                        .reset_index(drop=True))
+
     # Fit NB dispersion from historical K distribution (method of moments)
     _ks = logs["strikeouts"].dropna().values if "strikeouts" in logs.columns else np.array([])
     _mu = float(_ks.mean()) if len(_ks) > 0 else 5.0

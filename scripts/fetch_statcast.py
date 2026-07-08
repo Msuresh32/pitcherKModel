@@ -57,14 +57,19 @@ def main() -> None:
         framing_frames = []
         for chunk_start, chunk_end in _date_chunks(args.start, args.end, args.chunk_days):
             print(f"Fetching Statcast {chunk_start} to {chunk_end}")
-            # pybaseball caches raw pitch data; fetch_statcast_pitcher_daily calls statcast()
-            pitcher_frame = fetch_statcast_pitcher_daily(chunk_start, chunk_end)
-            if not pitcher_frame.empty:
-                pitcher_frames.append(pitcher_frame)
+            try:
+                pitcher_frame = fetch_statcast_pitcher_daily(chunk_start, chunk_end)
+                if not pitcher_frame.empty:
+                    pitcher_frames.append(pitcher_frame)
+            except Exception as exc:
+                print(f"  WARNING: skipped {chunk_start}–{chunk_end} pitcher data: {exc}")
             if args.framing:
-                framing_frame = fetch_statcast_catcher_framing_daily(chunk_start, chunk_end)
-                if not framing_frame.empty:
-                    framing_frames.append(framing_frame)
+                try:
+                    framing_frame = fetch_statcast_catcher_framing_daily(chunk_start, chunk_end)
+                    if not framing_frame.empty:
+                        framing_frames.append(framing_frame)
+                except Exception as exc:
+                    print(f"  WARNING: skipped {chunk_start}–{chunk_end} framing data: {exc}")
 
         # ── Pitcher daily ──
         path = Path(output)

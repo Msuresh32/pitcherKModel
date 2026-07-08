@@ -381,7 +381,7 @@ def _print_console_summary(flagged: pd.DataFrame, target_date: str, config: dict
     print(f"  V2_core (eg >= {v2_thresh:.0f}): {v2_n}   V4_extra: {v4_n}   Total: {len(flagged)}")
     print()
     print("  Place limit orders on NoVig, then record fills:")
-    print("  py -3.14 scripts/update_results.py --pitcher \"Name\" --stake 100 --price-improvement 10")
+    print("  python scripts/update_results.py --pitcher \"Name\" --stake 100 --price-improvement 10")
     print()
 
 
