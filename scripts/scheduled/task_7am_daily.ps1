@@ -24,7 +24,7 @@ Log "Settling results for $Yesterday..."
 Log "Fetching game data for $Yesterday..."
 & $Python scripts\fetch_mlb_data.py extras  --start $Yesterday --end $Yesterday 2>&1 | Tee-Object -Append -FilePath $LogFile
 & $Python scripts\fetch_mlb_data.py batters --start $Yesterday --end $Yesterday --max-workers 4 2>&1 | Tee-Object -Append -FilePath $LogFile
-& $Python scripts\fetch_statcast.py --start $Yesterday --end $Yesterday 2>&1 | Tee-Object -Append -FilePath $LogFile
+& $Python scripts\fetch_statcast.py --framing --start $Yesterday --end $Yesterday --config config\config_v4_production.yaml 2>&1 | Tee-Object -Append -FilePath $LogFile
 
 # ── 3. Fetch today's pregame data ─────────────────────────────────────────────
 Log "Fetching probables, lineups, odds for $Today..."
