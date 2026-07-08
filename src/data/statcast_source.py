@@ -113,6 +113,71 @@ def _aggregate_batter_pitch_types(raw: pd.DataFrame) -> pd.DataFrame:
     return pd.DataFrame(rows).sort_values(["batter_id", "game_date"]).reset_index(drop=True)
 
 
+TAKE_DESCRIPTIONS = {"called_strike", "ball", "blocked_ball", "pitchout"}
+
+
+def _aggregate_catcher_framing_daily(raw: pd.DataFrame) -> pd.DataFrame:
+    """
+    Per-catcher, per-game called-strike rate on non-swing pitches (take pitches only).
+    catcher_take_csr = called_strikes / (called_strikes + balls)
+
+    This is a simple but valid framing proxy: when the batter doesn't swing, how often
+    does this catcher convert a pitch into a called strike? Controlled for pitcher/batter
+    by using it as a prior rolling average, not raw on-day value.
+
+    The key difference from umpire_csr_avg_prior: umpire feature uses pitcher-level CSR
+    (all pitches), this one is catcher-level on non-swing pitches only — isolating the
+    framing dimension.
+    """
+    if raw.empty or "fielder_2" not in raw.columns:
+        return pd.DataFrame()
+
+    df = raw.copy()
+    df["game_date"] = pd.to_datetime(df["game_date"]).dt.date.astype(str)
+    df["catcher_id"] = pd.to_numeric(df["fielder_2"], errors="coerce")
+    df = df.dropna(subset=["catcher_id"])
+    df["catcher_id"] = df["catcher_id"].astype(int).astype(str)
+    df["description"] = df["description"].astype(str)
+
+    # Only take pitches (batter didn't swing)
+    takes = df[df["description"].isin(TAKE_DESCRIPTIONS)]
+    if takes.empty:
+        return pd.DataFrame()
+
+    rows = []
+    for (game_date, catcher_id), group in takes.groupby(["game_date", "catcher_id"]):
+        descs = group["description"]
+        n_called = int((descs == "called_strike").sum())
+        n_takes = int(len(descs))
+        rows.append({
+            "game_date": game_date,
+            "catcher_id": catcher_id,
+            "catcher_take_pitches": n_takes,
+            "catcher_take_csr": n_called / n_takes if n_takes > 0 else None,
+        })
+
+    return pd.DataFrame(rows).sort_values(["catcher_id", "game_date"]).reset_index(drop=True)
+
+
+def fetch_statcast_catcher_framing_daily(start_date: str, end_date: str) -> pd.DataFrame:
+    try:
+        from pybaseball import cache, statcast
+    except ImportError as exc:
+        raise ImportError("Install pybaseball to fetch Statcast data.") from exc
+
+    cache.enable()
+    raw = statcast(start_dt=start_date, end_dt=end_date)
+    return _aggregate_catcher_framing_daily(raw)
+
+
+def save_statcast_catcher_framing_daily(start_date: str, end_date: str, output: str | Path) -> Path:
+    output = Path(output)
+    output.parent.mkdir(parents=True, exist_ok=True)
+    df = fetch_statcast_catcher_framing_daily(start_date, end_date)
+    df.to_csv(output, index=False)
+    return output
+
+
 def fetch_statcast_pitcher_daily(start_date: str, end_date: str) -> pd.DataFrame:
     try:
         from pybaseball import cache

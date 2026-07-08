@@ -103,6 +103,19 @@ def load_statcast_batter_pitch_type_daily(path: str | Path) -> pd.DataFrame:
     return df.sort_values(["batter_id", "game_date"]).reset_index(drop=True)
 
 
+def load_statcast_catcher_framing_daily(path: str | Path) -> pd.DataFrame:
+    """Load per-catcher per-game take-pitch called-strike rate (framing proxy)."""
+    path = Path(path)
+    if not path.exists():
+        return pd.DataFrame()
+    df = pd.read_csv(path)
+    if not {"game_date", "catcher_id", "catcher_take_csr"}.issubset(df.columns):
+        return pd.DataFrame()
+    df["game_date"] = pd.to_datetime(df["game_date"])
+    df["catcher_id"] = df["catcher_id"].astype(str)
+    return df.sort_values(["catcher_id", "game_date"]).reset_index(drop=True)
+
+
 def load_park_factors(path: str | Path) -> pd.DataFrame:
     path = Path(path)
     if not path.exists():

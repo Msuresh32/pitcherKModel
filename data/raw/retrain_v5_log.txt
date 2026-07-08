@@ -1,0 +1,144 @@
+load_pitcher_game_logs: dropped 302 duplicate (game_pk, pitcher_id) rows
+C:\Users\shado\pitcherKModel\src\features\build_features.py:117: PerformanceWarning: DataFrame is highly fragmented.  This is usually the result of calling `frame.insert` many times, which has poor performance.  Consider joining all columns at once using pd.concat(axis=1) instead. To get a de-fragmented frame, use `newframe = frame.copy()`
+  df[f"p_strike_rate_roll{window}"] = rolled["strikes"] / pitches
+C:\Users\shado\pitcherKModel\src\features\build_features.py:118: PerformanceWarning: DataFrame is highly fragmented.  This is usually the result of calling `frame.insert` many times, which has poor performance.  Consider joining all columns at once using pd.concat(axis=1) instead. To get a de-fragmented frame, use `newframe = frame.copy()`
+  df[f"p_pitches_max_roll{window}"] = rolled_max["pitches"]
+C:\Users\shado\pitcherKModel\src\features\build_features.py:119: PerformanceWarning: DataFrame is highly fragmented.  This is usually the result of calling `frame.insert` many times, which has poor performance.  Consider joining all columns at once using pd.concat(axis=1) instead. To get a de-fragmented frame, use `newframe = frame.copy()`
+  df[f"p_pitches_min_roll{window}"] = rolled_min["pitches"]
+C:\Users\shado\pitcherKModel\src\features\build_features.py:120: PerformanceWarning: DataFrame is highly fragmented.  This is usually the result of calling `frame.insert` many times, which has poor performance.  Consider joining all columns at once using pd.concat(axis=1) instead. To get a de-fragmented frame, use `newframe = frame.copy()`
+  df[f"p_pitches_range_roll{window}"] = rolled_max["pitches"] - rolled_min["pitches"]
+C:\Users\shado\pitcherKModel\src\features\build_features.py:121: PerformanceWarning: DataFrame is highly fragmented.  This is usually the result of calling `frame.insert` many times, which has poor performance.  Consider joining all columns at once using pd.concat(axis=1) instead. To get a de-fragmented frame, use `newframe = frame.copy()`
+  df[f"p_high_pitch_rate_90_roll{window}"] = (
+C:\Users\shado\pitcherKModel\src\features\build_features.py:130: PerformanceWarning: DataFrame is highly fragmented.  This is usually the result of calling `frame.insert` many times, which has poor performance.  Consider joining all columns at once using pd.concat(axis=1) instead. To get a de-fragmented frame, use `newframe = frame.copy()`
+  df[f"p_high_pitch_rate_100_roll{window}"] = (
+C:\Users\shado\pitcherKModel\src\features\build_features.py:139: PerformanceWarning: DataFrame is highly fragmented.  This is usually the result of calling `frame.insert` many times, which has poor performance.  Consider joining all columns at once using pd.concat(axis=1) instead. To get a de-fragmented frame, use `newframe = frame.copy()`
+  df[f"p_low_pitch_rate_under80_roll{window}"] = (
+C:\Users\shado\pitcherKModel\src\features\build_features.py:74: PerformanceWarning: DataFrame is highly fragmented.  This is usually the result of calling `frame.insert` many times, which has poor performance.  Consider joining all columns at once using pd.concat(axis=1) instead. To get a de-fragmented frame, use `newframe = frame.copy()`
+  df[f"p_{col}_roll{window}"] = rolled[col]
+C:\Users\shado\pitcherKModel\src\features\build_features.py:75: PerformanceWarning: DataFrame is highly fragmented.  This is usually the result of calling `frame.insert` many times, which has poor performance.  Consider joining all columns at once using pd.concat(axis=1) instead. To get a de-fragmented frame, use `newframe = frame.copy()`
+  df[f"p_{col}_std_roll{window}"] = rolled_std[col]
+C:\Users\shado\pitcherKModel\src\features\build_features.py:74: PerformanceWarning: DataFrame is highly fragmented.  This is usually the result of calling `frame.insert` many times, which has poor performance.  Consider joining all columns at once using pd.concat(axis=1) instead. To get a de-fragmented frame, use `newframe = frame.copy()`
+  df[f"p_{col}_roll{window}"] = rolled[col]
+C:\Users\shado\pitcherKModel\src\features\build_features.py:75: PerformanceWarning: DataFrame is highly fragmented.  This is usually the result of calling `frame.insert` many times, which has poor performance.  Consider joining all columns at once using pd.concat(axis=1) instead. To get a de-fragmented frame, use `newframe = frame.copy()`
+  df[f"p_{col}_std_roll{window}"] = rolled_std[col]
+C:\Users\shado\pitcherKModel\src\features\build_features.py:74: PerformanceWarning: DataFrame is highly fragmented.  This is usually the result of calling `frame.insert` many times, which has poor performance.  Consider joining all columns at once using pd.concat(axis=1) instead. To get a de-fragmented frame, use `newframe = frame.copy()`
+  df[f"p_{col}_roll{window}"] = rolled[col]
+C:\Users\shado\pitcherKModel\src\features\build_features.py:75: PerformanceWarning: DataFrame is highly fragmented.  This is usually the result of calling `frame.insert` many times, which has poor performance.  Consider joining all columns at once using pd.concat(axis=1) instead. To get a de-fragmented frame, use `newframe = frame.copy()`
+  df[f"p_{col}_std_roll{window}"] = rolled_std[col]
+C:\Users\shado\pitcherKModel\src\features\build_features.py:74: PerformanceWarning: DataFrame is highly fragmented.  This is usually the result of calling `frame.insert` many times, which has poor performance.  Consider joining all columns at once using pd.concat(axis=1) instead. To get a de-fragmented frame, use `newframe = frame.copy()`
+  df[f"p_{col}_roll{window}"] = rolled[col]
+C:\Users\shado\pitcherKModel\src\features\build_features.py:75: PerformanceWarning: DataFrame is highly fragmented.  This is usually the result of calling `frame.insert` many times, which has poor performance.  Consider joining all columns at once using pd.concat(axis=1) instead. To get a de-fragmented frame, use `newframe = frame.copy()`
+  df[f"p_{col}_std_roll{window}"] = rolled_std[col]
+C:\Users\shado\pitcherKModel\src\features\build_features.py:74: PerformanceWarning: DataFrame is highly fragmented.  This is usually the result of calling `frame.insert` many times, which has poor performance.  Consider joining all columns at once using pd.concat(axis=1) instead. To get a de-fragmented frame, use `newframe = frame.copy()`
+  df[f"p_{col}_roll{window}"] = rolled[col]
+C:\Users\shado\pitcherKModel\src\features\build_features.py:75: PerformanceWarning: DataFrame is highly fragmented.  This is usually the result of calling `frame.insert` many times, which has poor performance.  Consider joining all columns at once using pd.concat(axis=1) instead. To get a de-fragmented frame, use `newframe = frame.copy()`
+  df[f"p_{col}_std_roll{window}"] = rolled_std[col]
+C:\Users\shado\pitcherKModel\src\features\build_features.py:74: PerformanceWarning: DataFrame is highly fragmented.  This is usually the result of calling `frame.insert` many times, which has poor performance.  Consider joining all columns at once using pd.concat(axis=1) instead. To get a de-fragmented frame, use `newframe = frame.copy()`
+  df[f"p_{col}_roll{window}"] = rolled[col]
+C:\Users\shado\pitcherKModel\src\features\build_features.py:75: PerformanceWarning: DataFrame is highly fragmented.  This is usually the result of calling `frame.insert` many times, which has poor performance.  Consider joining all columns at once using pd.concat(axis=1) instead. To get a de-fragmented frame, use `newframe = frame.copy()`
+  df[f"p_{col}_std_roll{window}"] = rolled_std[col]
+C:\Users\shado\pitcherKModel\src\features\build_features.py:74: PerformanceWarning: DataFrame is highly fragmented.  This is usually the result of calling `frame.insert` many times, which has poor performance.  Consider joining all columns at once using pd.concat(axis=1) instead. To get a de-fragmented frame, use `newframe = frame.copy()`
+  df[f"p_{col}_roll{window}"] = rolled[col]
+C:\Users\shado\pitcherKModel\src\features\build_features.py:75: PerformanceWarning: DataFrame is highly fragmented.  This is usually the result of calling `frame.insert` many times, which has poor performance.  Consider joining all columns at once using pd.concat(axis=1) instead. To get a de-fragmented frame, use `newframe = frame.copy()`
+  df[f"p_{col}_std_roll{window}"] = rolled_std[col]
+C:\Users\shado\pitcherKModel\src\features\build_features.py:84: PerformanceWarning: DataFrame is highly fragmented.  This is usually the result of calling `frame.insert` many times, which has poor performance.  Consider joining all columns at once using pd.concat(axis=1) instead. To get a de-fragmented frame, use `newframe = frame.copy()`
+  df[f"p_strikeouts_trimmed_roll{window}"] = trimmed.where(k_count >= 2, rolled["strikeouts"])
+C:\Users\shado\pitcherKModel\src\features\build_features.py:86: PerformanceWarning: DataFrame is highly fragmented.  This is usually the result of calling `frame.insert` many times, which has poor performance.  Consider joining all columns at once using pd.concat(axis=1) instead. To get a de-fragmented frame, use `newframe = frame.copy()`
+  df[f"p_k_per_ip_roll{window}"] = rolled["strikeouts"] / innings
+C:\Users\shado\pitcherKModel\src\features\build_features.py:87: PerformanceWarning: DataFrame is highly fragmented.  This is usually the result of calling `frame.insert` many times, which has poor performance.  Consider joining all columns at once using pd.concat(axis=1) instead. To get a de-fragmented frame, use `newframe = frame.copy()`
+  df[f"p_bb_per_ip_roll{window}"] = rolled["walks"] / innings
+C:\Users\shado\pitcherKModel\src\features\build_features.py:88: PerformanceWarning: DataFrame is highly fragmented.  This is usually the result of calling `frame.insert` many times, which has poor performance.  Consider joining all columns at once using pd.concat(axis=1) instead. To get a de-fragmented frame, use `newframe = frame.copy()`
+  df[f"p_hits_per_ip_roll{window}"] = rolled["hits_allowed"] / innings
+C:\Users\shado\pitcherKModel\src\features\build_features.py:89: PerformanceWarning: DataFrame is highly fragmented.  This is usually the result of calling `frame.insert` many times, which has poor performance.  Consider joining all columns at once using pd.concat(axis=1) instead. To get a de-fragmented frame, use `newframe = frame.copy()`
+  df[f"p_innings_pitched_max_roll{window}"] = rolled_max["innings_pitched"]
+C:\Users\shado\pitcherKModel\src\features\build_features.py:90: PerformanceWarning: DataFrame is highly fragmented.  This is usually the result of calling `frame.insert` many times, which has poor performance.  Consider joining all columns at once using pd.concat(axis=1) instead. To get a de-fragmented frame, use `newframe = frame.copy()`
+  df[f"p_innings_pitched_min_roll{window}"] = rolled_min["innings_pitched"]
+C:\Users\shado\pitcherKModel\src\features\build_features.py:91: PerformanceWarning: DataFrame is highly fragmented.  This is usually the result of calling `frame.insert` many times, which has poor performance.  Consider joining all columns at once using pd.concat(axis=1) instead. To get a de-fragmented frame, use `newframe = frame.copy()`
+  df[f"p_deep_start_rate_6ip_roll{window}"] = (
+C:\Users\shado\pitcherKModel\src\features\build_features.py:100: PerformanceWarning: DataFrame is highly fragmented.  This is usually the result of calling `frame.insert` many times, which has poor performance.  Consider joining all columns at once using pd.concat(axis=1) instead. To get a de-fragmented frame, use `newframe = frame.copy()`
+  df[f"p_short_start_rate_under5ip_roll{window}"] = (
+C:\Users\shado\pitcherKModel\src\features\build_features.py:111: PerformanceWarning: DataFrame is highly fragmented.  This is usually the result of calling `frame.insert` many times, which has poor performance.  Consider joining all columns at once using pd.concat(axis=1) instead. To get a de-fragmented frame, use `newframe = frame.copy()`
+  df[f"p_k_rate_roll{window}"] = rolled["strikeouts"] / bf
+C:\Users\shado\pitcherKModel\src\features\build_features.py:112: PerformanceWarning: DataFrame is highly fragmented.  This is usually the result of calling `frame.insert` many times, which has poor performance.  Consider joining all columns at once using pd.concat(axis=1) instead. To get a de-fragmented frame, use `newframe = frame.copy()`
+  df[f"p_bb_rate_roll{window}"] = rolled["walks"] / bf
+C:\Users\shado\pitcherKModel\src\features\build_features.py:113: PerformanceWarning: DataFrame is highly fragmented.  This is usually the result of calling `frame.insert` many times, which has poor performance.  Consider joining all columns at once using pd.concat(axis=1) instead. To get a de-fragmented frame, use `newframe = frame.copy()`
+  df[f"p_hits_per_bf_roll{window}"] = rolled["hits_allowed"] / bf
+C:\Users\shado\pitcherKModel\src\features\build_features.py:114: PerformanceWarning: DataFrame is highly fragmented.  This is usually the result of calling `frame.insert` many times, which has poor performance.  Consider joining all columns at once using pd.concat(axis=1) instead. To get a de-fragmented frame, use `newframe = frame.copy()`
+  df[f"p_bf_per_ip_roll{window}"] = rolled["batters_faced"] / innings
+C:\Users\shado\pitcherKModel\src\features\build_features.py:117: PerformanceWarning: DataFrame is highly fragmented.  This is usually the result of calling `frame.insert` many times, which has poor performance.  Consider joining all columns at once using pd.concat(axis=1) instead. To get a de-fragmented frame, use `newframe = frame.copy()`
+  df[f"p_strike_rate_roll{window}"] = rolled["strikes"] / pitches
+C:\Users\shado\pitcherKModel\src\features\build_features.py:118: PerformanceWarning: DataFrame is highly fragmented.  This is usually the result of calling `frame.insert` many times, which has poor performance.  Consider joining all columns at once using pd.concat(axis=1) instead. To get a de-fragmented frame, use `newframe = frame.copy()`
+  df[f"p_pitches_max_roll{window}"] = rolled_max["pitches"]
+C:\Users\shado\pitcherKModel\src\features\build_features.py:119: PerformanceWarning: DataFrame is highly fragmented.  This is usually the result of calling `frame.insert` many times, which has poor performance.  Consider joining all columns at once using pd.concat(axis=1) instead. To get a de-fragmented frame, use `newframe = frame.copy()`
+  df[f"p_pitches_min_roll{window}"] = rolled_min["pitches"]
+C:\Users\shado\pitcherKModel\src\features\build_features.py:120: PerformanceWarning: DataFrame is highly fragmented.  This is usually the result of calling `frame.insert` many times, which has poor performance.  Consider joining all columns at once using pd.concat(axis=1) instead. To get a de-fragmented frame, use `newframe = frame.copy()`
+  df[f"p_pitches_range_roll{window}"] = rolled_max["pitches"] - rolled_min["pitches"]
+C:\Users\shado\pitcherKModel\src\features\build_features.py:121: PerformanceWarning: DataFrame is highly fragmented.  This is usually the result of calling `frame.insert` many times, which has poor performance.  Consider joining all columns at once using pd.concat(axis=1) instead. To get a de-fragmented frame, use `newframe = frame.copy()`
+  df[f"p_high_pitch_rate_90_roll{window}"] = (
+C:\Users\shado\pitcherKModel\src\features\build_features.py:130: PerformanceWarning: DataFrame is highly fragmented.  This is usually the result of calling `frame.insert` many times, which has poor performance.  Consider joining all columns at once using pd.concat(axis=1) instead. To get a de-fragmented frame, use `newframe = frame.copy()`
+  df[f"p_high_pitch_rate_100_roll{window}"] = (
+C:\Users\shado\pitcherKModel\src\features\build_features.py:139: PerformanceWarning: DataFrame is highly fragmented.  This is usually the result of calling `frame.insert` many times, which has poor performance.  Consider joining all columns at once using pd.concat(axis=1) instead. To get a de-fragmented frame, use `newframe = frame.copy()`
+  df[f"p_low_pitch_rate_under80_roll{window}"] = (
+C:\Users\shado\pitcherKModel\src\features\build_features.py:153: PerformanceWarning: DataFrame is highly fragmented.  This is usually the result of calling `frame.insert` many times, which has poor performance.  Consider joining all columns at once using pd.concat(axis=1) instead. To get a de-fragmented frame, use `newframe = frame.copy()`
+  df[f"p_{col}_career_avg_prior"] = expanding[col]
+C:\Users\shado\pitcherKModel\src\features\build_features.py:153: PerformanceWarning: DataFrame is highly fragmented.  This is usually the result of calling `frame.insert` many times, which has poor performance.  Consider joining all columns at once using pd.concat(axis=1) instead. To get a de-fragmented frame, use `newframe = frame.copy()`
+  df[f"p_{col}_career_avg_prior"] = expanding[col]
+C:\Users\shado\pitcherKModel\src\features\build_features.py:153: PerformanceWarning: DataFrame is highly fragmented.  This is usually the result of calling `frame.insert` many times, which has poor performance.  Consider joining all columns at once using pd.concat(axis=1) instead. To get a de-fragmented frame, use `newframe = frame.copy()`
+  df[f"p_{col}_career_avg_prior"] = expanding[col]
+C:\Users\shado\pitcherKModel\src\features\build_features.py:153: PerformanceWarning: DataFrame is highly fragmented.  This is usually the result of calling `frame.insert` many times, which has poor performance.  Consider joining all columns at once using pd.concat(axis=1) instead. To get a de-fragmented frame, use `newframe = frame.copy()`
+  df[f"p_{col}_career_avg_prior"] = expanding[col]
+C:\Users\shado\pitcherKModel\src\features\build_features.py:153: PerformanceWarning: DataFrame is highly fragmented.  This is usually the result of calling `frame.insert` many times, which has poor performance.  Consider joining all columns at once using pd.concat(axis=1) instead. To get a de-fragmented frame, use `newframe = frame.copy()`
+  df[f"p_{col}_career_avg_prior"] = expanding[col]
+C:\Users\shado\pitcherKModel\src\features\build_features.py:153: PerformanceWarning: DataFrame is highly fragmented.  This is usually the result of calling `frame.insert` many times, which has poor performance.  Consider joining all columns at once using pd.concat(axis=1) instead. To get a de-fragmented frame, use `newframe = frame.copy()`
+  df[f"p_{col}_career_avg_prior"] = expanding[col]
+C:\Users\shado\pitcherKModel\src\features\build_features.py:153: PerformanceWarning: DataFrame is highly fragmented.  This is usually the result of calling `frame.insert` many times, which has poor performance.  Consider joining all columns at once using pd.concat(axis=1) instead. To get a de-fragmented frame, use `newframe = frame.copy()`
+  df[f"p_{col}_career_avg_prior"] = expanding[col]
+C:\Users\shado\pitcherKModel\src\features\build_features.py:155: PerformanceWarning: DataFrame is highly fragmented.  This is usually the result of calling `frame.insert` many times, which has poor performance.  Consider joining all columns at once using pd.concat(axis=1) instead. To get a de-fragmented frame, use `newframe = frame.copy()`
+  df["p_k_per_ip_career_prior"] = expanding["strikeouts"] / innings
+C:\Users\shado\pitcherKModel\src\features\build_features.py:156: PerformanceWarning: DataFrame is highly fragmented.  This is usually the result of calling `frame.insert` many times, which has poor performance.  Consider joining all columns at once using pd.concat(axis=1) instead. To get a de-fragmented frame, use `newframe = frame.copy()`
+  df["p_bb_per_ip_career_prior"] = expanding["walks"] / innings
+C:\Users\shado\pitcherKModel\src\features\build_features.py:157: PerformanceWarning: DataFrame is highly fragmented.  This is usually the result of calling `frame.insert` many times, which has poor performance.  Consider joining all columns at once using pd.concat(axis=1) instead. To get a de-fragmented frame, use `newframe = frame.copy()`
+  df["p_hits_per_ip_career_prior"] = expanding["hits_allowed"] / innings
+C:\Users\shado\pitcherKModel\src\features\build_features.py:160: PerformanceWarning: DataFrame is highly fragmented.  This is usually the result of calling `frame.insert` many times, which has poor performance.  Consider joining all columns at once using pd.concat(axis=1) instead. To get a de-fragmented frame, use `newframe = frame.copy()`
+  df["p_k_rate_career_prior"] = expanding["strikeouts"] / bf
+C:\Users\shado\pitcherKModel\src\features\build_features.py:161: PerformanceWarning: DataFrame is highly fragmented.  This is usually the result of calling `frame.insert` many times, which has poor performance.  Consider joining all columns at once using pd.concat(axis=1) instead. To get a de-fragmented frame, use `newframe = frame.copy()`
+  df["p_bb_rate_career_prior"] = expanding["walks"] / bf
+C:\Users\shado\pitcherKModel\src\features\build_features.py:162: PerformanceWarning: DataFrame is highly fragmented.  This is usually the result of calling `frame.insert` many times, which has poor performance.  Consider joining all columns at once using pd.concat(axis=1) instead. To get a de-fragmented frame, use `newframe = frame.copy()`
+  df["p_hits_per_bf_career_prior"] = expanding["hits_allowed"] / bf
+C:\Users\shado\pitcherKModel\src\features\build_features.py:163: PerformanceWarning: DataFrame is highly fragmented.  This is usually the result of calling `frame.insert` many times, which has poor performance.  Consider joining all columns at once using pd.concat(axis=1) instead. To get a de-fragmented frame, use `newframe = frame.copy()`
+  df["p_bf_per_ip_career_prior"] = expanding["batters_faced"] / innings
+C:\Users\shado\pitcherKModel\src\features\build_features.py:166: PerformanceWarning: DataFrame is highly fragmented.  This is usually the result of calling `frame.insert` many times, which has poor performance.  Consider joining all columns at once using pd.concat(axis=1) instead. To get a de-fragmented frame, use `newframe = frame.copy()`
+  df["p_strike_rate_career_prior"] = expanding["strikes"] / pitches
+C:\Users\shado\pitcherKModel\src\features\build_features.py:168: PerformanceWarning: DataFrame is highly fragmented.  This is usually the result of calling `frame.insert` many times, which has poor performance.  Consider joining all columns at once using pd.concat(axis=1) instead. To get a de-fragmented frame, use `newframe = frame.copy()`
+  df["p_high_pitch_rate_90_career_prior"] = (
+C:\Users\shado\pitcherKModel\src\features\build_features.py:171: PerformanceWarning: DataFrame is highly fragmented.  This is usually the result of calling `frame.insert` many times, which has poor performance.  Consider joining all columns at once using pd.concat(axis=1) instead. To get a de-fragmented frame, use `newframe = frame.copy()`
+  df["p_high_pitch_rate_100_career_prior"] = (
+C:\Users\shado\pitcherKModel\src\features\build_features.py:174: PerformanceWarning: DataFrame is highly fragmented.  This is usually the result of calling `frame.insert` many times, which has poor performance.  Consider joining all columns at once using pd.concat(axis=1) instead. To get a de-fragmented frame, use `newframe = frame.copy()`
+  df["p_low_pitch_rate_under80_career_prior"] = (
+C:\Users\shado\pitcherKModel\src\features\build_features.py:179: PerformanceWarning: DataFrame is highly fragmented.  This is usually the result of calling `frame.insert` many times, which has poor performance.  Consider joining all columns at once using pd.concat(axis=1) instead. To get a de-fragmented frame, use `newframe = frame.copy()`
+  df["p_deep_start_rate_6ip_career_prior"] = (
+C:\Users\shado\pitcherKModel\src\features\build_features.py:182: PerformanceWarning: DataFrame is highly fragmented.  This is usually the result of calling `frame.insert` many times, which has poor performance.  Consider joining all columns at once using pd.concat(axis=1) instead. To get a de-fragmented frame, use `newframe = frame.copy()`
+  df["p_short_start_rate_under5ip_career_prior"] = (
+
+Selecting top 100 features by Random Forest importance...
+Feature selection: kept 100 of 395 features.
+
+Running 4-fold walk-forward cross-validation...
+
+OOS CV summary (mean across folds):
+                 mae    rmse
+target                      
+hits_allowed  1.7244  2.1412
+strikeouts    1.7843  2.2331
+walks         0.9883  1.2314
+CV metrics saved to data\processed_poisson_wf2025\cv_metrics.csv
+
+Trained models saved to data\processed_poisson_wf2025\models
+Fill values saved to data\processed_poisson_wf2025\models\fill_values.json
+Training metrics saved to data\processed_poisson_wf2025\train_metrics.csv
+Opportunity metrics saved to data\processed_poisson_wf2025\opportunity_train_metrics.csv
+
+In-sample vs OOS comparison:
+  strikeouts: train MAE=1.5689  |  see cv_metrics.csv for OOS
+  walks: train MAE=0.8743  |  see cv_metrics.csv for OOS
+  hits_allowed: train MAE=1.1310  |  see cv_metrics.csv for OOS

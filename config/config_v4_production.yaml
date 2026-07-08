@@ -32,6 +32,9 @@ data:
   fangraphs_file: data/raw/fangraphs_pitcher_stats.csv
   statcast_pitcher_advanced_file: data/raw/statcast_pitcher_advanced_daily.csv
   statcast_batter_discipline_file: data/raw/statcast_batter_discipline_daily.csv
+  # catcher_framing_file is optional — generate with: python scripts/fetch_statcast.py --framing
+  # When the file doesn't exist, catcher framing features are silently skipped.
+  catcher_framing_file: data/raw/statcast_catcher_framing_daily.csv
   closing_odds_file: data/odds/historical_pitcher_props_2025.csv
 
 training:
