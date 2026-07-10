@@ -1,0 +1,48 @@
+============================================================
+OOS EVALUATION REPORT
+Period: 2026-06-01 to 2026-07-07
+Model:  logistic
+Edge threshold: 0.1
+Min prob:       0.56
+============================================================
+
+Total OOS pitcher-game-lines: 1,444
+Bets placed (met threshold):  403
+  Over bets:  355
+  Under bets: 48
+
+BETTING PERFORMANCE
+  Win rate:     53.3%  (breakeven: 32.0%)
+  ROI:          -0.005 per bet
+  ROI 90% CI:   [-0.082, +0.073]
+  Total units:  -1.94
+  Max drawdown: -28.64 units
+  Avg edge:     +0.156
+  Mean CLV:     nan
+  Binom p-val:  0.0000
+
+ROBUSTNESS
+  ROI - top 5 wins: -0.02153521284919624
+  Random baseline ROI (mean): -0.04599458605910218
+  Random baseline 90% CI: [-0.12835551545228963, 0.03270922625761335]
+
+MONTHLY SPLITS
+  2026-06: 361 bets  ROI=+0.011  WR=54.0%
+  2026-07: 42 bets  ROI=-0.143  WR=47.6%
+
+CALIBRATION (model prob decile vs actual rate)
+  pred=0.350  actual=0.511  n=133
+  pred=0.429  actual=0.508  n=132
+  pred=0.468  actual=0.485  n=132
+  pred=0.498  actual=0.394  n=132
+  pred=0.529  actual=0.485  n=132
+  pred=0.561  actual=0.545  n=132
+  pred=0.593  actual=0.598  n=132
+  pred=0.629  actual=0.553  n=132
+  pred=0.669  actual=0.523  n=132
+  pred=0.739  actual=0.707  n=133
+
+VERDICT
+  INCONCLUSIVE — sample too small to distinguish from variance.
+
+============================================================
