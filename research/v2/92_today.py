@@ -1,11 +1,12 @@
-"""Score TODAY's slate (2026-07-11) with the deployed H1-adaptive system.
+"""Score today's slate with the configured adaptive pitcher-K head.
 
 Model: count ensemble, July vintage (trained on all games settled before
 2026-07-01), pre-2026 isotonic calibration, trailing-90d Platt recalibration
 (as of the 2026-07-06 weekly refresh) — identical to the walk-forward system.
 
 Odds: live morning/evening snapshot from data/odds/pitcher_props.csv.
-Output: reports/daily/v2_props_2026-07-11.csv + console table.
+Output: full-board CSV plus a plays-only CSV/HTML with an outcome-blind
+qualitative validation for every deployment-qualified signal.
 """
 from __future__ import annotations
 import sys, json
@@ -44,12 +45,98 @@ def logit(p):
     return np.log(p / (1 - p))
 
 
+def low_good_score(value, reference):
+    """Outcome-blind empirical score: smaller dispersion is better."""
+    ref = np.sort(np.asarray(reference, dtype=float))
+    ref = ref[np.isfinite(ref)]
+    if not np.isfinite(value) or len(ref) == 0:
+        return 0.0
+    left = np.searchsorted(ref, value, side="left")
+    right = np.searchsorted(ref, value, side="right")
+    return float(np.clip(1.0 - (left + right) / (2.0 * len(ref)), 0.0, 1.0))
+
+
+def conviction_fields(probs5, market_row, feature_row, config):
+    """Apply the frozen V3 reliability score; this never changes staking."""
+    hours = float(market_row.hours_to_start) if pd.notna(market_row.hours_to_start) else 0.0
+    # The historical morning-board protocol uses T-12h with a T-6h fallback.
+    # A five-hour boundary separates that protocol from the T-4h snapshot.
+    timing = "t12" if hours >= 5.0 else "t4"
+    timing_cfg = config["timings"][timing]
+    refs = timing_cfg["reference"]
+    components = {
+        "model_agreement": low_good_score(float(np.std(probs5, ddof=0)),
+                                           refs["ensemble_prob_std"]),
+        "market_agreement": (low_good_score(float(market_row.market_prob_std),
+                                             refs["market_prob_std"])
+                             if market_row.n_books >= 2 else 0.0),
+        "book_breadth": float(np.clip((market_row.n_books - 1.0) / 4.0, 0.0, 1.0)),
+        "history_depth": float(np.clip(
+            pd.to_numeric(feature_row.p_games_prior, errors="coerce") / 50.0,
+            0.0, 1.0)),
+        "role_stability": float(np.clip(
+            1.0 - abs(pd.to_numeric(feature_row.p_ip_pct_of_career_avg,
+                                    errors="coerce") - 1.0) / 0.35,
+            0.0, 1.0)),
+    }
+    components = {k: (v if np.isfinite(v) else 0.0) for k, v in components.items()}
+    score = 100.0 * sum(config["weights"][k] * v for k, v in components.items())
+    cuts = timing_cfg["grade_cutoffs"]
+    grade = "A" if score >= cuts["A"] else ("B" if score >= cuts["B"] else "C")
+    return timing, score, grade, components
+
+
+def active_h3_weights(config, asof):
+    """Most recent frozen monthly H3 weights available at score time."""
+    if not config:
+        return None
+    eligible = [v for v in config.get("h3_vintages", [])
+                if pd.Timestamp(v["cutoff"]) <= pd.Timestamp(asof)]
+    return max(eligible, key=lambda v: v["cutoff"])["weights"] if eligible else None
+
+
+def enforce_one_signal_per_pitcher(res):
+    """Mirror backtest execution: keep only the largest edge per pitcher."""
+    if res.empty or "signal" not in res or "pitcher_id" not in res:
+        return res
+    out = res.copy()
+    signal = out.signal.isin(["OVER", "UNDER"])
+    candidates = out[signal & out.pitcher_id.notna()].copy()
+    if candidates.empty:
+        out["suppressed_duplicate"] = False
+        return out
+    candidates["_abs_edge"] = pd.to_numeric(
+        candidates.edge_over, errors="coerce").abs()
+    keep = set(candidates.sort_values("_abs_edge", ascending=False)
+                .drop_duplicates("pitcher_id", keep="first").index)
+    suppressed = signal & ~out.index.isin(keep)
+    out["suppressed_duplicate"] = suppressed
+    out.loc[suppressed, "signal"] = "-"
+    out.loc[suppressed, "tier"] = ""
+    for col in ("stake_pct", "stake_usd", "stake_usd_conservative"):
+        if col in out:
+            out.loc[suppressed, col] = 0.0
+    for col in ("paper_challenger", "upgrade_candidate"):
+        if col in out:
+            out.loc[suppressed, col] = False
+    return out
+
+
 def main():
     config = load_config("config/config_v4_production.yaml")
     deploy = json.loads((OUT / "deploy_config.json").read_text(encoding="utf-8"))
+    conviction_path = Path("research/v3/conviction_config.json")
+    conviction = (json.loads(conviction_path.read_text(encoding="utf-8"))
+                  if conviction_path.exists() else None)
+    upgrade_path = Path("research/v3/model_upgrade_config.json")
+    upgrade = (json.loads(upgrade_path.read_text(encoding="utf-8"))
+               if upgrade_path.exists() else None)
+    h3_weights = active_h3_weights(upgrade, TODAY)
     selected_head = deploy.get("probability_head", "H1").upper()
     paper_only = deploy.get("deployment_status", "").startswith("NOT_DEPLOYABLE")
     print(f"Probability head: {selected_head}", flush=True)
+    if upgrade:
+        print(f"Paper router: {upgrade.get('paper_router')}", flush=True)
     if paper_only:
         print("DEPLOYMENT GUARD: model failed its completed forward gate; "
               "all suggested stakes are forced to $0 (paper tracking only).",
@@ -211,8 +298,16 @@ def main():
     po = np.where(o.over_odds < 0, -o.over_odds/(-o.over_odds+100), 100/(100+o.over_odds))
     pu = np.where(o.under_odds < 0, -o.under_odds/(-o.under_odds+100), 100/(100+o.under_odds))
     o["p_over_novig"] = po / (po + pu)
+    if "commence_time" in o and "fetched_at" in o:
+        commence = pd.to_datetime(o.commence_time, utc=True, errors="coerce")
+        fetched = pd.to_datetime(o.fetched_at, utc=True, errors="coerce")
+        o["hours_to_start"] = (commence - fetched).dt.total_seconds() / 3600.0
+    else:
+        o["hours_to_start"] = np.nan
     cons = o.groupby(["pitcher_id", "line"]).agg(
         p_mkt_over=("p_over_novig", "mean"), n_books=("bookmaker", "nunique"),
+        market_prob_std=("p_over_novig", lambda x: float(np.std(x, ddof=0))),
+        hours_to_start=("hours_to_start", "median"),
         best_over=("over_odds", "max"), best_under=("under_odds", "max")).reset_index()
     bo = o.loc[o.groupby(["pitcher_id", "line"])["over_odds"].idxmax(),
                ["pitcher_id", "line", "bookmaker"]].rename(columns={"bookmaker": "over_book"})
@@ -230,20 +325,47 @@ def main():
             continue
         for _, m in my.iterrows():
             probs5 = []
+            probs_by_name = {}
             for name, cm in models.items():
                 p = MS.prob_over_nb(np.array([r[f"mu_{name}"]]), cm.alpha,
                                     np.array([m.line]))[0]
-                probs5.append(iso[name].predict([np.clip(p, 1e-6, 1-1e-6)])[0])
+                p_cal = iso[name].predict([np.clip(p, 1e-6, 1-1e-6)])[0]
+                probs5.append(p_cal)
+                probs_by_name[name] = p_cal
             p_h0 = float(np.mean(probs5))
             p_h1 = float(platt.predict_proba(logit([p_h0]).reshape(-1, 1))[0, 1]) \
                 if use_platt else p_h0
-            p_selected = p_h0 if selected_head == "H0" else p_h1
-            edge = p_selected - m.p_mkt_over
+            p_h3 = (float(sum(h3_weights[name] * probs_by_name[name]
+                              for name in probs_by_name))
+                    if h3_weights else p_h0)
+            if conviction:
+                conv_timing, conv_score, conv_grade, conv_components = conviction_fields(
+                    probs5, m, r, conviction)
+            else:
+                conv_timing, conv_score, conv_grade, conv_components = (
+                    "unavailable", np.nan, "", {})
+            route = ((upgrade or {}).get("paper_router", {}).get(conv_timing, {})
+                     if upgrade else {})
+            row_head = route.get("probability_head", selected_head).upper()
+            p_selected = {"H0": p_h0, "H1": p_h1, "H3": p_h3}.get(row_head, p_h0)
+            raw_edge = p_selected - m.p_mkt_over
+            edge_rule = route.get("edge_rule", "raw_8pp")
+            if edge_rule == "lcb_1sd_8pp":
+                model_std = float(np.std(probs5, ddof=0))
+                edge = float(np.sign(raw_edge) * max(abs(raw_edge) - model_std, 0.0))
+            else:
+                edge = float(raw_edge)
+            p_decision = float(m.p_mkt_over + edge)
+            abs_edge = abs(raw_edge)
+            paper_challenger = bool(
+                conviction and row_head == "H0" and conv_timing == "t12" and
+                0.10 <= abs_edge < 0.12 and conv_grade in ("A", "B"))
+            upgrade_candidate = abs(edge) >= 0.08
             # shrunk half-Kelly stakes (deploy_config): p_eff = mkt + 0.25*(model-mkt)
             side = "over" if edge > 0 else "under"
             price = m.best_over if side == "over" else m.best_under
             b_dec = (price / 100.0) if price >= 0 else (100.0 / abs(price))
-            p_model_side = p_selected if side == "over" else 1 - p_selected
+            p_model_side = p_decision if side == "over" else 1 - p_decision
             p_mkt_side = m.p_mkt_over if side == "over" else 1 - m.p_mkt_over
             def kelly_frac(lam):
                 pe = p_mkt_side + lam * (p_model_side - p_mkt_side)
@@ -252,14 +374,28 @@ def main():
                          "proj_ks": r.mu_mean, "line": m.line,
                          "best_over": m.best_over, "over_book": m.over_book,
                          "best_under": m.best_under, "under_book": m.under_book,
-                         "p_model_over": p_selected, "p_h0": p_h0,
-                         "model_head": selected_head, "p_mkt_over": m.p_mkt_over,
-                         "edge_over": edge, "n_books": m.n_books,
+                         "p_model_over": p_selected, "p_decision_over": p_decision,
+                         "p_h0": p_h0, "p_h3": p_h3,
+                         "model_head": row_head, "edge_rule": edge_rule,
+                         "p_mkt_over": m.p_mkt_over,
+                         "raw_edge_over": raw_edge, "edge_over": edge,
+                         "n_books": m.n_books,
+                         "ensemble_prob_std": float(np.std(probs5, ddof=0)),
+                         "market_prob_std": m.market_prob_std,
+                         "odds_timing": conv_timing,
+                         "conviction_score": conv_score,
+                         "conviction_grade": conv_grade,
+                         "conviction_status": ("CORROBORATED" if conv_grade in ("A", "B")
+                                               else "LOW"),
+                         "paper_challenger": paper_challenger,
+                         "upgrade_candidate": upgrade_candidate,
                          "pitcher_id": r.pitcher_id_n,
                          "signal": "OVER" if edge >= 0.08 else
                                    ("UNDER" if edge <= -0.08 else "-"),
-                         "tier": "CONV" if abs(edge) >= 0.15 else
-                                 ("base" if abs(edge) >= 0.08 else ""),
+                         "tier": "PAPER-CONV" if paper_challenger else
+                                 ("PAPER-V3.1" if upgrade_candidate else
+                                 ("CONV" if abs(edge) >= 0.15 else
+                                  ("base" if abs(edge) >= 0.08 else ""))),
                          "stake_pct": round(kelly_frac(0.25) * 100, 2),
                          "stake_usd": round(kelly_frac(0.25) * BANKROLL, 0),
                          "stake_usd_conservative": round(kelly_frac(0.15) * BANKROLL, 0)})
@@ -267,11 +403,23 @@ def main():
     if "edge_over" in res.columns:
         res = res.sort_values("edge_over", key=lambda s: s.abs(), ascending=False,
                               na_position="last")
+    res = enforce_one_signal_per_pitcher(res)
     if paper_only and "stake_usd" in res.columns:
         res["stake_pct"] = 0.0
         res["stake_usd"] = 0.0
         res["stake_usd_conservative"] = 0.0
-        res.loc[res["signal"] != "-", "tier"] = "PAPER"
+        # Rows for probables without a matching market intentionally have
+        # blank signal/flag fields. Treat those as false, never as selections.
+        signal_mask = res["signal"].isin(["OVER", "UNDER"])
+        res.loc[signal_mask, "tier"] = "PAPER"
+        if "paper_challenger" in res:
+            paper_mask = res.paper_challenger.fillna(False).astype(bool)
+            res.loc[signal_mask & paper_mask, "tier"] = "PAPER-CONV"
+        if "upgrade_candidate" in res:
+            upgrade_mask = res.upgrade_candidate.fillna(False).astype(bool)
+            paper_mask = res.paper_challenger.fillna(False).astype(bool)
+            res.loc[signal_mask & upgrade_mask & ~paper_mask,
+                    "tier"] = "PAPER-V3.1"
     outp = Path(f"reports/daily/v2_props_{TODAY.date()}.csv")
     outp.parent.mkdir(parents=True, exist_ok=True)
     res.round(3).to_csv(outp, index=False)
@@ -279,15 +427,22 @@ def main():
     print(res.round(3).to_string(index=False), flush=True)
     print(f"\nSaved {outp}", flush=True)
 
-    # ---- plays-only view: stake > 0 under the shrunk-Kelly rule ----
+    # ---- plays-only view: every row that passed the model gate ----
+    # Deployment may deliberately force every stake to $0.  Qualification is
+    # therefore defined by the final de-duplicated signal, never by stake.
     if "stake_usd" in res.columns:
-        plays = res[(res.stake_usd > 0) & (res.signal != "-")].copy()
+        plays = res[res.signal.isin(["OVER", "UNDER"])].copy()
         plays["side"] = plays.signal.str.lower()
         plays["price"] = np.where(plays.side == "over", plays.best_over, plays.best_under)
         plays["book"] = np.where(plays.side == "over", plays.over_book, plays.under_book)
-        pcols = ["pitcher", "line", "signal", "tier", "price", "book", "proj_ks",
-                 "edge_over", "n_books", "stake_pct", "stake_usd",
-                 "stake_usd_conservative"]
+        pcols = [
+            "pitcher", "team", "opp", "line", "signal", "tier", "price", "book",
+            "proj_ks", "p_model_over", "p_decision_over", "p_mkt_over",
+            "edge_over", "n_books", "model_head", "edge_rule", "odds_timing",
+            "conviction_score", "conviction_grade", "ensemble_prob_std",
+            "market_prob_std", "stake_pct", "stake_usd",
+            "stake_usd_conservative", "pitcher_id",
+        ]
         plays_out = Path(f"reports/daily/v2_plays_{TODAY.date()}.csv")
         plays[pcols].round(3).to_csv(plays_out, index=False)
         print(f"\n=== PLAYS for {TODAY.date()} (bankroll ${BANKROLL:,.0f}) ===", flush=True)
@@ -295,17 +450,20 @@ def main():
             print(plays[pcols].round(3).to_string(index=False), flush=True)
         else:
             print("No qualifying plays.", flush=True)
-        # simple standalone HTML for quick viewing
-        html = plays[pcols].round(3).to_html(index=False, border=0)
-        Path("reports/daily/v2_plays_latest.html").write_text(
-            f"<meta charset='utf-8'><title>Plays {TODAY.date()}</title>"
-            f"<style>body{{font:14px system-ui;padding:20px}}table{{border-collapse:collapse}}"
-            f"td,th{{padding:6px 12px;border-bottom:1px solid #ddd;text-align:right}}"
-            f"td:first-child,th:first-child{{text-align:left}}</style>"
-            f"<h2>V2 plays — {TODAY.date()} (bankroll ${BANKROLL:,.0f})</h2>{html}"
-            f"<p>stake rule: shrunk half-Kelly (lambda=0.25, cap 2%); conservative = lambda 0.15. "
-            f"Full board: v2_props_{TODAY.date()}.csv</p>", encoding="utf-8")
-        print(f"Saved {plays_out} and reports/daily/v2_plays_latest.html", flush=True)
+        # Attach the independent qualitative score/writeup immediately so a
+        # direct 92_today.py run produces the same complete output as the
+        # scheduled wrapper.  Failure is visible but never changes the model
+        # signal or deployment guard.
+        try:
+            import a7_qual_brief as qualitative
+            q = qualitative.build_qualitative_outputs(str(TODAY.date()))
+            print(f"Saved {plays_out}, qualitative writeups for "
+                  f"{len(q['plays'])} plays, and reports/daily/v2_plays_latest.html",
+                  flush=True)
+        except Exception as exc:
+            print(f"QUALITATIVE VALIDATION WARNING: {exc}", flush=True)
+            print(f"Saved {plays_out}; qualitative layer did not alter any signal.",
+                  flush=True)
 
     # ---- HITS ALLOWED paper-track (frozen: UNDER-only, edge>=0.04) ----
     # 2026 WF verdict (research/v2/98): CLV +1.1pp but ROI -2.3% — signal real,

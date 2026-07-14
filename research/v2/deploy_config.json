@@ -1,6 +1,14 @@
 {
   "system": "H0-adaptive-paper",
   "probability_head": "H0",
+  "probability_heads_by_timing": {
+    "t4": "H3 monthly convex weights (paper challenger)",
+    "t12": "H0 equal weights"
+  },
+  "edge_rules_by_timing": {
+    "t4": "raw model-market edge >= 8pp",
+    "t12": "one-SD lower-confidence edge >= 8pp"
+  },
   "deployment_status": "NOT_DEPLOYABLE_REAL_MONEY__PAPER_TRACK_ONLY",
   "selected": "2026-07-14 post-holdout research selection; H0 was pre-declared before the original gate but requires new post-Jul-10 confirmation",
   "model": "mean of 5 isotonic-calibrated count models (poisson_glm, xgb_poisson, lgb_poisson, hgb_poisson, cat_poisson), NB-tail P(over)",
@@ -16,10 +24,25 @@
     "execution": "paper-track the best available price at the T-12h morning board (H0 2026 WF through Jul 10: ROI +3.60% on 629 bets / CLV +0.33pp; H0 T-4h: +2.61% on 694 / CLV +0.25pp).",
     "stake": "PAPER ONLY ($0). Prior Kelly simulations are superseded because the completed forward gate failed."
   },
+  "conviction_layer": {
+    "status": "PAPER_ONLY_POST_HOLDOUT_SELECTION",
+    "score": "0-100 outcome-blind reliability score: 35% model agreement, 20% sportsbook probability agreement, 20% book breadth, 10% prior-start history, 15% workload/role stability",
+    "reference": "component percentiles and grade cutoffs frozen from 2025 distributions without outcome labels",
+    "paper_challenger": "T-12h/T-6h fallback, 10-12pp edge band, grades A or B, one bet per pitcher-game",
+    "evidence": "2025 +16.83% ROI n=143 CLV +0.87pp; 2026 +6.78% ROI n=106 CLV +0.10pp; Jun-Jul10 2026 +1.90% ROI n=30 CLV -0.15pp",
+    "warning": "A/B/C was not strictly monotonic and the A/B pool was selected after review. This is a forward paper challenger, not proof of stronger live edge."
+  },
+  "v3_1_upgrade": {
+    "status": "PAPER_ONLY_POST_HOLDOUT_SELECTION",
+    "t4": "H3 convex count-model weights selected by chronological 2025 log loss; 2026 ROI +2.89% n=717 vs H0 +2.61% n=694; log loss 0.634234 vs 0.634437",
+    "t12": "H0 one-standard-deviation lower-confidence edge; 2025 ROI +15.12% n=693; 2026 ROI +6.31% n=401, CLV +0.48pp; Jun-Jul10 ROI -0.28% n=104, CLV +0.69pp",
+    "uncertainty_rule": "signed conservative edge = sign(raw edge) * max(abs(raw edge) - ensemble probability SD, 0)",
+    "warning": "Difference confidence intervals include zero. All routed stakes remain $0 until a new frozen forward window confirms the improvement."
+  },
   "expected": {
     "volume_per_season": "~1000-1400 bets total; ~350-450 in the conviction tier",
     "roi_estimate_base": "research estimate only: H0 T-4h +2.61% on 694 bets (90% CI -4.0% to +9.0%); H0 T-12h +3.60% on 629 (CI -2.6% to +9.6%)",
-    "roi_estimate_conviction": "not established; higher thresholds increase uncertainty and did not remain positive in both chronological windows",
+    "roi_estimate_conviction": "research-only A/B corroborated T-12h 10-12pp pool: 2025 +16.83% n=143; 2026 +6.78% n=106; 2026 CI still crosses zero",
     "clv_estimate": "+0.25pp T-4h; +0.33pp T-12h in 2026",
     "note": "No live staking until a newly protected post-Jul-10 forward period produces positive, monotone CLV and a positive ROI confidence bound."
   },

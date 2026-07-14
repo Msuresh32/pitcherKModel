@@ -81,6 +81,10 @@ def main():
     print(f"2026 rows: {len(b26):,}", flush=True)
 
     b26["p_h0"] = np.nan
+    # Persist the five calibrated component probabilities so downstream
+    # conviction scoring can measure ensemble disagreement without refitting.
+    for name in COUNT_NAMES:
+        b26[f"p_h0_{name}"] = np.nan
     vintages = {}
     for ci, cutoff in enumerate(RETRAIN_CUTOFFS):
         nxt = RETRAIN_CUTOFFS[ci + 1] if ci + 1 < len(RETRAIN_CUTOFFS) else \
@@ -96,7 +100,9 @@ def main():
         for name, cm in MS.make_count_models().items():
             cm.fit(tr[count_feat_cols], tr["strikeouts"])
             p = cm.predict_prob(b26.loc[mask, count_feat_cols], b26.loc[mask, "line"])
-            probs.append(iso[name].predict(np.clip(p, 1e-6, 1 - 1e-6)))
+            p_cal = iso[name].predict(np.clip(p, 1e-6, 1 - 1e-6))
+            probs.append(p_cal)
+            b26.loc[mask, f"p_h0_{name}"] = p_cal
         b26.loc[mask, "p_h0"] = np.mean(probs, axis=0)
 
     # ---------- H1: trailing-90d Platt on settled rows, weekly refresh ----------

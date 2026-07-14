@@ -23,7 +23,8 @@ DAILY = Path("reports/daily")
 
 NUMERIC = {"line", "price", "proj_ks", "edge_over", "n_books", "stake_pct",
            "stake_usd", "stake_usd_conservative", "p_model_over", "p_mkt_over",
-           "p_model_under", "p_mkt_under", "edge", "proj_hits", "stake_usd"}
+           "p_model_under", "p_mkt_under", "edge", "proj_hits", "stake_usd",
+           "qual_score", "conviction_score"}
 
 
 def read_csv_rows(path):
@@ -66,8 +67,15 @@ def main():
         for p in plays:
             key = (p.get("pitcher"), float(p.get("line") or 0))
             if key in qmap:
-                p["qual"] = qmap[key].get("html", "")
-                p["qual_flag"] = qmap[key].get("qual_flag")
+                q = qmap[key]
+                p["qual"] = q.get("html", "")
+                p["qual_flag"] = q.get("qual_flag")
+                p["qual_score"] = q.get(
+                    "qualitative_score", q.get("qual_score"))
+                p["qual_verdict"] = q.get(
+                    "verdict", q.get("qual_verdict"))
+                p["qual_coverage"] = q.get("coverage", {}).get(
+                    "label", p.get("qual_coverage"))
         print(f"qual analyses attached: "
               f"{sum(1 for p in plays if p.get('qual'))}/{len(plays)}")
 

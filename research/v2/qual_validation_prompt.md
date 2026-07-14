@@ -13,14 +13,29 @@ present. If no meaningful qualitative edge exists, explicitly state:
 Do NOT force confirmation or cherry-pick statistics.
 
 ## Inputs
-1. `reports/daily/v2_qual_context_<date>.json` — auto-assembled internal
-   context per play (model projection, edge, umpire prior-K, park K factor,
-   opponent lineup K rates vs hand, pitcher velocity trend, workload/pull
-   tendencies, market open vs current). Produced by
-   `research/v2/a7_qual_brief.py`.
+1. `reports/daily/v2_qual_context_<date>.json` — outcome-blind internal
+   context per play (model projection, opponent K/BB profile, pitcher trend,
+   workload/pull tendencies, Statcast indicators, park and market coverage).
+   Produced by `research/v2/a7_qual_brief.py` using rows strictly before the
+   score date. The same script writes a deterministic qualitative score and
+   writeup for every qualified play; it never changes the model gate or stake.
 2. Web research for what internal data can't see: confirmed lineups, injury /
    IL news, announced umpire, weather (wind/roof), recent velocity readings,
    arsenal-vs-team run values (Savant), opponent K% vs handedness L7/L14/L30.
+
+Verified external findings may be saved to
+`reports/daily/v2_qual_external_<date>.json` as:
+
+```json
+{"plays":[{"pitcher":"Name","line":5.5,
+  "support":["Verified material finding."],
+  "contradictory":["Verified material concern."],
+  "covers":["weather/roof"],"sources":["https://..."]}]}
+```
+
+Absent external fields are explicitly marked unavailable and are never
+inferred. The 0-100 qualitative score starts at 50, adds only material support,
+and subtracts material concerns. It is separate from model conviction.
 
 ## Evaluate (only report what is material)
 - **Matchup**: opponent K% vs handedness (L7/L14/L30/season), whiff%, zone
