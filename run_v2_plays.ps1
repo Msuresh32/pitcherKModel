@@ -25,6 +25,7 @@ Step "statcast ($yday)"      "scripts/fetch_statcast.py --start $yday --end $yda
 Step "probables ($today)"    "scripts/fetch_probables_daily.py --date $today"
 Step "odds Ks ($today)"      "scripts/fetch_odds_daily.py --date $today --snapshot morning"
 Step "odds hits ($today)"    "scripts/fetch_odds_daily.py --date $today --snapshot morning --markets pitcher_hits_allowed --output data/odds/pitcher_props_hits.csv"
+Step "novig quotes ($today)" "research/v2/a9_novig_quotes.py"
 
 # 3. score + size
 "=== score ($today) - $(Get-Date -Format HH:mm:ss) ===" | Tee-Object -FilePath $log -Append
