@@ -124,7 +124,7 @@
     <span class="slider-note" id="snapNote">edge, price and CLV measured at the snapshot 4h before first pitch</span>
     <span style="flex-basis:100%"></span>
     <label for="cents">Price improvement</label>
-    <input type="range" id="cents" min="0" max="20" step="1" value="0">
+    <input type="range" id="cents" min="0" max="25" step="1" value="0">
     <span class="mono" id="centsVal">+0c</span>
     <span class="slider-note">applies N cents better than the shown best open price (e.g. −135 → −120 at +15c) to every bet's P&amp;L, tiles, curves and ledgers</span>
   </div>
@@ -136,7 +136,28 @@
   <button class="on" data-v="v25" role="tab">2025 Backtest</button>
   <button data-v="v26" role="tab">2026 Walk-Forward</button>
   <button data-v="vpr" role="tab">All 2026 Props</button>
+  <button data-v="vh" role="tab">Hits Model (paper)</button>
 </nav>
+
+<section class="view" id="vh">
+  <div class="panel">
+    <h2>Hits allowed — UNDER-only, edge ≥ 4pp · P&amp;L at no-vig FAIR pricing (exchange execution) · paper only</h2>
+    <div class="slider-row" style="margin:0 0 12px">
+      <label>Season</label>
+      <div class="seg" id="hSeg">
+        <button data-s="h26" class="on">2026 walk-forward (438)</button>
+        <button data-s="h25">2025 (660)</button>
+      </div>
+      <span class="slider-note">the price-improvement slider above applies here too — it stacks your exchange fill improvement on top of fair no-vig pricing. Tier "watch" = edge &gt; 10pp (anti-signal zone in 2026 — biggest model edges performed worst).</span>
+    </div>
+    <div class="chart-box" id="chh"></div>
+    <div class="mrow" id="moh" style="margin-top:14px"></div>
+    <h2>Ledger</h2>
+    <div class="filters" id="fh"></div>
+    <div class="tbl-box"><table id="th"></table></div>
+    <div class="pager" id="ph"></div>
+  </div>
+</section>
 
 <section class="view" id="vtd">
   <div class="panel"><h2 id="tdTitle">Today's plays</h2>
@@ -199,7 +220,8 @@ function improveOdds(o,c){
   return v<=0? v-100 : v+100;
 }
 function applyCents(c){
-  [D.bets2025,D.bets2026,D.bets2025_t12??[],D.bets2026_t12??[]].forEach(rows=>rows.forEach(r=>{
+  [D.bets2025,D.bets2026,D.bets2025_t12??[],D.bets2026_t12??[],
+   D.hits2025??[],D.hits2026??[]].forEach(rows=>rows.forEach(r=>{
     const o=improveOdds(r.odds,c);
     const prof=o>=0? o/100 : 100/Math.abs(o);
     r.pnl=r.won? prof : -1;
@@ -400,6 +422,40 @@ function buildTables(){
 }
 buildTables();
 
+/* ---------- Hits Model tab ---------- */
+let SNAPH='h26', apiH=null;
+const hitsCols=[
+  {k:'date',h:'Date',l:1,mono:1,fn:r=>r.date},
+  {k:'pitcher',h:'Pitcher',l:1,fn:r=>r.pitcher},
+  {k:'line',h:'Line',mono:1,fn:r=>r.line.toFixed(1)},
+  {k:'odds',h:'Fair odds',mono:1,fn:r=>r.odds_eff!==r.odds?
+    `<span style="color:var(--faint)">${odds(r.odds)}</span> ${odds(r.odds_eff)}`:odds(r.odds)},
+  {k:'p_model',h:'Model P(under)',mono:1,fn:r=>r.p_model.toFixed(3)},
+  {k:'p_mkt',h:'Mkt P(under)',mono:1,fn:r=>r.p_mkt.toFixed(3)},
+  {k:'edge',h:'Edge',mono:1,fn:r=>fmt(r.edge*100,1)+'pp'},
+  {k:'tier',h:'Tier',l:1,fn:r=>r.tier==='watch'?'<span class="chip lz">WATCH &gt;10pp</span>':'<span class="chip">base</span>'},
+  {k:'hits',h:'Hits',mono:1,fn:r=>r.hits},
+  {k:'won',h:'Result',l:1,fn:chipWL},
+  {k:'pnl',h:'P&L',mono:1,fn:r=>`<span class="${r.pnl>=0?'pos':'neg'}">${fmt(r.pnl,2)}u</span>`},
+  {k:'clv',h:'CLV',mono:1,fn:r=>r.clv==null?'—':`<span class="${r.clv>=0?'pos':'neg'}">${fmt(r.clv*100,2)}</span>`},
+];
+function buildHits(){
+  const rows = SNAPH==='h26' ? (D.hits2026??[]) : (D.hits2025??[]);
+  apiH = makeTable({rows, tbl:$('#th'), pager:$('#ph'), filtersEl:$('#fh'),
+    cols:hitsCols, defaultSort:'date',
+    filters:[{type:'text',k:'pitcher',label:'search pitcher…'},
+             {type:'select',k:'tier',label:'tier',opts:['base','watch']},
+             {type:'num',k:'edge',label:'min edge',ph:'0.04'}],
+    onFilter:r=>{equityChart($('#chh'),r);monthly($('#moh'),r);}});
+}
+if(D.hits2026) buildHits();
+document.querySelectorAll('#hSeg button').forEach(b=>b.addEventListener('click',()=>{
+  if(b.dataset.s===SNAPH) return;
+  SNAPH=b.dataset.s;
+  document.querySelectorAll('#hSeg button').forEach(x=>x.classList.toggle('on',x.dataset.s===SNAPH));
+  buildHits();
+}));
+
 /* ---------- snapshot toggle ---------- */
 document.querySelectorAll('#snapSeg button').forEach(b=>b.addEventListener('click',()=>{
   if(b.dataset.s===SNAP) return;
@@ -469,6 +525,7 @@ $('#cents').addEventListener('input',e=>{
   renderTiles();
   api25.refresh();
   api26.refresh();
+  if(apiH) apiH.refresh();
 });
 
 /* ---------- props table ---------- */
