@@ -1,0 +1,465 @@
+<title>Pitcher K Model — Backtest &amp; 2026 Props</title>
+<style>
+  :root{
+    --bg:#F5F7F6; --surface:#FFFFFF; --ink:#1B2420; --muted:#5A6660; --faint:#8A948E;
+    --line:#E2E7E4; --accent:#33627A; --accent-soft:#33627A22;
+    --pos:#1E7A5F; --neg:#B54234; --pos-soft:#1E7A5F14; --neg-soft:#B5423414;
+    --chip:#EDF1EF;
+  }
+  @media (prefers-color-scheme: dark){
+    :root{
+      --bg:#131917; --surface:#1C2421; --ink:#E8EDEA; --muted:#93A09A; --faint:#6C7873;
+      --line:#2A342F; --accent:#7FB3CC; --accent-soft:#7FB3CC22;
+      --pos:#57BD94; --neg:#E0705F; --pos-soft:#57BD9418; --neg-soft:#E0705F18;
+      --chip:#242E29;
+    }
+  }
+  :root[data-theme="dark"]{
+    --bg:#131917; --surface:#1C2421; --ink:#E8EDEA; --muted:#93A09A; --faint:#6C7873;
+    --line:#2A342F; --accent:#7FB3CC; --accent-soft:#7FB3CC22;
+    --pos:#57BD94; --neg:#E0705F; --pos-soft:#57BD9418; --neg-soft:#E0705F18;
+    --chip:#242E29;
+  }
+  :root[data-theme="light"]{
+    --bg:#F5F7F6; --surface:#FFFFFF; --ink:#1B2420; --muted:#5A6660; --faint:#8A948E;
+    --line:#E2E7E4; --accent:#33627A; --accent-soft:#33627A22;
+    --pos:#1E7A5F; --neg:#B54234; --pos-soft:#1E7A5F14; --neg-soft:#B5423414;
+    --chip:#EDF1EF;
+  }
+  *{box-sizing:border-box}
+  body{background:var(--bg);color:var(--ink);
+    font:14px/1.45 "Segoe UI",system-ui,-apple-system,sans-serif;margin:0;padding:0 20px 60px}
+  .wrap{max-width:1180px;margin:0 auto}
+  .mono{font-family:Consolas,"SF Mono",ui-monospace,Menlo,monospace;font-variant-numeric:tabular-nums}
+  header{padding:26px 0 14px}
+  .eyebrow{font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);margin:0 0 6px}
+  h1{font-size:23px;margin:0 0 4px;text-wrap:balance}
+  .sub{color:var(--muted);margin:0;max-width:72ch}
+  .tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:10px;margin:18px 0 6px}
+  .tile{background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:12px 14px}
+  .tile .lab{font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
+  .tile .val{font-size:22px;font-weight:600;margin-top:2px}
+  .tile .det{font-size:12px;color:var(--muted);margin-top:2px}
+  .pos{color:var(--pos)} .neg{color:var(--neg)}
+  nav{display:flex;gap:4px;border-bottom:1px solid var(--line);margin:22px 0 0}
+  nav button{background:none;border:none;border-bottom:2px solid transparent;color:var(--muted);
+    font:inherit;font-weight:600;padding:9px 14px;cursor:pointer}
+  nav button:focus-visible{outline:2px solid var(--accent);outline-offset:-2px}
+  nav button.on{color:var(--ink);border-bottom-color:var(--accent)}
+  .view{display:none;padding-top:18px}
+  .view.on{display:block}
+  .panel{background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:16px;margin-bottom:16px}
+  .panel h2{font-size:13px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin:0 0 10px;font-weight:600}
+  .chart-box{position:relative}
+  .chart-box svg{display:block;width:100%;height:auto}
+  .tip{position:absolute;pointer-events:none;background:var(--surface);border:1px solid var(--line);
+    border-radius:5px;padding:7px 10px;font-size:12px;box-shadow:0 3px 10px rgba(0,0,0,.12);
+    display:none;min-width:150px;z-index:5}
+  .tip b{font-weight:600}
+  .filters{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:12px}
+  .filters input[type=text],.filters select,.filters input[type=number]{
+    background:var(--bg);border:1px solid var(--line);border-radius:5px;color:var(--ink);
+    font:inherit;padding:6px 9px}
+  .filters input[type=text]{width:190px}
+  .filters input[type=number]{width:90px}
+  .filters label{font-size:12px;color:var(--muted);display:flex;gap:6px;align-items:center}
+  .count{margin-left:auto;font-size:12px;color:var(--muted)}
+  .tbl-box{overflow-x:auto;border:1px solid var(--line);border-radius:6px}
+  table{border-collapse:collapse;width:100%;font-size:13px}
+  thead th{position:sticky;top:0;background:var(--surface);color:var(--muted);text-align:right;
+    font-size:11px;letter-spacing:.06em;text-transform:uppercase;font-weight:600;
+    padding:9px 10px;border-bottom:1px solid var(--line);cursor:pointer;white-space:nowrap;user-select:none}
+  thead th.l{text-align:left}
+  thead th .arr{color:var(--accent)}
+  tbody td{padding:7px 10px;border-bottom:1px solid var(--line);text-align:right;white-space:nowrap}
+  tbody td.l{text-align:left}
+  tbody tr:last-child td{border-bottom:none}
+  tbody tr:hover{background:var(--accent-soft)}
+  .chip{display:inline-block;padding:1px 8px;border-radius:10px;font-size:11px;font-weight:600;background:var(--chip)}
+  .chip.w{background:var(--pos-soft);color:var(--pos)}
+  .chip.lz{background:var(--neg-soft);color:var(--neg)}
+  .chip.conv{background:var(--accent-soft);color:var(--accent)}
+  .pager{display:flex;gap:8px;align-items:center;justify-content:flex-end;margin-top:10px;font-size:12px;color:var(--muted)}
+  .pager button{background:var(--surface);border:1px solid var(--line);border-radius:5px;color:var(--ink);
+    font:inherit;padding:5px 12px;cursor:pointer}
+  .pager button:disabled{opacity:.4;cursor:default}
+  .pager button:focus-visible,.filters :focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+  .mrow{display:grid;grid-template-columns:repeat(auto-fit,minmax(108px,1fr));gap:8px;margin-bottom:14px}
+  .mcell{background:var(--bg);border:1px solid var(--line);border-radius:5px;padding:8px 10px;font-size:12px}
+  .mcell .m{color:var(--muted);font-size:11px;letter-spacing:.06em;text-transform:uppercase}
+  .note{font-size:12px;color:var(--muted);margin:10px 2px 0;max-width:100ch}
+  .slider-row{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin:16px 0 4px;
+    background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:10px 14px}
+  .slider-row label{font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);font-weight:600}
+  .slider-row input[type=range]{width:180px;accent-color:var(--accent)}
+  .slider-row #centsVal{font-size:15px;font-weight:600;min-width:44px}
+  .slider-note{font-size:12px;color:var(--faint);max-width:60ch}
+  .seg{display:inline-flex;border:1px solid var(--line);border-radius:6px;overflow:hidden}
+  .seg button{background:var(--bg);border:none;color:var(--muted);font:inherit;font-size:13px;
+    font-weight:600;padding:6px 12px;cursor:pointer}
+  .seg button.on{background:var(--accent-soft);color:var(--accent)}
+  .seg button:focus-visible{outline:2px solid var(--accent);outline-offset:-2px}
+  @media (prefers-reduced-motion: reduce){ *{transition:none!important} }
+</style>
+<div class="wrap">
+<header>
+  <p class="eyebrow">pitcherKModel · research/v2 · generated 2026-07-11</p>
+  <h1>Pitcher Strikeout Model — Full Backtest &amp; 2026 Props</h1>
+  <p class="sub">Frozen system: mean of 5 calibrated count models · bet when model-vs-market edge &ge; 8pp at the T-4h opening consensus · best available open price · one bet per pitcher-game · flat stakes. 2025 is walk-forward out-of-sample (filters tuned on it); 2026 is fully out-of-sample walk-forward with monthly retrains + trailing recalibration.</p>
+  <div class="slider-row">
+    <label>Bet timing</label>
+    <div class="seg" id="snapSeg">
+      <button class="on" data-s="t4">T−4h open</button>
+      <button data-s="t12">T−12h morning</button>
+    </div>
+    <span class="slider-note" id="snapNote">edge, price and CLV measured at the snapshot 4h before first pitch</span>
+    <span style="flex-basis:100%"></span>
+    <label for="cents">Price improvement</label>
+    <input type="range" id="cents" min="0" max="20" step="1" value="0">
+    <span class="mono" id="centsVal">+0c</span>
+    <span class="slider-note">applies N cents better than the shown best open price (e.g. −135 → −120 at +15c) to every bet's P&amp;L, tiles, curves and ledgers</span>
+  </div>
+  <div class="tiles" id="tiles"></div>
+</header>
+
+<nav id="tabs" role="tablist">
+  <button data-v="vtd" role="tab">Today's Plays</button>
+  <button class="on" data-v="v25" role="tab">2025 Backtest</button>
+  <button data-v="v26" role="tab">2026 Walk-Forward</button>
+  <button data-v="vpr" role="tab">All 2026 Props</button>
+</nav>
+
+<section class="view" id="vtd">
+  <div class="panel"><h2 id="tdTitle">Today's plays</h2>
+    <div class="tbl-box"><table id="tdPlays"></table></div>
+    <p class="note">Stakes are shrunk half-Kelly (λ=0.25, 2% cap) off a $10,000 bankroll; "conservative" = λ=0.15. Prices move — re-check before placing. This tab is a snapshot generated by the morning pipeline; ask Claude to republish for a fresh one (the always-current version is reports\daily\v2_plays_latest.html on your machine).</p>
+  </div>
+  <div class="panel"><h2>Hits-allowed paper track — DO NOT BET (tracking only)</h2>
+    <div class="tbl-box"><table id="tdHits"></table></div>
+  </div>
+  <div class="panel"><h2>Full scored board</h2>
+    <div class="tbl-box"><table id="tdProps"></table></div>
+  </div>
+</section>
+
+<section class="view on" id="v25">
+  <div class="panel"><h2>Equity curve — cumulative units, flat 1u (follows the ledger filters)</h2>
+    <div class="chart-box" id="ch25"></div></div>
+  <div class="panel"><h2>Monthly</h2><div class="mrow" id="mo25"></div>
+    <h2>Bet ledger</h2>
+    <div class="filters" id="f25"></div>
+    <div class="tbl-box"><table id="t25"></table></div>
+    <div class="pager" id="p25"></div>
+    <p class="note">Executed at the best available price across books at the T-4h open snapshot. CLV = no-vig closing probability minus no-vig opening probability, in the bet direction (positive = the line moved toward the bet). Tier “conv” = conviction (edge &ge; 15pp).</p>
+  </div>
+</section>
+
+<section class="view" id="v26">
+  <div class="panel"><h2>Equity curve — cumulative units, flat 1u (follows the ledger filters)</h2>
+    <div class="chart-box" id="ch26"></div></div>
+  <div class="panel"><h2>Monthly</h2><div class="mrow" id="mo26"></div>
+    <h2>Bet ledger</h2>
+    <div class="filters" id="f26"></div>
+    <div class="tbl-box"><table id="t26"></table></div>
+    <div class="pager" id="p26"></div>
+    <p class="note">Every 2026 prediction is walk-forward: the model scoring a bet was trained and calibrated only on games settled before that date. Mar 26 – May 31 was the adaptation window; Jun 1 – Jul 10 was the one-shot final gate.</p>
+  </div>
+</section>
+
+<section class="view" id="vpr">
+  <div class="panel">
+    <h2>Every 2026 prop with model &amp; market view (4,144 pitcher-game-lines)</h2>
+    <div class="filters" id="fpr"></div>
+    <div class="tbl-box"><table id="tpr"></table></div>
+    <div class="pager" id="ppr"></div>
+    <p class="note">Signal = OVER when model P(over) exceeds the opening consensus by &ge; 8pp, UNDER when it falls short by &ge; 8pp, — otherwise. The bet ledger differs slightly: it keeps only the max-edge line per pitcher-game and requires a postable price on the chosen side.</p>
+  </div>
+</section>
+</div>
+
+<script id="data" type="application/json">/*__DATA__*/</script>
+<script>
+const D = JSON.parse(document.getElementById('data').textContent);
+const fmt = (x,d=2)=> (x>=0?'+':'')+x.toFixed(d);
+const odds = o => o>0? '+'+o : ''+o;
+const $ = s => document.querySelector(s);
+
+/* ---------- price improvement (cents through the ±100 boundary) ---------- */
+function improveOdds(o,c){
+  const v=(o<=-100? o+100 : o-100)+c;
+  return v<=0? v-100 : v+100;
+}
+function applyCents(c){
+  [D.bets2025,D.bets2026,D.bets2025_t12??[],D.bets2026_t12??[]].forEach(rows=>rows.forEach(r=>{
+    const o=improveOdds(r.odds,c);
+    const prof=o>=0? o/100 : 100/Math.abs(o);
+    r.pnl=r.won? prof : -1;
+    r.odds_eff=o;
+  }));
+}
+applyCents(0);
+let SNAP='t4';
+const ACTIVE=()=>({b25: SNAP==='t4'?D.bets2025:D.bets2025_t12,
+                   b26: SNAP==='t4'?D.bets2026:D.bets2026_t12,
+                   tag: SNAP==='t4'?'T−4h':'T−12h'});
+
+/* ---------- header tiles ---------- */
+function agg(b){
+  const n=b.length, u=b.reduce((s,r)=>s+r.pnl,0), w=b.filter(r=>r.won).length;
+  const clv=b.reduce((s,r)=>s+(r.clv??0),0)/n;
+  return {n,u,roi:u/n,wr:w/n,clv};
+}
+function renderTiles(){
+  const A=ACTIVE();
+  const a25=agg(A.b25), a26=agg(A.b26);
+  const conv26=agg(A.b26.filter(r=>r.tier==='conviction'));
+  $('#tiles').innerHTML = [
+   [`2025 ROI (${A.tag})`, fmt(a25.roi*100,1)+'%', a25.n+' bets · '+fmt(a25.u,1)+'u', a25.roi>=0],
+   [`2026 WF ROI (${A.tag})`, fmt(a26.roi*100,1)+'%', a26.n+' bets · '+fmt(a26.u,1)+'u', a26.roi>=0],
+   ['2026 conviction tier', fmt(conv26.roi*100,1)+'%', conv26.n+' bets (edge ≥ 15pp)', conv26.roi>=0],
+   ['2025 CLV', fmt(a25.clv*100,2)+'pp', (a25.wr*100).toFixed(1)+'% win rate', a25.clv>=0],
+   ['2026 CLV', fmt(a26.clv*100,2)+'pp', (a26.wr*100).toFixed(1)+'% win rate', a26.clv>=0],
+  ].map(([l,v,d,pos])=>`<div class="tile"><div class="lab">${l}</div>
+    <div class="val mono ${pos?'pos':'neg'}">${v}</div><div class="det">${d}</div></div>`).join('');
+}
+renderTiles();
+
+/* ---------- tabs ---------- */
+document.querySelectorAll('#tabs button').forEach(b=>b.addEventListener('click',()=>{
+  document.querySelectorAll('#tabs button').forEach(x=>x.classList.toggle('on',x===b));
+  document.querySelectorAll('.view').forEach(v=>v.classList.toggle('on',v.id===b.dataset.v));
+}));
+
+/* ---------- equity chart ---------- */
+function equityChart(box, bets){
+  if(!bets.length){ box.innerHTML='<p class="note">No bets match the current filters.</p>'; return; }
+  const byDate={};
+  bets.forEach(r=>{(byDate[r.date]??=({n:0,u:0})); byDate[r.date].n++; byDate[r.date].u+=r.pnl;});
+  const days=Object.keys(byDate).sort();
+  let cum=0; const pts=days.map(d=>({d, n:byDate[d].n, day:byDate[d].u, cum: (cum+=byDate[d].u)}));
+  const W=940,H=270,L=52,R=18,T=14,B=30;
+  const ys=pts.map(p=>p.cum); const ymin=Math.min(0,...ys), ymax=Math.max(0,...ys);
+  const X=i=> L+(W-L-R)*(pts.length===1?0.5:i/(pts.length-1));
+  const Y=v=> T+(H-T-B)*(1-(v-ymin)/((ymax-ymin)||1));
+  const ticks=5, ty=[...Array(ticks+1)].map((_,i)=>ymin+(ymax-ymin)*i/ticks);
+  let g='';
+  ty.forEach(v=>{g+=`<line x1="${L}" x2="${W-R}" y1="${Y(v)}" y2="${Y(v)}" stroke="var(--line)" stroke-width="1"/>
+    <text x="${L-8}" y="${Y(v)+4}" text-anchor="end" font-size="11" fill="var(--faint)" class="mono">${v.toFixed(0)}</text>`;});
+  // x labels: ~6 evenly spaced
+  const step=Math.max(1,Math.floor(pts.length/6));
+  for(let i=0;i<pts.length;i+=step){
+    g+=`<text x="${X(i)}" y="${H-8}" text-anchor="middle" font-size="11" fill="var(--faint)" class="mono">${pts[i].d.slice(5)}</text>`;}
+  const line=pts.map((p,i)=>`${i?'L':'M'}${X(i).toFixed(1)},${Y(p.cum).toFixed(1)}`).join('');
+  const area=line+`L${X(pts.length-1).toFixed(1)},${Y(0).toFixed(1)}L${X(0).toFixed(1)},${Y(0).toFixed(1)}Z`;
+  const last=pts[pts.length-1];
+  const svg=`<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Cumulative units over time">
+    ${g}
+    <line x1="${L}" x2="${W-R}" y1="${Y(0)}" y2="${Y(0)}" stroke="var(--faint)" stroke-width="1"/>
+    <path d="${area}" fill="var(--accent-soft)"/>
+    <path d="${line}" fill="none" stroke="var(--accent)" stroke-width="2"/>
+    <circle cx="${X(pts.length-1)}" cy="${Y(last.cum)}" r="4" fill="var(--accent)"/>
+    <text x="${X(pts.length-1)-6}" y="${Y(last.cum)-9}" text-anchor="end" font-size="12" font-weight="600"
+      fill="var(--ink)" class="mono">${fmt(last.cum,1)}u</text>
+    <line id="xh" y1="${T}" y2="${H-B}" stroke="var(--faint)" stroke-width="1" visibility="hidden"/>
+    <rect x="${L}" y="${T}" width="${W-L-R}" height="${H-T-B}" fill="transparent"/>
+  </svg><div class="tip"></div>`;
+  box.innerHTML=svg;
+  const svgEl=box.querySelector('svg'), tip=box.querySelector('.tip'), xh=box.querySelector('#xh');
+  svgEl.addEventListener('mousemove',e=>{
+    const r=svgEl.getBoundingClientRect(), sx=(e.clientX-r.left)*W/r.width;
+    let i=Math.round((sx-L)/((W-L-R)/(pts.length-1||1))); i=Math.max(0,Math.min(pts.length-1,i));
+    const p=pts[i];
+    xh.setAttribute('x1',X(i)); xh.setAttribute('x2',X(i)); xh.setAttribute('visibility','visible');
+    tip.style.display='block';
+    const bx=box.getBoundingClientRect();
+    let px=(X(i)/W)*bx.width+12; if(px>bx.width-170) px-=190;
+    tip.style.left=px+'px'; tip.style.top=(Y(p.cum)/H*bx.height-10)+'px';
+    tip.innerHTML=`<b class="mono">${p.d}</b><br>bets: <span class="mono">${p.n}</span><br>
+      day: <span class="mono ${p.day>=0?'pos':'neg'}">${fmt(p.day,2)}u</span><br>
+      total: <span class="mono ${p.cum>=0?'pos':'neg'}">${fmt(p.cum,2)}u</span>`;
+  });
+  svgEl.addEventListener('mouseleave',()=>{tip.style.display='none';xh.setAttribute('visibility','hidden');});
+}
+equityChart($('#ch25'), D.bets2025);
+equityChart($('#ch26'), D.bets2026);
+
+/* ---------- monthly cells ---------- */
+function monthly(el,bets){
+  const m={};
+  bets.forEach(r=>{const k=r.date.slice(0,7);(m[k]??=[]).push(r);});
+  el.innerHTML=Object.keys(m).sort().map(k=>{
+    const a=agg(m[k]);
+    return `<div class="mcell"><div class="m">${k}</div>
+      <div class="mono ${a.roi>=0?'pos':'neg'}" style="font-size:15px;font-weight:600">${fmt(a.roi*100,1)}%</div>
+      <div class="mono" style="color:var(--muted)">${a.n} bets · ${fmt(a.u,1)}u</div></div>`;
+  }).join('');
+}
+monthly($('#mo25'),D.bets2025);
+monthly($('#mo26'),D.bets2026);
+
+/* ---------- generic table engine ---------- */
+function makeTable({rows, tbl, pager, filtersEl, cols, filters, defaultSort, onFilter}){
+  let state={q:'',page:0,sort:defaultSort,dir:defaultSort==='date'?1:-1,f:{}};
+  let lastSig='';
+  const PAGE=100;
+  filtersEl.innerHTML = filters.map(f=>{
+    if(f.type==='text') return `<input type="text" placeholder="${f.label}" data-k="${f.k}">`;
+    if(f.type==='select') return `<label>${f.label}<select data-k="${f.k}">
+      <option value="">all</option>${f.opts.map(o=>`<option>${o}</option>`).join('')}</select></label>`;
+    if(f.type==='num') return `<label>${f.label}<input type="number" step="0.01" data-k="${f.k}" placeholder="${f.ph??''}"></label>`;
+  }).join('')+`<span class="count"></span>`;
+  const countEl=filtersEl.querySelector('.count');
+  filtersEl.querySelectorAll('input,select').forEach(el=>el.addEventListener('input',()=>{
+    state.f[el.dataset.k]=el.value; state.page=0; render();
+  }));
+  function filtered(){
+    return rows.filter(r=>{
+      for(const f of filters){
+        const v=state.f[f.k]; if(!v) continue;
+        if(f.type==='text' && !String(r[f.k]).toLowerCase().includes(v.toLowerCase())) return false;
+        if(f.type==='select' && String(r[f.k])!==v) return false;
+        if(f.type==='num' && !(Math.abs(r[f.k])>=parseFloat(v))) return false;
+      }
+      return true;
+    });
+  }
+  function render(){
+    const flt=filtered();
+    const sig=JSON.stringify(state.f);
+    if(onFilter && sig!==lastSig){ lastSig=sig; onFilter(flt); }
+    const data=flt.slice().sort((a,b)=>{
+      const x=a[state.sort],y=b[state.sort];
+      return (x>y?1:x<y?-1:0)*state.dir;
+    });
+    const pg=data.slice(state.page*PAGE,(state.page+1)*PAGE);
+    tbl.innerHTML=`<thead><tr>${cols.map(c=>
+      `<th class="${c.l?'l':''}" data-k="${c.k}">${c.h}${state.sort===c.k?`<span class="arr"> ${state.dir>0?'▲':'▼'}</span>`:''}</th>`).join('')}</tr></thead>
+      <tbody>${pg.map(r=>`<tr>${cols.map(c=>`<td class="${c.l?'l':''} ${c.mono?'mono':''}">${c.fn(r)}</td>`).join('')}</tr>`).join('')}</tbody>`;
+    tbl.querySelectorAll('th').forEach(th=>th.addEventListener('click',()=>{
+      const k=th.dataset.k;
+      if(state.sort===k) state.dir*=-1; else {state.sort=k;state.dir=-1;}
+      render();
+    }));
+    const pages=Math.max(1,Math.ceil(data.length/PAGE));
+    countEl.textContent=`${data.length.toLocaleString()} rows`;
+    pager.innerHTML=`<span>page ${state.page+1} / ${pages}</span>
+      <button ${state.page===0?'disabled':''} data-a="p">‹ prev</button>
+      <button ${state.page>=pages-1?'disabled':''} data-a="n">next ›</button>`;
+    pager.querySelectorAll('button').forEach(b=>b.addEventListener('click',()=>{
+      state.page+=b.dataset.a==='n'?1:-1; render();
+      tbl.closest('.tbl-box').scrollIntoView({block:'nearest'});
+    }));
+  }
+  render();
+  return {refresh(){ lastSig=''; render(); }};
+}
+
+/* ---------- bet ledgers ---------- */
+const chipWL = r=> r.won?'<span class="chip w">WIN</span>':'<span class="chip lz">LOSS</span>';
+const betCols=[
+  {k:'date',h:'Date',l:1,mono:1,fn:r=>r.date},
+  {k:'pitcher',h:'Pitcher',l:1,fn:r=>r.pitcher},
+  {k:'line',h:'Line',mono:1,fn:r=>r.line.toFixed(1)},
+  {k:'side',h:'Side',l:1,fn:r=>r.side.toUpperCase()},
+  {k:'odds',h:'Odds',mono:1,fn:r=>r.odds_eff!==r.odds?
+    `<span style="color:var(--faint)">${odds(r.odds)}</span> ${odds(r.odds_eff)}`:odds(r.odds)},
+  {k:'book',h:'Book',l:1,fn:r=>r.book},
+  {k:'p_model',h:'Model P',mono:1,fn:r=>r.p_model.toFixed(3)},
+  {k:'p_mkt',h:'Mkt P',mono:1,fn:r=>r.p_mkt.toFixed(3)},
+  {k:'edge',h:'Edge',mono:1,fn:r=>fmt(r.edge*100,1)+'pp'},
+  {k:'tier',h:'Tier',l:1,fn:r=>r.tier==='conviction'?'<span class="chip conv">CONV</span>':'<span class="chip">base</span>'},
+  {k:'ks',h:'Ks',mono:1,fn:r=>r.ks},
+  {k:'won',h:'Result',l:1,fn:chipWL},
+  {k:'pnl',h:'P&L',mono:1,fn:r=>`<span class="${r.pnl>=0?'pos':'neg'}">${fmt(r.pnl,2)}u</span>`},
+  {k:'clv',h:'CLV',mono:1,fn:r=>r.clv==null?'—':`<span class="${r.clv>=0?'pos':'neg'}">${fmt(r.clv*100,2)}</span>`},
+];
+const betFilters=[
+  {type:'text',k:'pitcher',label:'search pitcher…'},
+  {type:'select',k:'side',label:'side',opts:['over','under']},
+  {type:'select',k:'tier',label:'tier',opts:['base','conviction']},
+  {type:'num',k:'edge',label:'min edge',ph:'0.08'},
+];
+let api25, api26;
+function buildTables(){
+  const A=ACTIVE();
+  api25=makeTable({rows:A.b25,tbl:$('#t25'),pager:$('#p25'),filtersEl:$('#f25'),
+    cols:betCols,filters:betFilters,defaultSort:'date',
+    onFilter:rows=>{equityChart($('#ch25'),rows);monthly($('#mo25'),rows);}});
+  api26=makeTable({rows:A.b26,tbl:$('#t26'),pager:$('#p26'),filtersEl:$('#f26'),
+    cols:betCols,filters:betFilters,defaultSort:'date',
+    onFilter:rows=>{equityChart($('#ch26'),rows);monthly($('#mo26'),rows);}});
+}
+buildTables();
+
+/* ---------- snapshot toggle ---------- */
+document.querySelectorAll('#snapSeg button').forEach(b=>b.addEventListener('click',()=>{
+  if(b.dataset.s===SNAP) return;
+  SNAP=b.dataset.s;
+  document.querySelectorAll('#snapSeg button').forEach(x=>x.classList.toggle('on',x.dataset.s===SNAP));
+  $('#snapNote').textContent = SNAP==='t4'
+    ? 'edge, price and CLV measured at the snapshot 4h before first pitch'
+    : 'edge, price and CLV measured at the T−12h morning board (T−6h fallback for ~3% of games)';
+  renderTiles();
+  buildTables();
+}));
+
+/* ---------- Today's Plays tab ---------- */
+if (D.today){
+  const T=D.today;
+  $('#tdTitle').textContent = `Today's plays — ${T.date} (generated ${T.generated})`;
+  function simpleTable(el, rows, order){
+    if(!rows || !rows.length){ el.innerHTML='<tbody><tr><td class="l">Nothing today.</td></tr></tbody>'; return; }
+    const cols = order.filter(c=>c in rows[0]);
+    el.innerHTML = '<thead><tr>'+cols.map(c=>`<th class="${typeof rows[0][c]==='string'?'l':''}">${c.replace(/_/g,' ')}</th>`).join('')+'</tr></thead>'
+      +'<tbody>'+rows.map(r=>'<tr>'+cols.map(c=>{
+        let v=r[c]; if(v==null) v='—';
+        const num = typeof v==='number';
+        if(num && (c.startsWith('edge')||c.startsWith('p_'))) v=v.toFixed(3);
+        return `<td class="${num?'mono':'l'}">${v}</td>`;
+      }).join('')+'</tr>').join('')+'</tbody>';
+  }
+  simpleTable($('#tdPlays'), T.plays,
+    ['pitcher','line','signal','tier','price','book','proj_ks','edge_over','n_books','stake_pct','stake_usd','stake_usd_conservative']);
+  simpleTable($('#tdHits'), T.hits_paper,
+    ['pitcher','proj_hits','line','signal','price','p_model_under','p_mkt_under','edge','n_books','tier','stake_usd']);
+  simpleTable($('#tdProps'), T.props,
+    ['pitcher','line','proj_ks','p_model_over','p_mkt_over','edge_over','n_books','signal','tier']);
+}
+
+/* ---------- slider wiring ---------- */
+$('#cents').addEventListener('input',e=>{
+  const c=parseInt(e.target.value,10);
+  $('#centsVal').textContent='+'+c+'c';
+  applyCents(c);
+  renderTiles();
+  api25.refresh();
+  api26.refresh();
+});
+
+/* ---------- props table ---------- */
+D.props2026.forEach(r=>{
+  r.signal = r.edge_over>=0.08?'OVER': r.edge_over<=-0.08?'UNDER':'—';
+});
+const prCols=[
+  {k:'date',h:'Date',l:1,mono:1,fn:r=>r.date},
+  {k:'pitcher',h:'Pitcher',l:1,fn:r=>r.pitcher},
+  {k:'line',h:'Line',mono:1,fn:r=>r.line.toFixed(1)},
+  {k:'over_odds',h:'Over',mono:1,fn:r=>r.over_odds==null?'—':odds(r.over_odds)},
+  {k:'under_odds',h:'Under',mono:1,fn:r=>r.under_odds==null?'—':odds(r.under_odds)},
+  {k:'p_model_over',h:'Model P(over)',mono:1,fn:r=>r.p_model_over.toFixed(3)},
+  {k:'p_mkt_over',h:'Mkt P(over)',mono:1,fn:r=>r.p_mkt_over.toFixed(3)},
+  {k:'edge_over',h:'Edge (over)',mono:1,fn:r=>`<span class="${r.edge_over>=0?'pos':'neg'}">${fmt(r.edge_over*100,1)}pp</span>`},
+  {k:'signal',h:'Signal',l:1,fn:r=>r.signal==='—'?'<span style="color:var(--faint)">—</span>':`<span class="chip conv">${r.signal}</span>`},
+  {k:'books',h:'Books',mono:1,fn:r=>r.books},
+  {k:'ks',h:'Ks',mono:1,fn:r=>r.ks},
+  {k:'result',h:'Result',l:1,fn:r=>r.result.toUpperCase()},
+  {k:'clv_over',h:'CLV(over)',mono:1,fn:r=>r.clv_over==null?'—':fmt(r.clv_over*100,2)},
+];
+makeTable({rows:D.props2026,tbl:$('#tpr'),pager:$('#ppr'),filtersEl:$('#fpr'),
+  cols:prCols,filters:[
+    {type:'text',k:'pitcher',label:'search pitcher…'},
+    {type:'text',k:'date',label:'date (YYYY-MM…)'},
+    {type:'select',k:'signal',label:'signal',opts:['OVER','UNDER','—']},
+    {type:'num',k:'edge_over',label:'min |edge|',ph:'0.08'},
+  ],defaultSort:'date'});
+</script>
