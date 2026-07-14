@@ -94,6 +94,15 @@
   .slider-row input[type=range]{width:180px;accent-color:var(--accent)}
   .slider-row #centsVal{font-size:15px;font-weight:600;min-width:44px}
   .slider-note{font-size:12px;color:var(--faint);max-width:60ch}
+  .qbtn{background:none;border:none;color:var(--accent);font-size:14px;cursor:pointer;padding:0 4px}
+  .qbtn:focus-visible{outline:2px solid var(--accent)}
+  tr.prow{cursor:pointer}
+  .qual{text-align:left;white-space:normal;max-width:100ch;padding:10px 6px;line-height:1.55}
+  .qual h4{margin:10px 0 4px;font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+  .qual ul{margin:4px 0 8px 18px;padding:0}
+  .qual li{margin:3px 0}
+  .qual .verdict{font-weight:600;color:var(--accent)}
+  tr.qrow>td{background:var(--bg)}
   .seg{display:inline-flex;border:1px solid var(--line);border-radius:6px;overflow:hidden}
   .seg button{background:var(--bg);border:none;color:var(--muted);font:inherit;font-size:13px;
     font-weight:600;padding:6px 12px;cursor:pointer}
@@ -407,19 +416,39 @@ document.querySelectorAll('#snapSeg button').forEach(b=>b.addEventListener('clic
 if (D.today){
   const T=D.today;
   $('#tdTitle').textContent = `Today's plays — ${T.date} (generated ${T.generated})`;
-  function simpleTable(el, rows, order){
+  function simpleTable(el, rows, order, expandKey){
     if(!rows || !rows.length){ el.innerHTML='<tbody><tr><td class="l">Nothing today.</td></tr></tbody>'; return; }
     const cols = order.filter(c=>c in rows[0]);
-    el.innerHTML = '<thead><tr>'+cols.map(c=>`<th class="${typeof rows[0][c]==='string'?'l':''}">${c.replace(/_/g,' ')}</th>`).join('')+'</tr></thead>'
-      +'<tbody>'+rows.map(r=>'<tr>'+cols.map(c=>{
+    let head='<thead><tr>'+(expandKey?'<th></th>':'')+cols.map(c=>`<th class="${typeof rows[0][c]==='string'?'l':''}">${c.replace(/_/g,' ')}</th>`).join('')+'</tr></thead>';
+    let body='<tbody>'+rows.map((r,i)=>{
+      const tds = cols.map(c=>{
         let v=r[c]; if(v==null) v='—';
         const num = typeof v==='number';
         if(num && (c.startsWith('edge')||c.startsWith('p_'))) v=v.toFixed(3);
         return `<td class="${num?'mono':'l'}">${v}</td>`;
-      }).join('')+'</tr>').join('')+'</tbody>';
+      }).join('');
+      if(!expandKey) return `<tr>${tds}</tr>`;
+      const has = !!r[expandKey];
+      const caret = `<td class="l"><button class="qbtn" data-i="${i}" aria-expanded="false" title="${has?'show qualitative analysis':'no analysis yet'}">${has?'▸':'·'}</button></td>`;
+      const detail = `<tr class="qrow" id="q${i}" hidden><td colspan="${cols.length+1}"><div class="qual">${
+        has? r[expandKey] : '<em>No qualitative analysis generated for this play yet.</em>'}</div></td></tr>`;
+      return `<tr class="prow" data-i="${i}">${caret}${tds}</tr>${detail}`;
+    }).join('')+'</tbody>';
+    el.innerHTML = head+body;
+    if(expandKey){
+      el.querySelectorAll('.prow, .qbtn').forEach(x=>x.addEventListener('click',e=>{
+        e.stopPropagation();
+        const i = x.dataset.i;
+        const row = el.querySelector('#q'+i);
+        const btn = el.querySelector(`.qbtn[data-i="${i}"]`);
+        row.hidden = !row.hidden;
+        btn.textContent = row.hidden ? (btn.textContent==='·'?'·':'▸') : '▾';
+        btn.setAttribute('aria-expanded', String(!row.hidden));
+      }));
+    }
   }
   simpleTable($('#tdPlays'), T.plays,
-    ['pitcher','line','signal','tier','price','book','proj_ks','edge_over','n_books','stake_pct','stake_usd','stake_usd_conservative']);
+    ['pitcher','line','signal','tier','price','book','proj_ks','edge_over','n_books','stake_pct','stake_usd','stake_usd_conservative'],'qual');
   simpleTable($('#tdHits'), T.hits_paper,
     ['pitcher','proj_hits','line','signal','price','p_model_under','p_mkt_under','edge','n_books','tier','stake_usd']);
   simpleTable($('#tdProps'), T.props,

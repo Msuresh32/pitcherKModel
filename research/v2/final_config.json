@@ -1,0 +1,12 @@
+{
+  "model_col": "p_mean_count",
+  "min_edge": 0.08,
+  "min_ev": 0.0,
+  "sides": "both",
+  "min_books": 1,
+  "lines": [3.5, 9.5],
+  "stake": "flat_1u",
+  "frozen_at": "2026-07-11",
+  "frozen_from": "2025-only screen + grid + robustness (research/v2/30,60,61)",
+  "notes": "p_mean_count = mean of isotonic-calibrated count models (poisson_glm, xgb_poisson, lgb_poisson, hgb_poisson, cat_poisson) trained on 2022-2024. Edge vs consensus no-vig OPEN price; execute at best available OPEN price. No month/line/odds filters. Calibrators fit on 2023/2024 walk-forward OOS preds only."
+}

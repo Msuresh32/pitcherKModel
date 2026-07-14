@@ -1,0 +1,37 @@
+{
+  "system": "H0-adaptive-paper",
+  "probability_head": "H0",
+  "deployment_status": "NOT_DEPLOYABLE_REAL_MONEY__PAPER_TRACK_ONLY",
+  "selected": "2026-07-14 post-holdout research selection; H0 was pre-declared before the original gate but requires new post-Jul-10 confirmation",
+  "model": "mean of 5 isotonic-calibrated count models (poisson_glm, xgb_poisson, lgb_poisson, hgb_poisson, cat_poisson), NB-tail P(over)",
+  "retraining": "expanding window, retrain on the 1st of each month in-season (all settled games before that date)",
+  "recalibration": "fixed pre-2026 isotonic calibration; trailing-90-day Platt disabled because it reduced completed 2026 walk-forward ROI and volume",
+  "filter": {
+    "min_edge": 0.08,
+    "edge_reference": "consensus no-vig P(over) across all books at T-4h open snapshot",
+    "sides": "both",
+    "lines": [3.5, 9.5],
+    "half_lines_only": true,
+    "one_bet_per_pitcher_game": "line with max |edge|",
+    "execution": "paper-track the best available price at the T-12h morning board (H0 2026 WF through Jul 10: ROI +3.60% on 629 bets / CLV +0.33pp; H0 T-4h: +2.61% on 694 / CLV +0.25pp).",
+    "stake": "PAPER ONLY ($0). Prior Kelly simulations are superseded because the completed forward gate failed."
+  },
+  "expected": {
+    "volume_per_season": "~1000-1400 bets total; ~350-450 in the conviction tier",
+    "roi_estimate_base": "research estimate only: H0 T-4h +2.61% on 694 bets (90% CI -4.0% to +9.0%); H0 T-12h +3.60% on 629 (CI -2.6% to +9.6%)",
+    "roi_estimate_conviction": "not established; higher thresholds increase uncertainty and did not remain positive in both chronological windows",
+    "clv_estimate": "+0.25pp T-4h; +0.33pp T-12h in 2026",
+    "note": "No live staking until a newly protected post-Jul-10 forward period produces positive, monotone CLV and a positive ROI confidence bound."
+  },
+  "kill_switches": {
+    "clv": "rolling 200-bet mean CLV < +0.3pp -> pause and retrain/review",
+    "roi": "roi < -5% over any 300 consecutive bets -> stop",
+    "bias": "|mean(projected mu - actual K)| > 0.25 over 100 starts -> immediate retrain",
+    "structure": "edge->CLV quintile slope non-positive over trailing 1000 rows -> pause"
+  },
+  "provenance": {
+    "2025_validation": "+13.5% ROI n=1352, CLV +0.80pp (filters tuned on 2025)",
+    "2026_walk_forward": "H0 +2.61% ROI n=694, CLV +0.25pp through Jul 10; positive Mar-May (+3.34%) and Jun-Jul10 (+0.60%)",
+    "selection_warning": "H0 was chosen after completed 2026 results were inspected. Keep $0 stakes until a new post-Jul-10 forward window confirms it."
+  }
+}
