@@ -153,6 +153,7 @@
     <div class="tiles" id="hTiles" style="margin:0 0 14px"></div>
     <div class="chart-box" id="chh"></div>
     <div class="mrow" id="moh" style="margin-top:14px"></div>
+    <h2 style="margin-top:16px">CLV — closing line value</h2><div id="clvh"></div>
     <p class="note"><b>Watch zone (edge &gt; 10pp):</b> in the 2026 walk-forward, the model's LARGEST disagreements with the market were its worst bets (10–15pp: −9.9% ROI; &gt;15pp: −18.9%) despite having the best closing-line value — when this model screams, it is usually mis-modeling a hits tail, not out-reading the book. Watch-zone bets stay in the ledger (cutting them is a 2026-derived rule that must first survive the live paper track) but deserve extra skepticism. The trustworthy pocket is the 4–8pp band (+1.4% to +2.5% in 2026 at quoted juice; +7.4% at fair pricing).</p>
     <h2>Ledger</h2>
     <div class="filters" id="fh"></div>
@@ -177,6 +178,7 @@
 <section class="view on" id="v25">
   <div class="panel"><h2>Equity curve — cumulative units, flat 1u (follows the ledger filters)</h2>
     <div class="chart-box" id="ch25"></div></div>
+  <div class="panel"><h2>CLV — closing line value</h2><div id="clv25"></div></div>
   <div class="panel"><h2>Monthly</h2><div class="mrow" id="mo25"></div>
     <h2>Bet ledger</h2>
     <div class="filters" id="f25"></div>
@@ -189,6 +191,7 @@
 <section class="view" id="v26">
   <div class="panel"><h2>Equity curve — cumulative units, flat 1u (follows the ledger filters)</h2>
     <div class="chart-box" id="ch26"></div></div>
+  <div class="panel"><h2>CLV — closing line value</h2><div id="clv26"></div></div>
   <div class="panel"><h2>Monthly</h2><div class="mrow" id="mo26"></div>
     <h2>Bet ledger</h2>
     <div class="filters" id="f26"></div>
@@ -417,12 +420,49 @@ function buildTables(){
   const A=ACTIVE();
   api25=makeTable({rows:A.b25,tbl:$('#t25'),pager:$('#p25'),filtersEl:$('#f25'),
     cols:betCols,filters:betFilters,defaultSort:'date',
-    onFilter:rows=>{equityChart($('#ch25'),rows);monthly($('#mo25'),rows);}});
+    onFilter:rows=>{equityChart($('#ch25'),rows);monthly($('#mo25'),rows);renderCLV($('#clv25'),rows);}});
   api26=makeTable({rows:A.b26,tbl:$('#t26'),pager:$('#p26'),filtersEl:$('#f26'),
     cols:betCols,filters:betFilters,defaultSort:'date',
-    onFilter:rows=>{equityChart($('#ch26'),rows);monthly($('#mo26'),rows);}});
+    onFilter:rows=>{equityChart($('#ch26'),rows);monthly($('#mo26'),rows);renderCLV($('#clv26'),rows);}});
 }
 buildTables();
+
+/* ---------- CLV stats panel ---------- */
+function renderCLV(el, rows){
+  const r = rows.filter(x=>x.clv!=null);
+  if(!r.length){ el.innerHTML='<p class="note">No CLV data for this selection.</p>'; return; }
+  const mean = r.reduce((s,x)=>s+x.clv,0)/r.length;
+  const pos = r.filter(x=>x.clv>0).length/r.length;
+  const wins = r.filter(x=>x.won), losses = r.filter(x=>!x.won);
+  const mW = wins.length? wins.reduce((s,x)=>s+x.clv,0)/wins.length : NaN;
+  const mL = losses.length? losses.reduce((s,x)=>s+x.clv,0)/losses.length : NaN;
+  // edge terciles -> CLV structure (the deploy signal: should rise with edge)
+  const sorted=[...r].sort((a,b)=>a.edge-b.edge);
+  const t=Math.floor(sorted.length/3);
+  const buckets=[sorted.slice(0,t),sorted.slice(t,2*t),sorted.slice(2*t)];
+  const brow = buckets.map((b,i)=>{
+    if(!b.length) return '';
+    const m=b.reduce((s,x)=>s+x.clv,0)/b.length;
+    const p=b.filter(x=>x.clv>0).length/b.length;
+    const lo=(b[0].edge*100).toFixed(1), hi=(b[b.length-1].edge*100).toFixed(1);
+    return `<tr><td class="l">edge ${lo}–${hi}pp</td><td class="mono">${b.length}</td>
+      <td class="mono ${m>=0?'pos':'neg'}">${fmt(m*100,2)}pp</td>
+      <td class="mono">${(p*100).toFixed(0)}%</td></tr>`;
+  }).join('');
+  const slope = buckets.length===3 && buckets[2].length && buckets[0].length ?
+    (buckets[2].reduce((s,x)=>s+x.clv,0)/buckets[2].length -
+     buckets[0].reduce((s,x)=>s+x.clv,0)/buckets[0].length) : NaN;
+  el.innerHTML = `<div class="tiles" style="margin:0 0 10px">
+    <div class="tile"><div class="lab">Mean CLV</div><div class="val mono ${mean>=0?'pos':'neg'}">${fmt(mean*100,2)}pp</div><div class="det">n=${r.length} with close</div></div>
+    <div class="tile"><div class="lab">Beat the close</div><div class="val mono ${pos>=0.5?'pos':'neg'}">${(pos*100).toFixed(1)}%</div><div class="det">share of bets with CLV &gt; 0</div></div>
+    <div class="tile"><div class="lab">CLV on wins</div><div class="val mono ${mW>=0?'pos':'neg'}">${isNaN(mW)?'—':fmt(mW*100,2)+'pp'}</div><div class="det">n=${wins.length}</div></div>
+    <div class="tile"><div class="lab">CLV on losses</div><div class="val mono ${mL>=0?'pos':'neg'}">${isNaN(mL)?'—':fmt(mL*100,2)+'pp'}</div><div class="det">n=${losses.length}</div></div>
+    <div class="tile"><div class="lab">Edge→CLV slope</div><div class="val mono ${slope>=0?'pos':'neg'}">${isNaN(slope)?'—':fmt(slope*100,2)+'pp'}</div><div class="det">top vs bottom edge tercile — positive = real signal</div></div>
+  </div>
+  <div class="tbl-box" style="max-width:560px"><table>
+    <thead><tr><th class="l">Edge tercile</th><th>n</th><th>mean CLV</th><th>CLV+ %</th></tr></thead>
+    <tbody>${brow}</tbody></table></div>`;
+}
 
 /* ---------- Hits Model tab ---------- */
 let SNAPH='h26', apiH=null;
@@ -466,7 +506,7 @@ function buildHits(){
     filters:[{type:'text',k:'pitcher',label:'search pitcher…'},
              {type:'select',k:'tier',label:'tier',opts:['base','watch']},
              {type:'num',k:'edge',label:'min edge',ph:'0.04'}],
-    onFilter:r=>{equityChart($('#chh'),r);monthly($('#moh'),r);}});
+    onFilter:r=>{equityChart($('#chh'),r);monthly($('#moh'),r);renderCLV($('#clvh'),r);}});
 }
 if(D.hits2026) buildHits();
 document.querySelectorAll('#hSeg button').forEach(b=>b.addEventListener('click',()=>{
