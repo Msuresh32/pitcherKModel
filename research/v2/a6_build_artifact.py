@@ -62,12 +62,12 @@ def main():
     qual_f = DAILY / f"v2_qual_analysis_{day}.json"
     if qual_f.exists():
         qual = json.loads(qual_f.read_text(encoding="utf-8")).get("plays", [])
-        qmap = {(q.get("pitcher"), float(q.get("line", 0))): q.get("html", "")
-                for q in qual}
+        qmap = {(q.get("pitcher"), float(q.get("line", 0))): q for q in qual}
         for p in plays:
             key = (p.get("pitcher"), float(p.get("line") or 0))
             if key in qmap:
-                p["qual"] = qmap[key]
+                p["qual"] = qmap[key].get("html", "")
+                p["qual_flag"] = qmap[key].get("qual_flag")
         print(f"qual analyses attached: "
               f"{sum(1 for p in plays if p.get('qual'))}/{len(plays)}")
 

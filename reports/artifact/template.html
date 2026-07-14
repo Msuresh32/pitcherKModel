@@ -423,6 +423,11 @@ if (D.today){
     let body='<tbody>'+rows.map((r,i)=>{
       const tds = cols.map(c=>{
         let v=r[c]; if(v==null) v='—';
+        if(c==='qual_flag'){
+          if(v==='SUPPORT') return '<td class="l"><span class="chip w">QUAL ✓</span></td>';
+          if(v==='NO-SUPPORT') return '<td class="l"><span class="chip">QUAL —</span></td>';
+          return '<td class="l"><span style="color:var(--faint)">—</span></td>';
+        }
         const num = typeof v==='number';
         if(num && (c.startsWith('edge')||c.startsWith('p_'))) v=v.toFixed(3);
         return `<td class="${num?'mono':'l'}">${v}</td>`;
@@ -447,8 +452,9 @@ if (D.today){
       }));
     }
   }
+  T.plays.forEach(r=>{ if(!('qual_flag' in r)) r.qual_flag=null; });
   simpleTable($('#tdPlays'), T.plays,
-    ['pitcher','line','signal','tier','price','book','proj_ks','edge_over','n_books','stake_pct','stake_usd','stake_usd_conservative'],'qual');
+    ['pitcher','line','signal','tier','qual_flag','price','book','proj_ks','edge_over','n_books','stake_pct','stake_usd','stake_usd_conservative'],'qual');
   simpleTable($('#tdHits'), T.hits_paper,
     ['pitcher','proj_hits','line','signal','price','p_model_under','p_mkt_under','edge','n_books','tier','stake_usd']);
   simpleTable($('#tdProps'), T.props,
