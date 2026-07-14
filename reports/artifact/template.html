@@ -452,13 +452,26 @@ function renderCLV(el, rows){
   const slope = buckets.length===3 && buckets[2].length && buckets[0].length ?
     (buckets[2].reduce((s,x)=>s+x.clv,0)/buckets[2].length -
      buckets[0].reduce((s,x)=>s+x.clv,0)/buckets[0].length) : NaN;
+  // price-based CLV: executed price (incl. slider fills) vs fair CLOSE price, in cents
+  const centsOf = o => o<=-100 ? o+100 : o-100;
+  const toAm = dec => dec>=2 ? 100*(dec-1) : -100/(dec-1);
+  const pv = r.filter(x=>x.p_mkt!=null && (x.p_mkt+x.clv)>0.02 && (x.p_mkt+x.clv)<0.98 && x.odds_eff!=null);
+  let priceClv = NaN;
+  if(pv.length){
+    priceClv = pv.reduce((s,x)=>{
+      const closeAm = toAm(1/(x.p_mkt + x.clv));
+      return s + (centsOf(x.odds_eff) - centsOf(closeAm));
+    },0)/pv.length;
+  }
   el.innerHTML = `<div class="tiles" style="margin:0 0 10px">
     <div class="tile"><div class="lab">Mean CLV</div><div class="val mono ${mean>=0?'pos':'neg'}">${fmt(mean*100,2)}pp</div><div class="det">n=${r.length} with close</div></div>
     <div class="tile"><div class="lab">Beat the close</div><div class="val mono ${pos>=0.5?'pos':'neg'}">${(pos*100).toFixed(1)}%</div><div class="det">share of bets with CLV &gt; 0</div></div>
     <div class="tile"><div class="lab">CLV on wins</div><div class="val mono ${mW>=0?'pos':'neg'}">${isNaN(mW)?'—':fmt(mW*100,2)+'pp'}</div><div class="det">n=${wins.length}</div></div>
     <div class="tile"><div class="lab">CLV on losses</div><div class="val mono ${mL>=0?'pos':'neg'}">${isNaN(mL)?'—':fmt(mL*100,2)+'pp'}</div><div class="det">n=${losses.length}</div></div>
     <div class="tile"><div class="lab">Edge→CLV slope</div><div class="val mono ${slope>=0?'pos':'neg'}">${isNaN(slope)?'—':fmt(slope*100,2)+'pp'}</div><div class="det">top vs bottom edge tercile — positive = real signal</div></div>
+    <div class="tile"><div class="lab">Price vs fair close</div><div class="val mono ${priceClv>=0?'pos':'neg'}">${isNaN(priceClv)?'—':fmt(priceClv,1)+'c'}</div><div class="det">your executed price (incl. slider) vs fair closing price — responds to the slider</div></div>
   </div>
+  <p class="note" style="margin-bottom:10px">Probability CLV (the first four tiles and the table) is deliberately fill-independent: it measures what the market did, not what you paid — it's the model's deploy/kill signal. Only "Price vs fair close" responds to the fill slider.</p>
   <div class="tbl-box" style="max-width:560px"><table>
     <thead><tr><th class="l">Edge tercile</th><th>n</th><th>mean CLV</th><th>CLV+ %</th></tr></thead>
     <tbody>${brow}</tbody></table></div>`;
