@@ -150,8 +150,10 @@
       </div>
       <span class="slider-note">the price-improvement slider above applies here too — it stacks your exchange fill improvement on top of fair no-vig pricing. Tier "watch" = edge &gt; 10pp (anti-signal zone in 2026 — biggest model edges performed worst).</span>
     </div>
+    <div class="tiles" id="hTiles" style="margin:0 0 14px"></div>
     <div class="chart-box" id="chh"></div>
     <div class="mrow" id="moh" style="margin-top:14px"></div>
+    <p class="note"><b>Watch zone (edge &gt; 10pp):</b> in the 2026 walk-forward, the model's LARGEST disagreements with the market were its worst bets (10–15pp: −9.9% ROI; &gt;15pp: −18.9%) despite having the best closing-line value — when this model screams, it is usually mis-modeling a hits tail, not out-reading the book. Watch-zone bets stay in the ledger (cutting them is a 2026-derived rule that must first survive the live paper track) but deserve extra skepticism. The trustworthy pocket is the 4–8pp band (+1.4% to +2.5% in 2026 at quoted juice; +7.4% at fair pricing).</p>
     <h2>Ledger</h2>
     <div class="filters" id="fh"></div>
     <div class="tbl-box"><table id="th"></table></div>
@@ -439,8 +441,26 @@ const hitsCols=[
   {k:'pnl',h:'P&L',mono:1,fn:r=>`<span class="${r.pnl>=0?'pos':'neg'}">${fmt(r.pnl,2)}u</span>`},
   {k:'clv',h:'CLV',mono:1,fn:r=>r.clv==null?'—':`<span class="${r.clv>=0?'pos':'neg'}">${fmt(r.clv*100,2)}</span>`},
 ];
+function renderHitsTiles(){
+  const rows = SNAPH==='h26' ? (D.hits2026??[]) : (D.hits2025??[]);
+  if(!rows.length) return;
+  const a=agg(rows);
+  const watch=rows.filter(r=>r.tier==='watch');
+  const base=rows.filter(r=>r.tier!=='watch');
+  const aw=watch.length?agg(watch):null, ab=agg(base);
+  const tag = SNAPH==='h26' ? '2026 walk-forward' : '2025 (tuning year)';
+  $('#hTiles').innerHTML=[
+   [`ROI — ${tag}`, fmt(a.roi*100,1)+'%', a.n+' bets · '+fmt(a.u,1)+'u · fair pricing', a.roi>=0],
+   ['Win rate', (a.wr*100).toFixed(1)+'%', 'UNDER-only, edge ≥ 4pp', a.wr>=0.5],
+   ['CLV', fmt(a.clv*100,2)+'pp', 'vs T−3min close', a.clv>=0],
+   ['Base tier (≤10pp)', fmt(ab.roi*100,1)+'%', ab.n+' bets', ab.roi>=0],
+   ['Watch zone (>10pp)', aw?fmt(aw.roi*100,1)+'%':'—', aw?aw.n+' bets · CLV '+fmt(aw.clv*100,1)+'pp':'', aw?aw.roi>=0:true],
+  ].map(([l,v,d,pos])=>`<div class="tile"><div class="lab">${l}</div>
+    <div class="val mono ${pos?'pos':'neg'}">${v}</div><div class="det">${d}</div></div>`).join('');
+}
 function buildHits(){
   const rows = SNAPH==='h26' ? (D.hits2026??[]) : (D.hits2025??[]);
+  renderHitsTiles();
   apiH = makeTable({rows, tbl:$('#th'), pager:$('#ph'), filtersEl:$('#fh'),
     cols:hitsCols, defaultSort:'date',
     filters:[{type:'text',k:'pitcher',label:'search pitcher…'},
@@ -525,7 +545,7 @@ $('#cents').addEventListener('input',e=>{
   renderTiles();
   api25.refresh();
   api26.refresh();
-  if(apiH) apiH.refresh();
+  if(apiH){ apiH.refresh(); renderHitsTiles(); }
 });
 
 /* ---------- props table ---------- */
