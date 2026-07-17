@@ -19,7 +19,10 @@ from src.data.mlb_source import (
 
 def _merge_existing_csv(new_df, output: Path, key_cols: list[str]) -> pd.DataFrame:
     if output.exists():
-        existing = pd.read_csv(output)
+        try:
+            existing = pd.read_csv(output)
+        except pd.errors.EmptyDataError:
+            existing = pd.DataFrame()
         combined = pd.concat([existing, new_df], ignore_index=True, sort=False)
     else:
         combined = new_df.copy()

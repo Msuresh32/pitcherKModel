@@ -83,6 +83,12 @@ def main():
                  "edge_over", "n_books", "signal", "tier"]
     props_out = [{k: r.get(k) for k in prop_keep} for r in props
                  if r.get("line") not in (None, "")]
+    if qual_f.exists():
+        for r in props_out:
+            key = (r.get("pitcher"), float(r.get("line") or 0))
+            if key in qmap:
+                r["qual"] = qmap[key].get("html", "")
+                r["qual_flag"] = qmap[key].get("qual_flag")
 
     today = {
         "date": day,

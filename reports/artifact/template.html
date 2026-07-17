@@ -586,8 +586,9 @@ if (D.today){
     ['pitcher','line','signal','tier','qual_flag','price','book','proj_ks','edge_over','n_books','stake_pct','stake_usd','stake_usd_conservative'],'qual');
   simpleTable($('#tdHits'), T.hits_paper,
     ['pitcher','proj_hits','line','signal','price','p_model_under','p_mkt_under','edge','n_books','tier','stake_usd']);
+  (T.props||[]).forEach(r=>{ if(!('qual_flag' in r)) r.qual_flag=null; });
   simpleTable($('#tdProps'), T.props,
-    ['pitcher','line','proj_ks','p_model_over','p_mkt_over','edge_over','n_books','signal','tier']);
+    ['pitcher','line','proj_ks','p_model_over','p_mkt_over','edge_over','n_books','signal','tier','qual_flag'],'qual');
 }
 
 /* ---------- slider wiring ---------- */

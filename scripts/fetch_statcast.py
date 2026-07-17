@@ -87,15 +87,23 @@ def main() -> None:
         path = Path(output)
         path.parent.mkdir(parents=True, exist_ok=True)
         df = pd.concat(pitcher_frames, ignore_index=True, sort=False) if pitcher_frames else pd.DataFrame()
-        if not df.empty and path.exists():
-            existing = pd.read_csv(path)
-            key_cols = [c for c in ["game_date", "pitcher_id"] if c in df.columns and c in existing.columns]
-            if key_cols:
-                combined = pd.concat([existing, df], ignore_index=True, sort=False)
-                df = combined.drop_duplicates(subset=key_cols, keep="last").reset_index(drop=True)
-            else:
-                df = pd.concat([existing, df], ignore_index=True, sort=False).drop_duplicates()
-        df.to_csv(path, index=False)
+        if df.empty:
+            # GUARD (2026-07-14): never clobber the existing file with an empty
+            # fetch (off-days/All-Star break return zero rows).
+            print("No new Statcast rows fetched; existing file left untouched.")
+        else:
+            if path.exists():
+                try:
+                    existing = pd.read_csv(path)
+                except pd.errors.EmptyDataError:
+                    existing = pd.DataFrame()
+                key_cols = [c for c in ["game_date", "pitcher_id"] if c in df.columns and c in existing.columns]
+                if key_cols:
+                    combined = pd.concat([existing, df], ignore_index=True, sort=False)
+                    df = combined.drop_duplicates(subset=key_cols, keep="last").reset_index(drop=True)
+                elif not existing.empty:
+                    df = pd.concat([existing, df], ignore_index=True, sort=False).drop_duplicates()
+            df.to_csv(path, index=False)
 
         # ── Catcher framing ──
         if args.framing and framing_frames:

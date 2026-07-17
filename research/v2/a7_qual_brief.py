@@ -680,7 +680,7 @@ class QualitativeValidator:
 
 
 def _write_latest_html(day: str, plays: pd.DataFrame, analyses: list[dict]) -> None:
-    amap = {(a["pitcher"], float(a["line"])): a for a in analyses}
+    amap = {(a["pitcher"], float(a["line"])): a for a in analyses if a.get("is_play")}
     cards = []
     for _, play in plays.iterrows():
         key = (str(play.pitcher), float(play.line))
@@ -714,7 +714,8 @@ header{{display:flex;justify-content:space-between;gap:14px;padding:17px;border-
     (DAILY / "v2_plays_latest.html").write_text(page, encoding="utf-8")
 
 
-def build_qualitative_outputs(day: str | None = None) -> dict:
+def build_qualitative_outputs(day: str | None = None,
+                              all_props: bool = False) -> dict:
     day = str(day or os.environ.get("SCORE_DATE") or
               pd.Timestamp.now().strftime("%Y-%m-%d"))
     props, plays = _qualified_props(day)
@@ -722,8 +723,36 @@ def build_qualitative_outputs(day: str | None = None) -> dict:
     analyses, contexts = [], []
     for _, play in plays.iterrows():
         analysis, context = validator.evaluate(play)
+        analysis["is_play"] = True
         analyses.append(analysis)
         contexts.append(context)
+
+    if all_props and len(props):
+        played = {(str(p.pitcher), float(p.line)) for _, p in plays.iterrows()}
+        others = props[props.line.notna()].copy()
+        others = others[~others.apply(
+            lambda r: (str(r.pitcher), float(r.line)) in played, axis=1)]
+        # analyze on the model-leaning side; purely informational, not a play
+        edge_col = "raw_edge_over" if "raw_edge_over" in others else "edge_over"
+        others["signal"] = np.where(
+            pd.to_numeric(others[edge_col], errors="coerce").fillna(0) > 0,
+            "OVER", "UNDER")
+        others["side"] = others.signal.str.lower()
+        others["price"] = np.where(others.side.eq("over"),
+                                   others.get("best_over"), others.get("best_under"))
+        others["book"] = np.where(others.side.eq("over"),
+                                  others.get("over_book"), others.get("under_book"))
+        for _, row in others.iterrows():
+            try:
+                analysis, context = validator.evaluate(row)
+            except Exception:
+                continue
+            analysis["is_play"] = False
+            analysis["html"] = (
+                '<p><em>INFO — did not qualify as a play; analysis shown for the '
+                'model-leaning side.</em></p>' + analysis.get("html", ""))
+            analyses.append(analysis)
+            contexts.append(context)
 
     methodology = {
         "selection": "all rows already passing the model deployment threshold",
@@ -740,7 +769,7 @@ def build_qualitative_outputs(day: str | None = None) -> dict:
         json.dumps(analysis_payload, indent=2, allow_nan=False), encoding="utf-8")
 
     # The plays CSV is the compact machine-readable view used by the artifact.
-    amap = {(a["pitcher"], float(a["line"])): a for a in analyses}
+    amap = {(a["pitcher"], float(a["line"])): a for a in analyses if a.get("is_play")}
     for idx, play in plays.iterrows():
         a = amap[(str(play.pitcher), float(play.line))]
         plays.loc[idx, "qual_score"] = a["qualitative_score"]
@@ -757,15 +786,17 @@ def build_qualitative_outputs(day: str | None = None) -> dict:
     ]
     keep = [c for c in keep if c in plays]
     plays[keep].round(3).to_csv(DAILY / f"v2_plays_{day}.csv", index=False)
-    _write_latest_html(day, plays, analyses)
+    _write_latest_html(day, plays, [a for a in analyses if a.get("is_play")])
     return analysis_payload
 
 
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--date", default=os.environ.get("SCORE_DATE"))
+    parser.add_argument("--all-props", action="store_true",
+                        help="also analyze non-qualifying props (informational)")
     args = parser.parse_args()
-    result = build_qualitative_outputs(args.date)
+    result = build_qualitative_outputs(args.date, all_props=args.all_props)
     counts = pd.Series([p["verdict"] for p in result["plays"]]).value_counts()
     detail = ", ".join(f"{k}: {v}" for k, v in counts.items())
     print(f"wrote qualitative validation for {result['date']} "
