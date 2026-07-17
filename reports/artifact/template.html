@@ -114,7 +114,11 @@
 <header>
   <p class="eyebrow">pitcherKModel · research/v2 · generated 2026-07-11</p>
   <h1>Pitcher Strikeout Model — Full Backtest &amp; 2026 Props</h1>
-  <p class="sub">Frozen system: mean of 5 calibrated count models · bet when model-vs-market edge &ge; 8pp at the T-4h opening consensus · best available open price · one bet per pitcher-game · flat stakes. 2025 is walk-forward out-of-sample (filters tuned on it); 2026 is fully out-of-sample walk-forward with monthly retrains + trailing recalibration.</p>
+  <p class="sub">Frozen system: mean of 5 calibrated count models · bet when model-vs-market edge &ge; 8pp at the opening consensus · best available open price · one bet per pitcher-game. 2025 is walk-forward out-of-sample (filters tuned on it); 2026 is fully out-of-sample walk-forward, recomputed 2026-07-13 with completed odds data and repaired features.</p>
+  <div style="border:1px solid var(--neg);background:var(--neg-soft);border-radius:6px;padding:10px 14px;margin:14px 0 4px;font-size:13px">
+    <b style="color:var(--neg)">DEPLOYMENT STATUS: PAPER ONLY (both models, $0 stakes).</b>
+    The K model failed its pre-registered Jun 1–Jul 10 deployment gate when the 2026 sample completed (Jul 13 audit): full-2026 ROI ≈ +0.3–0.4% — statistically breakeven at quoted prices. CLV remains positive (the signal is real; the vig eats it). The ledgers below are the corrected historical record, not live bets. Three narrowed K configs + the hits model are being paper-tracked on fresh second-half data; promotion requires that fresh sample, not these backtests.
+  </div>
   <div class="slider-row">
     <label>Bet timing</label>
     <div class="seg" id="snapSeg">
