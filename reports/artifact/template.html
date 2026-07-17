@@ -584,8 +584,9 @@ if (D.today){
   T.plays.forEach(r=>{ if(!('qual_flag' in r)) r.qual_flag=null; });
   simpleTable($('#tdPlays'), T.plays,
     ['pitcher','line','signal','tier','qual_flag','price','book','proj_ks','edge_over','n_books','stake_pct','stake_usd','stake_usd_conservative'],'qual');
+  (T.hits_paper||[]).forEach(r=>{ if(!('qual_flag' in r)) r.qual_flag=null; });
   simpleTable($('#tdHits'), T.hits_paper,
-    ['pitcher','proj_hits','line','signal','price','p_model_under','p_mkt_under','edge','n_books','tier','stake_usd']);
+    ['pitcher','proj_hits','line','signal','qual_flag','price','p_model_under','p_mkt_under','edge','n_books','tier','stake_usd'],'qual');
   (T.props||[]).forEach(r=>{ if(!('qual_flag' in r)) r.qual_flag=null; });
   simpleTable($('#tdProps'), T.props,
     ['pitcher','line','proj_ks','p_model_over','p_mkt_over','edge_over','n_books','signal','tier','qual_flag'],'qual');

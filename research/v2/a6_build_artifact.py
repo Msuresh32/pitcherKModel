@@ -90,6 +90,16 @@ def main():
                 r["qual"] = qmap[key].get("html", "")
                 r["qual_flag"] = qmap[key].get("qual_flag")
 
+    hq_f = DAILY / f"v2_hits_qual_{day}.json"
+    if hq_f.exists() and hits:
+        hq = json.loads(hq_f.read_text(encoding="utf-8")).get("plays", [])
+        hmap = {(q.get("pitcher"), float(q.get("line", 0))): q for q in hq}
+        for r in hits:
+            key = (r.get("pitcher"), float(r.get("line") or 0))
+            if key in hmap:
+                r["qual"] = hmap[key].get("html", "")
+                r["qual_flag"] = hmap[key].get("qual_flag")
+
     today = {
         "date": day,
         "generated": datetime.datetime.now().strftime("%Y-%m-%d %H:%M"),

@@ -37,6 +37,7 @@ $env:BANKROLL = if ($env:V2_BANKROLL) { $env:V2_BANKROLL } else { "10000" }
 #    cloud routine that writes per-play analyses and republishes the artifact)
 "=== qual context + artifact build + push - $(Get-Date -Format HH:mm:ss) ===" | Tee-Object -FilePath $log -Append
 & $py -3.14 research/v2/a7_qual_brief.py --all-props 2>&1 | Tee-Object -FilePath $log -Append | Select-Object -Last 1
+& $py -3.14 research/v2/a8_hits_qual.py 2>&1 | Tee-Object -FilePath $log -Append | Select-Object -Last 1
 & $py -3.14 research/v2/a6_build_artifact.py 2>&1 | Tee-Object -FilePath $log -Append
 git add reports/daily reports/artifact data/daily/v2_predictions_log.csv 2>&1 | Out-Null
 git commit -m "daily plays $today [auto]" 2>&1 | Tee-Object -FilePath $log -Append | Select-Object -Last 1
