@@ -137,6 +137,7 @@
 
 <nav id="tabs" role="tablist">
   <button data-v="vtd" role="tab">Today's Plays</button>
+  <button data-v="vrs" role="tab">Paper Results</button>
   <button class="on" data-v="v25" role="tab">2025 Backtest</button>
   <button data-v="v26" role="tab">2026 Walk-Forward</button>
   <button data-v="vpr" role="tab">All 2026 Props</button>
@@ -176,6 +177,20 @@
   </div>
   <div class="panel"><h2>Full scored board</h2>
     <div class="tbl-box"><table id="tdProps"></table></div>
+  </div>
+</section>
+
+<section class="view" id="vrs">
+  <div class="panel"><h2 id="rsTitle">Paper track — settled daily cards ($0 stakes throughout)</h2>
+    <p class="note">The live forward record: every card the morning pipeline has published, settled against final box scores the next day. Flat 1u accounting. This is the fresh second-half sample that decides promotion — small for now, and it stays paper until the pre-registered gates pass.</p>
+    <div class="tiles" id="rsTiles"></div>
+  </div>
+  <div class="panel"><h2>K model — settled plays</h2>
+    <div class="tbl-box"><table id="rsK"></table></div>
+  </div>
+  <div class="panel"><h2>Hits allowed — settled paper plays</h2>
+    <div class="tbl-box"><table id="rsH"></table></div>
+    <p class="note">Watch zone = edge &gt; 10pp, the 2026 anti-signal band — tracked separately above precisely because its backtest says to distrust it.</p>
   </div>
 </section>
 
@@ -594,6 +609,52 @@ if (D.today){
   (T.props||[]).forEach(r=>{ if(!('qual_flag' in r)) r.qual_flag=null; });
   simpleTable($('#tdProps'), T.props,
     ['pitcher','line','proj_ks','p_model_over','p_mkt_over','edge_over','n_books','signal','tier','qual_flag'],'qual');
+}
+
+/* ---------- Paper Results tab ---------- */
+if (D.results){
+  const R=D.results;
+  $('#rsTitle').textContent = `Paper track — settled daily cards ($0 stakes throughout) · updated ${R.updated}`;
+  const roll = rows => {
+    const s = rows.filter(r=>r.pnl!=null);
+    const w = s.filter(r=>r.result==='WIN').length, l = s.filter(r=>r.result==='LOSS').length;
+    const u = s.reduce((a,r)=>a+r.pnl,0);
+    return {n:s.length, w, l, u, roi: s.length? u/s.length : 0};
+  };
+  const cohorts = [
+    ['K · PAPER-V3.1', R.k.filter(r=>r.tier==='PAPER-V3.1')],
+    ['K · PAPER-CONV', R.k.filter(r=>r.tier==='PAPER-CONV')],
+    ['K · all plays', R.k],
+    ['Hits · all paper', R.hits],
+    ['Hits · watch zone', R.hits.filter(r=>r.edge>0.10)],
+  ];
+  $('#rsTiles').innerHTML = cohorts.map(([lab,rows])=>{
+    const a=roll(rows);
+    return `<div class="tile"><div class="lab">${lab}</div>
+      <div class="val mono ${a.u>=0?'pos':'neg'}">${fmt(a.u,2)}u</div>
+      <div class="det">${a.w}–${a.l} · ${a.n? fmt(a.roi*100,1)+'% ROI':'no settled plays'}</div></div>`;
+  }).join('');
+  const resChip = r => r.result==='WIN' ? '<span class="chip w">WIN</span>'
+    : r.result==='LOSS' ? '<span class="chip">LOSS</span>'
+    : r.result==='PUSH' ? 'PUSH' : '<span style="color:var(--faint)">no data</span>';
+  const rTable = (el, rows, cols) => {
+    if(!rows.length){ el.innerHTML='<tbody><tr><td class="l">Nothing settled yet.</td></tr></tbody>'; return; }
+    el.innerHTML = '<thead><tr>'+cols.map(c=>`<th class="${c[2]?'':'l'}">${c[0]}</th>`).join('')+'</tr></thead>'
+      +'<tbody>'+rows.map(r=>'<tr>'+cols.map(c=>`<td class="${c[2]?'mono':'l'}">${c[1](r)}</td>`).join('')+'</tr>').join('')+'</tbody>';
+  };
+  rTable($('#rsK'), R.k, [
+    ['Date', r=>r.date, 1], ['Pitcher', r=>r.pitcher, 0], ['Tier', r=>r.tier||'—', 0],
+    ['Side', r=>r.side, 0], ['Line', r=>r.line.toFixed(1), 1], ['Price', r=>odds(r.price), 1],
+    ['Ks', r=>r.actual_ks==null?'—':r.actual_ks, 1], ['Result', resChip, 0],
+    ['P&L', r=>r.pnl==null?'—':`<span class="${r.pnl>=0?'pos':'neg'}">${fmt(r.pnl,2)}</span>`, 1],
+  ]);
+  rTable($('#rsH'), R.hits, [
+    ['Date', r=>r.date, 1], ['Pitcher', r=>r.pitcher, 0],
+    ['Line', r=>'U'+r.line.toFixed(1), 1], ['Price', r=>odds(r.price), 1],
+    ['Edge', r=>fmt(r.edge*100,1)+'pp'+(r.edge>0.10?' ⚠':''), 1],
+    ['Hits', r=>r.actual_hits==null?'—':r.actual_hits, 1], ['Result', resChip, 0],
+    ['P&L', r=>r.pnl==null?'—':`<span class="${r.pnl>=0?'pos':'neg'}">${fmt(r.pnl,2)}</span>`, 1],
+  ]);
 }
 
 /* ---------- slider wiring ---------- */

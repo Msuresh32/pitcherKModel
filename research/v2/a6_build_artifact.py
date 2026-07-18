@@ -110,6 +110,9 @@ def main():
 
     data = json.loads((ART / "report_data.json").read_text(encoding="utf-8"))
     data["today"] = today
+    ledger_f = DAILY / "v2_results_ledger.json"
+    if ledger_f.exists():
+        data["results"] = json.loads(ledger_f.read_text(encoding="utf-8"))
     payload = json.dumps(data, allow_nan=False)
     (ART / "report_data.json").write_text(payload, encoding="utf-8")
 

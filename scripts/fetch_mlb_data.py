@@ -28,7 +28,10 @@ def _merge_existing_csv(new_df, output: Path, key_cols: list[str]) -> pd.DataFra
         combined = new_df.copy()
     keys = [col for col in key_cols if col in combined.columns]
     if keys:
-        combined = combined.drop_duplicates(keys, keep="last")
+        # CSV round-trips change key dtypes (e.g. team "109" -> 109), which
+        # defeats drop_duplicates; compare keys as strings instead.
+        normalized = combined[keys].astype(str)
+        combined = combined.loc[~normalized.duplicated(keys, keep="last")]
     return combined.sort_values([col for col in ["game_date", "game_pk", "team", "pitcher_id", "batter_id"] if col in combined.columns])
 
 
