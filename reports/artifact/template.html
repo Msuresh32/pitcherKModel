@@ -183,6 +183,7 @@
 <section class="view" id="vrs">
   <div class="panel"><h2 id="rsTitle">Paper track — settled daily cards ($0 stakes throughout)</h2>
     <p class="note">The live forward record: every card the morning pipeline has published, settled against final box scores the next day. Flat 1u accounting. This is the fresh second-half sample that decides promotion — small for now, and it stays paper until the pre-registered gates pass.</p>
+    <p class="note"><b>T−12 unders cohort (registered 2026-07-18):</b> the under-side cut of the morning card — the only cut that is CI-positive in <em>both</em> backtest years (2025: +29.1% on 79, CLV +2.99pp · 2026: +22.3% on 57, CLV +1.28pp) with a structural reason (books shade over prices toward public over money). Found by inspecting completed ledgers, so it must earn promotion on the fresh sample above: ≥80 settled plays, CLV ≥ +0.8pp, bootstrap ROI lower bound &gt; 0. Kill: CLV &lt; 0 after 40.</p>
     <div class="tiles" id="rsTiles"></div>
   </div>
   <div class="panel"><h2>K model — settled plays</h2>
@@ -624,6 +625,7 @@ if (D.results){
   const cohorts = [
     ['K · PAPER-V3.1', R.k.filter(r=>r.tier==='PAPER-V3.1')],
     ['K · PAPER-CONV', R.k.filter(r=>r.tier==='PAPER-CONV')],
+    ['K · T−12 unders', R.k.filter(r=>r.side==='UNDER' && (!r.timing || r.timing==='t12'))],
     ['K · all plays', R.k],
     ['Hits · all paper', R.hits],
     ['Hits · watch zone', R.hits.filter(r=>r.edge>0.10)],

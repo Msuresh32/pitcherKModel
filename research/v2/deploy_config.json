@@ -39,6 +39,14 @@
     "uncertainty_rule": "signed conservative edge = sign(raw edge) * max(abs(raw edge) - ensemble probability SD, 0)",
     "warning": "Difference confidence intervals include zero. All routed stakes remain $0 until a new frozen forward window confirms the improvement."
   },
+  "under_side_cohort": {
+    "status": "PAPER_ONLY_PREREGISTERED_2026-07-18",
+    "definition": "daily K-card plays with signal UNDER at the T-12h morning board (V3.1 router, LCB-1SD >= 8pp); no routing change - the cohort is the side cut of the existing card",
+    "motivation": "declared before the fresh window: unders showed positive ROI and positive CLV in all 6 saved ledgers; the T-12 LCB under cut is the only cut CI-positive in BOTH years (2025 +29.1% n=79 lo90 +12.2%, CLV +2.99pp; 2026 +22.3% n=57 lo90 +5.5%, CLV +1.28pp). Structural prior: recreational money concentrates on overs, so books shade over prices. See research/v3/side_analysis.csv.",
+    "caveats": "side split was inspected after 2026 results were known (selection-era); n is small; 2026 profit was April-heavy. This is why it is a paper cohort, not a live rule.",
+    "promotion_gate": "fresh window starts 2026-07-19. Promote to small live stakes only if, on write-once daily cards: n >= 80 settled T-12 under plays AND mean no-vig CLV >= +0.8pp AND date-block bootstrap ROI lo90 > 0. Expected accrual 1-2 plays/day (~8-12 weeks).",
+    "kill_switch": "after 40 settled fresh plays, mean CLV < 0 -> drop the cohort as a promotion candidate."
+  },
   "expected": {
     "volume_per_season": "~1000-1400 bets total; ~350-450 in the conviction tier",
     "roi_estimate_base": "research estimate only: H0 T-4h +2.61% on 694 bets (90% CI -4.0% to +9.0%); H0 T-12h +3.60% on 629 (CI -2.6% to +9.6%)",

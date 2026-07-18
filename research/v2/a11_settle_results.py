@@ -58,8 +58,10 @@ def main() -> None:
                 continue
             ks = settle(p.pitcher, day, logs, "strikeouts")
             res, pnl = outcome(ks, p.line, p.signal, p.price)
+            timing = p.get("odds_timing")
             k_rows.append({
                 "date": day, "pitcher": p.pitcher, "tier": p.get("tier", ""),
+                "timing": timing if isinstance(timing, str) else None,
                 "side": p.signal, "line": float(p.line), "price": int(p.price),
                 "actual_ks": None if ks is None else int(ks),
                 "result": res, "pnl": pnl})
