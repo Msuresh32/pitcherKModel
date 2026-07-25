@@ -1,0 +1,307 @@
+{
+  "date": "2026-07-24",
+  "methodology": {
+    "selection": "all rows already passing the model deployment threshold",
+    "effect_on_model": "none; qualitative output never changes signal or stake",
+    "score": "50 neutral + material support points - material concern points",
+    "data_cutoff": "strictly before 2026-07-24",
+    "required_no_confirmation_text": "No strong qualitative confirmation found beyond the model edge."
+  },
+  "plays": [
+    {
+      "pitcher": "Grayson Rodriguez",
+      "line": 3.5,
+      "signal": "OVER",
+      "pitcher_id": 680570,
+      "team_id": 108,
+      "opponent_team_id": 137,
+      "is_home": 0,
+      "pitcher_hand": "R",
+      "opponent_rates": {
+        "L7": {
+          "k_rate": 0.27601809954751133,
+          "bb_rate": 0.06334841628959276,
+          "pa": 221,
+          "games": 6,
+          "league_k_rate": 0.2286945641595996,
+          "league_bb_rate": 0.08188516613374114,
+          "usable": true
+        },
+        "L14": {
+          "k_rate": 0.22994652406417113,
+          "bb_rate": 0.0855614973262032,
+          "pa": 374,
+          "games": 10,
+          "league_k_rate": 0.2260901768354782,
+          "league_bb_rate": 0.08360337005832794,
+          "usable": true
+        },
+        "L30": {
+          "k_rate": 0.24023668639053256,
+          "bb_rate": 0.08047337278106509,
+          "pa": 845,
+          "games": 23,
+          "league_k_rate": 0.22491035733421258,
+          "league_bb_rate": 0.08473807855582574,
+          "usable": true
+        },
+        "Season": {
+          "k_rate": 0.23689727463312368,
+          "bb_rate": 0.07966457023060797,
+          "pa": 954,
+          "games": 26,
+          "league_k_rate": 0.22572898799313892,
+          "league_bb_rate": 0.08401372212692967,
+          "usable": true
+        }
+      },
+      "opponent_vs_starter_hand": {
+        "hand": "R",
+        "k_rate": 0.23265306122448978,
+        "league_k_rate": 0.22414578587699316,
+        "games": 20,
+        "pa": 735
+      },
+      "recent_form": {
+        "last_start_date": "2026-07-19",
+        "days_since_last_start": 5,
+        "ks_last5": [
+          3,
+          6,
+          1,
+          0,
+          3
+        ],
+        "ip_last5": [
+          3.67,
+          5.33,
+          2.33,
+          5.33,
+          4.0
+        ],
+        "pitches_last5": [
+          91,
+          92,
+          47,
+          79,
+          87
+        ],
+        "side_hit_count_last5": 1
+      },
+      "workload": {
+        "avg_pitches_l10": 85.2,
+        "avg_ip_l10": 4.6000000000000005,
+        "short_starts_under5ip_l10": 4
+      },
+      "statcast": {
+        "avg_pitch_velo_l3": 89.85515930875572,
+        "avg_pitch_velo_previous": 89.88822595137324,
+        "velo_change": -0.03306664261752701,
+        "swstr_l3": 0.0697642021973123,
+        "csw_l3": 0.19109105111686905
+      },
+      "park": {
+        "venue": "Oracle Park",
+        "so_factor": 1.0019153102850096
+      },
+      "market": {
+        "n_books": 1,
+        "market_probability_std": 0.0,
+        "opening_move_available": false
+      },
+      "evidence": [
+        {
+          "category": "pitcher_form",
+          "text": "The pitcher finished on the opposite side of this play in 4 of his last 5 starts (3, 6, 1, 0, 3 Ks).",
+          "points": -9
+        },
+        {
+          "category": "workload",
+          "text": "Recent workload is limited: 85 pitches and 4.6 innings per start over his last 10, with 4 starts under five innings.",
+          "points": -9
+        },
+        {
+          "category": "pitcher_stuff",
+          "text": "Bat-missing indicators are weak over the last three starts (7.0% swinging strikes, 19.1% CSW).",
+          "points": -9
+        },
+        {
+          "category": "market",
+          "text": "Only 1 sportsbook is posting this number, so the consensus reference is thin.",
+          "points": -4
+        }
+      ],
+      "coverage": {
+        "label": "7 internal/verified areas checked",
+        "available": [
+          "opponent K/BB profile",
+          "opponent starter-handedness split",
+          "pitcher recent form",
+          "pitcher workload",
+          "Statcast pitcher trend",
+          "park strikeout factor",
+          "current market consensus"
+        ],
+        "unavailable_not_inferred": [
+          "confirmed lineup",
+          "injury/news",
+          "weather/roof",
+          "announced umpire",
+          "bullpen rest",
+          "pitch-type matchup"
+        ]
+      },
+      "score_breakdown": {
+        "neutral_start": 50,
+        "support_points": 0,
+        "concern_points": 31,
+        "qualitative_score": 19
+      }
+    },
+    {
+      "pitcher": "Grayson Rodriguez",
+      "line": 4.5,
+      "signal": "OVER",
+      "pitcher_id": 680570,
+      "team_id": 108,
+      "opponent_team_id": 137,
+      "is_home": 0,
+      "pitcher_hand": "R",
+      "opponent_rates": {
+        "L7": {
+          "k_rate": 0.27601809954751133,
+          "bb_rate": 0.06334841628959276,
+          "pa": 221,
+          "games": 6,
+          "league_k_rate": 0.2286945641595996,
+          "league_bb_rate": 0.08188516613374114,
+          "usable": true
+        },
+        "L14": {
+          "k_rate": 0.22994652406417113,
+          "bb_rate": 0.0855614973262032,
+          "pa": 374,
+          "games": 10,
+          "league_k_rate": 0.2260901768354782,
+          "league_bb_rate": 0.08360337005832794,
+          "usable": true
+        },
+        "L30": {
+          "k_rate": 0.24023668639053256,
+          "bb_rate": 0.08047337278106509,
+          "pa": 845,
+          "games": 23,
+          "league_k_rate": 0.22491035733421258,
+          "league_bb_rate": 0.08473807855582574,
+          "usable": true
+        },
+        "Season": {
+          "k_rate": 0.23689727463312368,
+          "bb_rate": 0.07966457023060797,
+          "pa": 954,
+          "games": 26,
+          "league_k_rate": 0.22572898799313892,
+          "league_bb_rate": 0.08401372212692967,
+          "usable": true
+        }
+      },
+      "opponent_vs_starter_hand": {
+        "hand": "R",
+        "k_rate": 0.23265306122448978,
+        "league_k_rate": 0.22414578587699316,
+        "games": 20,
+        "pa": 735
+      },
+      "recent_form": {
+        "last_start_date": "2026-07-19",
+        "days_since_last_start": 5,
+        "ks_last5": [
+          3,
+          6,
+          1,
+          0,
+          3
+        ],
+        "ip_last5": [
+          3.67,
+          5.33,
+          2.33,
+          5.33,
+          4.0
+        ],
+        "pitches_last5": [
+          91,
+          92,
+          47,
+          79,
+          87
+        ],
+        "side_hit_count_last5": 1
+      },
+      "workload": {
+        "avg_pitches_l10": 85.2,
+        "avg_ip_l10": 4.6000000000000005,
+        "short_starts_under5ip_l10": 4
+      },
+      "statcast": {
+        "avg_pitch_velo_l3": 89.85515930875572,
+        "avg_pitch_velo_previous": 89.88822595137324,
+        "velo_change": -0.03306664261752701,
+        "swstr_l3": 0.0697642021973123,
+        "csw_l3": 0.19109105111686905
+      },
+      "park": {
+        "venue": "Oracle Park",
+        "so_factor": 1.0019153102850096
+      },
+      "market": {
+        "n_books": 6,
+        "market_probability_std": 0.008,
+        "opening_move_available": false
+      },
+      "evidence": [
+        {
+          "category": "pitcher_form",
+          "text": "The pitcher finished on the opposite side of this play in 4 of his last 5 starts (3, 6, 1, 0, 3 Ks).",
+          "points": -9
+        },
+        {
+          "category": "workload",
+          "text": "Recent workload is limited: 85 pitches and 4.6 innings per start over his last 10, with 4 starts under five innings.",
+          "points": -9
+        },
+        {
+          "category": "pitcher_stuff",
+          "text": "Bat-missing indicators are weak over the last three starts (7.0% swinging strikes, 19.1% CSW).",
+          "points": -9
+        }
+      ],
+      "coverage": {
+        "label": "7 internal/verified areas checked",
+        "available": [
+          "opponent K/BB profile",
+          "opponent starter-handedness split",
+          "pitcher recent form",
+          "pitcher workload",
+          "Statcast pitcher trend",
+          "park strikeout factor",
+          "current market consensus"
+        ],
+        "unavailable_not_inferred": [
+          "confirmed lineup",
+          "injury/news",
+          "weather/roof",
+          "announced umpire",
+          "bullpen rest",
+          "pitch-type matchup"
+        ]
+      },
+      "score_breakdown": {
+        "neutral_start": 50,
+        "support_points": 0,
+        "concern_points": 27,
+        "qualitative_score": 23
+      }
+    }
+  ]
+}
