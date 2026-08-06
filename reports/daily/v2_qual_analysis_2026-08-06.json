@@ -1,0 +1,829 @@
+{
+  "date": "2026-08-06",
+  "methodology": {
+    "selection": "all rows already passing the model deployment threshold",
+    "effect_on_model": "none; qualitative output never changes signal or stake",
+    "score": "50 neutral + material support points - material concern points",
+    "data_cutoff": "strictly before 2026-08-06",
+    "required_no_confirmation_text": "No strong qualitative confirmation found beyond the model edge."
+  },
+  "plays": [
+    {
+      "pitcher": "David Peterson",
+      "line": 3.5,
+      "signal": "OVER",
+      "qualitative_score": 32,
+      "qual_score": 32,
+      "qual_flag": "CONCERN",
+      "verdict": "Qualitative concerns",
+      "qual_verdict": "Qualitative concerns",
+      "support_points": 7,
+      "concern_points": 25,
+      "support": [
+        "Average pitch velocity moved +1.1 mph over the last three starts versus the preceding sample, a material uptick in current stuff."
+      ],
+      "contradictory": [
+        "Opponent has made contact at an above-average rate (L7 19.2%, L14 18.7%, L30 17.5%; league strikeout baseline about 22.2%).",
+        "Recent workload is limited: 84 pitches and 5.1 innings per start over his last 10, with 3 starts under five innings.",
+        "Wrigley Field has a strikeout park factor of 0.94, a meaningful suppressive environment for pitcher strikeouts."
+      ],
+      "coverage": {
+        "label": "6 internal/verified areas checked",
+        "available": [
+          "opponent K/BB profile",
+          "pitcher recent form",
+          "pitcher workload",
+          "Statcast pitcher trend",
+          "park strikeout factor",
+          "current market consensus"
+        ],
+        "unavailable_not_inferred": [
+          "confirmed lineup",
+          "injury/news",
+          "weather/roof",
+          "announced umpire",
+          "bullpen rest",
+          "pitch-type matchup"
+        ]
+      },
+      "model_summary": "Projection 4.52 Ks \u00b7 sportsbook line 3.5 \u00b7 OVER -113 at fanduel \u00b7 model edge 14.2pp \u00b7 model/market 66.2%/52.0% \u00b7 model confidence A (76.9/100) \u00b7 PAPER \u2014 deployment guard active",
+      "html": "<h4>Model Summary</h4><p>Projection 4.52 Ks \u00b7 sportsbook line 3.5 \u00b7 OVER -113 at fanduel \u00b7 model edge 14.2pp \u00b7 model/market 66.2%/52.0% \u00b7 model confidence A (76.9/100) \u00b7 PAPER \u2014 deployment guard active</p><h4>Qualitative Confirmation</h4><ul><li>Average pitch velocity moved +1.1 mph over the last three starts versus the preceding sample, a material uptick in current stuff.</li></ul><h4>Contradictory Evidence</h4><ul><li>Opponent has made contact at an above-average rate (L7 19.2%, L14 18.7%, L30 17.5%; league strikeout baseline about 22.2%).</li><li>Recent workload is limited: 84 pitches and 5.1 innings per start over his last 10, with 3 starts under five innings.</li><li>Wrigley Field has a strikeout park factor of 0.94, a meaningful suppressive environment for pitcher strikeouts.</li></ul><h4>Verdict</h4><p><span class=\"verdict\">Qualitative concerns</span> \u00b7 qualitative conviction <b>32/100</b></p><p class=\"coverage\">Coverage: 6 internal/verified areas checked. Not available and not inferred: confirmed lineup, injury/news, weather/roof, announced umpire, bullpen rest, pitch-type matchup. This sanity check does not alter the qualifying model signal or stake.</p>",
+      "is_play": true
+    },
+    {
+      "pitcher": "Cristopher S\u00e1nchez",
+      "line": 7.5,
+      "signal": "UNDER",
+      "qualitative_score": 52,
+      "qual_score": 52,
+      "qual_flag": "MIXED",
+      "verdict": "Mixed signals",
+      "qual_verdict": "Mixed signals",
+      "support_points": 25,
+      "concern_points": 23,
+      "support": [
+        "Opponent has made contact at an above-average rate (L7 20.8%, L14 19.4%, L30 20.2%; league strikeout baseline about 22.2%).",
+        "Opponent's L14 walk rate is 11.5% versus a 8.4% league baseline, creating pitch-count pressure that can shorten the starter's runway.",
+        "The pitcher finished on the under side of 7.5 strikeouts in 4 of his last 5 starts (1, 7, 7, 6, 11 Ks)."
+      ],
+      "contradictory": [
+        "The starter has a durable recent leash: 96 pitches and 5.8 innings per start over his last 10, with only 1 start under five innings.",
+        "Bat-missing indicators are strong over the last three starts (16.7% swinging strikes, 32.4% CSW).",
+        "Citizens Bank Park has a strikeout park factor of 1.14, a meaningful environment boost for pitcher strikeouts."
+      ],
+      "coverage": {
+        "label": "7 internal/verified areas checked",
+        "available": [
+          "opponent K/BB profile",
+          "opponent starter-handedness split",
+          "pitcher recent form",
+          "pitcher workload",
+          "Statcast pitcher trend",
+          "park strikeout factor",
+          "current market consensus"
+        ],
+        "unavailable_not_inferred": [
+          "confirmed lineup",
+          "injury/news",
+          "weather/roof",
+          "announced umpire",
+          "bullpen rest",
+          "pitch-type matchup"
+        ]
+      },
+      "model_summary": "Projection 6.25 Ks \u00b7 sportsbook line 7.5 \u00b7 UNDER -140 at draftkings \u00b7 model edge 11.8pp \u00b7 model/market 67.1%/55.4% \u00b7 model confidence C (52.1/100) \u00b7 PAPER \u2014 deployment guard active",
+      "html": "<h4>Model Summary</h4><p>Projection 6.25 Ks \u00b7 sportsbook line 7.5 \u00b7 UNDER -140 at draftkings \u00b7 model edge 11.8pp \u00b7 model/market 67.1%/55.4% \u00b7 model confidence C (52.1/100) \u00b7 PAPER \u2014 deployment guard active</p><h4>Qualitative Confirmation</h4><ul><li>Opponent has made contact at an above-average rate (L7 20.8%, L14 19.4%, L30 20.2%; league strikeout baseline about 22.2%).</li><li>Opponent&#x27;s L14 walk rate is 11.5% versus a 8.4% league baseline, creating pitch-count pressure that can shorten the starter&#x27;s runway.</li><li>The pitcher finished on the under side of 7.5 strikeouts in 4 of his last 5 starts (1, 7, 7, 6, 11 Ks).</li></ul><h4>Contradictory Evidence</h4><ul><li>The starter has a durable recent leash: 96 pitches and 5.8 innings per start over his last 10, with only 1 start under five innings.</li><li>Bat-missing indicators are strong over the last three starts (16.7% swinging strikes, 32.4% CSW).</li><li>Citizens Bank Park has a strikeout park factor of 1.14, a meaningful environment boost for pitcher strikeouts.</li></ul><h4>Verdict</h4><p><span class=\"verdict\">Mixed signals</span> \u00b7 qualitative conviction <b>52/100</b></p><p class=\"coverage\">Coverage: 7 internal/verified areas checked. Not available and not inferred: confirmed lineup, injury/news, weather/roof, announced umpire, bullpen rest, pitch-type matchup. This sanity check does not alter the qualifying model signal or stake.</p>",
+      "is_play": true
+    },
+    {
+      "pitcher": "Miles Mikolas",
+      "line": 2.5,
+      "signal": "OVER",
+      "qualitative_score": 15,
+      "qual_score": 15,
+      "qual_flag": "CONCERN",
+      "verdict": "Qualitative concerns",
+      "qual_verdict": "Qualitative concerns",
+      "support_points": 5,
+      "concern_points": 40,
+      "support": [
+        "Citizens Bank Park has a strikeout park factor of 1.14, a meaningful environment boost for pitcher strikeouts."
+      ],
+      "contradictory": [
+        "Opponent has made contact at an above-average rate (L7 15.4%, L14 20.1%, L30 23.0%; league strikeout baseline about 22.2%).",
+        "Recent workload is limited: 82 pitches and 4.8 innings per start over his last 10, with 5 starts under five innings.",
+        "Average pitch velocity moved -1.5 mph over the last three starts versus the preceding sample, a material decline in current stuff.",
+        "Bat-missing indicators are weak over the last three starts (7.9% swinging strikes, 22.4% CSW).",
+        "Only 1 sportsbook is posting this number, so the consensus reference is thin."
+      ],
+      "coverage": {
+        "label": "7 internal/verified areas checked",
+        "available": [
+          "opponent K/BB profile",
+          "opponent starter-handedness split",
+          "pitcher recent form",
+          "pitcher workload",
+          "Statcast pitcher trend",
+          "park strikeout factor",
+          "current market consensus"
+        ],
+        "unavailable_not_inferred": [
+          "confirmed lineup",
+          "injury/news",
+          "weather/roof",
+          "announced umpire",
+          "bullpen rest",
+          "pitch-type matchup"
+        ]
+      },
+      "model_summary": "Projection 3.64 Ks \u00b7 sportsbook line 2.5 \u00b7 OVER -175 at betmgm \u00b7 model edge 10.5pp \u00b7 model/market 69.9%/59.4% \u00b7 model confidence C (43.3/100) \u00b7 PAPER \u2014 deployment guard active",
+      "html": "<h4>Model Summary</h4><p>Projection 3.64 Ks \u00b7 sportsbook line 2.5 \u00b7 OVER -175 at betmgm \u00b7 model edge 10.5pp \u00b7 model/market 69.9%/59.4% \u00b7 model confidence C (43.3/100) \u00b7 PAPER \u2014 deployment guard active</p><h4>Qualitative Confirmation</h4><ul><li>Citizens Bank Park has a strikeout park factor of 1.14, a meaningful environment boost for pitcher strikeouts.</li></ul><h4>Contradictory Evidence</h4><ul><li>Opponent has made contact at an above-average rate (L7 15.4%, L14 20.1%, L30 23.0%; league strikeout baseline about 22.2%).</li><li>Recent workload is limited: 82 pitches and 4.8 innings per start over his last 10, with 5 starts under five innings.</li><li>Average pitch velocity moved -1.5 mph over the last three starts versus the preceding sample, a material decline in current stuff.</li><li>Bat-missing indicators are weak over the last three starts (7.9% swinging strikes, 22.4% CSW).</li><li>Only 1 sportsbook is posting this number, so the consensus reference is thin.</li></ul><h4>Verdict</h4><p><span class=\"verdict\">Qualitative concerns</span> \u00b7 qualitative conviction <b>15/100</b></p><p class=\"coverage\">Coverage: 7 internal/verified areas checked. Not available and not inferred: confirmed lineup, injury/news, weather/roof, announced umpire, bullpen rest, pitch-type matchup. This sanity check does not alter the qualifying model signal or stake.</p>",
+      "is_play": true
+    },
+    {
+      "pitcher": "Dylan Cease",
+      "line": 7.5,
+      "signal": "UNDER",
+      "qualitative_score": 37,
+      "qual_score": 37,
+      "qual_flag": "CONCERN",
+      "verdict": "Qualitative concerns",
+      "qual_verdict": "Qualitative concerns",
+      "support_points": 12,
+      "concern_points": 25,
+      "support": [
+        "Average pitch velocity moved -1.3 mph over the last three starts versus the preceding sample, a material decline in current stuff.",
+        "Wrigley Field has a strikeout park factor of 0.94, a meaningful suppressive environment for pitcher strikeouts."
+      ],
+      "contradictory": [
+        "In 24 games started by RHP this season, the opponent has struck out in 24.4% of plate appearances (league 22.3%).",
+        "The starter has a durable recent leash: 103 pitches and 6.2 innings per start over his last 10, with only 2 starts under five innings.",
+        "Bat-missing indicators are strong over the last three starts (15.1% swinging strikes, 29.5% CSW)."
+      ],
+      "coverage": {
+        "label": "7 internal/verified areas checked",
+        "available": [
+          "opponent K/BB profile",
+          "opponent starter-handedness split",
+          "pitcher recent form",
+          "pitcher workload",
+          "Statcast pitcher trend",
+          "park strikeout factor",
+          "current market consensus"
+        ],
+        "unavailable_not_inferred": [
+          "confirmed lineup",
+          "injury/news",
+          "weather/roof",
+          "announced umpire",
+          "bullpen rest",
+          "pitch-type matchup"
+        ]
+      },
+      "model_summary": "Projection 6.72 Ks \u00b7 sportsbook line 7.5 \u00b7 UNDER -105 at betmgm \u00b7 model edge 10.2pp \u00b7 model/market 59.8%/49.6% \u00b7 model confidence C (44.4/100) \u00b7 PAPER \u2014 deployment guard active",
+      "html": "<h4>Model Summary</h4><p>Projection 6.72 Ks \u00b7 sportsbook line 7.5 \u00b7 UNDER -105 at betmgm \u00b7 model edge 10.2pp \u00b7 model/market 59.8%/49.6% \u00b7 model confidence C (44.4/100) \u00b7 PAPER \u2014 deployment guard active</p><h4>Qualitative Confirmation</h4><ul><li>Average pitch velocity moved -1.3 mph over the last three starts versus the preceding sample, a material decline in current stuff.</li><li>Wrigley Field has a strikeout park factor of 0.94, a meaningful suppressive environment for pitcher strikeouts.</li></ul><h4>Contradictory Evidence</h4><ul><li>In 24 games started by RHP this season, the opponent has struck out in 24.4% of plate appearances (league 22.3%).</li><li>The starter has a durable recent leash: 103 pitches and 6.2 innings per start over his last 10, with only 2 starts under five innings.</li><li>Bat-missing indicators are strong over the last three starts (15.1% swinging strikes, 29.5% CSW).</li></ul><h4>Verdict</h4><p><span class=\"verdict\">Qualitative concerns</span> \u00b7 qualitative conviction <b>37/100</b></p><p class=\"coverage\">Coverage: 7 internal/verified areas checked. Not available and not inferred: confirmed lineup, injury/news, weather/roof, announced umpire, bullpen rest, pitch-type matchup. This sanity check does not alter the qualifying model signal or stake.</p>",
+      "is_play": true
+    },
+    {
+      "pitcher": "Andrew Abbott",
+      "line": 4.5,
+      "signal": "OVER",
+      "qualitative_score": 43,
+      "qual_score": 43,
+      "qual_flag": "NEUTRAL",
+      "verdict": "Neutral (model-only edge)",
+      "qual_verdict": "Neutral (model-only edge)",
+      "support_points": 0,
+      "concern_points": 7,
+      "support": [],
+      "contradictory": [
+        "Average pitch velocity moved -1.0 mph over the last three starts versus the preceding sample, a material decline in current stuff."
+      ],
+      "coverage": {
+        "label": "7 internal/verified areas checked",
+        "available": [
+          "opponent K/BB profile",
+          "opponent starter-handedness split",
+          "pitcher recent form",
+          "pitcher workload",
+          "Statcast pitcher trend",
+          "park strikeout factor",
+          "current market consensus"
+        ],
+        "unavailable_not_inferred": [
+          "confirmed lineup",
+          "injury/news",
+          "weather/roof",
+          "announced umpire",
+          "bullpen rest",
+          "pitch-type matchup"
+        ]
+      },
+      "model_summary": "Projection 4.87 Ks \u00b7 sportsbook line 4.5 \u00b7 OVER +106 at fanduel \u00b7 model edge 9.1pp \u00b7 model/market 56.0%/46.9% \u00b7 model confidence A (74.8/100) \u00b7 PAPER \u2014 deployment guard active",
+      "html": "<h4>Model Summary</h4><p>Projection 4.87 Ks \u00b7 sportsbook line 4.5 \u00b7 OVER +106 at fanduel \u00b7 model edge 9.1pp \u00b7 model/market 56.0%/46.9% \u00b7 model confidence A (74.8/100) \u00b7 PAPER \u2014 deployment guard active</p><h4>Qualitative Confirmation</h4><p><em>No strong qualitative confirmation found beyond the model edge.</em></p><h4>Contradictory Evidence</h4><ul><li>Average pitch velocity moved -1.0 mph over the last three starts versus the preceding sample, a material decline in current stuff.</li></ul><h4>Verdict</h4><p><span class=\"verdict\">Neutral (model-only edge)</span> \u00b7 qualitative conviction <b>43/100</b></p><p class=\"coverage\">Coverage: 7 internal/verified areas checked. Not available and not inferred: confirmed lineup, injury/news, weather/roof, announced umpire, bullpen rest, pitch-type matchup. This sanity check does not alter the qualifying model signal or stake.</p>",
+      "is_play": true
+    },
+    {
+      "pitcher": "Ranger Suarez",
+      "line": 5.5,
+      "signal": "UNDER",
+      "qualitative_score": 41,
+      "qual_score": 41,
+      "qual_flag": "CONCERN",
+      "verdict": "Qualitative concerns",
+      "qual_verdict": "Qualitative concerns",
+      "support_points": 9,
+      "concern_points": 18,
+      "support": [
+        "Recent workload is limited: 84 pitches and 5.1 innings per start over his last 10, with 3 starts under five innings."
+      ],
+      "contradictory": [
+        "Opponent strikeout rate is consistently elevated (L7 28.2%, L14 24.8%, L30 25.0%; league baseline about 22.2%).",
+        "In 12 games started by LHP this season, the opponent has struck out in 25.4% of plate appearances (league 22.8%)."
+      ],
+      "coverage": {
+        "label": "7 internal/verified areas checked",
+        "available": [
+          "opponent K/BB profile",
+          "opponent starter-handedness split",
+          "pitcher recent form",
+          "pitcher workload",
+          "Statcast pitcher trend",
+          "park strikeout factor",
+          "current market consensus"
+        ],
+        "unavailable_not_inferred": [
+          "confirmed lineup",
+          "injury/news",
+          "weather/roof",
+          "announced umpire",
+          "bullpen rest",
+          "pitch-type matchup"
+        ]
+      },
+      "model_summary": "Projection 5.34 Ks \u00b7 sportsbook line 5.5 \u00b7 UNDER +120 at draftkings \u00b7 model edge 8.4pp \u00b7 model/market 52.0%/43.5% \u00b7 model confidence A (73.6/100) \u00b7 PAPER \u2014 deployment guard active",
+      "html": "<h4>Model Summary</h4><p>Projection 5.34 Ks \u00b7 sportsbook line 5.5 \u00b7 UNDER +120 at draftkings \u00b7 model edge 8.4pp \u00b7 model/market 52.0%/43.5% \u00b7 model confidence A (73.6/100) \u00b7 PAPER \u2014 deployment guard active</p><h4>Qualitative Confirmation</h4><ul><li>Recent workload is limited: 84 pitches and 5.1 innings per start over his last 10, with 3 starts under five innings.</li></ul><h4>Contradictory Evidence</h4><ul><li>Opponent strikeout rate is consistently elevated (L7 28.2%, L14 24.8%, L30 25.0%; league baseline about 22.2%).</li><li>In 12 games started by LHP this season, the opponent has struck out in 25.4% of plate appearances (league 22.8%).</li></ul><h4>Verdict</h4><p><span class=\"verdict\">Qualitative concerns</span> \u00b7 qualitative conviction <b>41/100</b></p><p class=\"coverage\">Coverage: 7 internal/verified areas checked. Not available and not inferred: confirmed lineup, injury/news, weather/roof, announced umpire, bullpen rest, pitch-type matchup. This sanity check does not alter the qualifying model signal or stake.</p>",
+      "is_play": true
+    },
+    {
+      "pitcher": "Miles Mikolas",
+      "line": 3.5,
+      "signal": "OVER",
+      "qualitative_score": 10,
+      "qual_score": 10,
+      "qual_flag": "CONCERN",
+      "verdict": "Qualitative concerns",
+      "qual_verdict": "Qualitative concerns",
+      "support_points": 5,
+      "concern_points": 45,
+      "support": [
+        "Citizens Bank Park has a strikeout park factor of 1.14, a meaningful environment boost for pitcher strikeouts."
+      ],
+      "contradictory": [
+        "Opponent has made contact at an above-average rate (L7 15.4%, L14 20.1%, L30 23.0%; league strikeout baseline about 22.2%).",
+        "The pitcher finished on the opposite side of this play in 5 of his last 5 starts (2, 3, 3, 1, 3 Ks).",
+        "Recent workload is limited: 82 pitches and 4.8 innings per start over his last 10, with 5 starts under five innings.",
+        "Average pitch velocity moved -1.5 mph over the last three starts versus the preceding sample, a material decline in current stuff.",
+        "Bat-missing indicators are weak over the last three starts (7.9% swinging strikes, 22.4% CSW)."
+      ],
+      "coverage": {
+        "label": "7 internal/verified areas checked",
+        "available": [
+          "opponent K/BB profile",
+          "opponent starter-handedness split",
+          "pitcher recent form",
+          "pitcher workload",
+          "Statcast pitcher trend",
+          "park strikeout factor",
+          "current market consensus"
+        ],
+        "unavailable_not_inferred": [
+          "confirmed lineup",
+          "injury/news",
+          "weather/roof",
+          "announced umpire",
+          "bullpen rest",
+          "pitch-type matchup"
+        ]
+      },
+      "model_summary": "Projection 3.64 Ks \u00b7 sportsbook line 3.5 \u00b7 OVER +152 at betonlineag \u00b7 model edge 7.7pp \u00b7 model/market 48.0%/40.2% \u00b7 model confidence B (55.4/100) \u00b7 PAPER \u2014 deployment guard active",
+      "html": "<p><em>INFO \u2014 did not qualify as a play; analysis shown for the model-leaning side.</em></p><h4>Model Summary</h4><p>Projection 3.64 Ks \u00b7 sportsbook line 3.5 \u00b7 OVER +152 at betonlineag \u00b7 model edge 7.7pp \u00b7 model/market 48.0%/40.2% \u00b7 model confidence B (55.4/100) \u00b7 PAPER \u2014 deployment guard active</p><h4>Qualitative Confirmation</h4><ul><li>Citizens Bank Park has a strikeout park factor of 1.14, a meaningful environment boost for pitcher strikeouts.</li></ul><h4>Contradictory Evidence</h4><ul><li>Opponent has made contact at an above-average rate (L7 15.4%, L14 20.1%, L30 23.0%; league strikeout baseline about 22.2%).</li><li>The pitcher finished on the opposite side of this play in 5 of his last 5 starts (2, 3, 3, 1, 3 Ks).</li><li>Recent workload is limited: 82 pitches and 4.8 innings per start over his last 10, with 5 starts under five innings.</li><li>Average pitch velocity moved -1.5 mph over the last three starts versus the preceding sample, a material decline in current stuff.</li><li>Bat-missing indicators are weak over the last three starts (7.9% swinging strikes, 22.4% CSW).</li></ul><h4>Verdict</h4><p><span class=\"verdict\">Qualitative concerns</span> \u00b7 qualitative conviction <b>10/100</b></p><p class=\"coverage\">Coverage: 7 internal/verified areas checked. Not available and not inferred: confirmed lineup, injury/news, weather/roof, announced umpire, bullpen rest, pitch-type matchup. This sanity check does not alter the qualifying model signal or stake.</p>",
+      "is_play": false
+    },
+    {
+      "pitcher": "Kohl Drake",
+      "line": 3.5,
+      "signal": "OVER",
+      "qualitative_score": 27,
+      "qual_score": 27,
+      "qual_flag": "CONCERN",
+      "verdict": "Qualitative concerns",
+      "qual_verdict": "Qualitative concerns",
+      "support_points": 0,
+      "concern_points": 23,
+      "support": [],
+      "contradictory": [
+        "Opponent has made contact at an above-average rate (L7 20.5%, L14 19.2%, L30 18.8%; league strikeout baseline about 22.2%).",
+        "In 9 games started by LHP this season, the opponent has struck out in only 20.3% of plate appearances (league 22.8%).",
+        "Chase Field has a strikeout park factor of 0.91, a meaningful suppressive environment for pitcher strikeouts."
+      ],
+      "coverage": {
+        "label": "4 internal/verified areas checked",
+        "available": [
+          "opponent K/BB profile",
+          "opponent starter-handedness split",
+          "park strikeout factor",
+          "current market consensus"
+        ],
+        "unavailable_not_inferred": [
+          "confirmed lineup",
+          "injury/news",
+          "weather/roof",
+          "announced umpire",
+          "bullpen rest",
+          "pitch-type matchup"
+        ]
+      },
+      "model_summary": "Projection 4.20 Ks \u00b7 sportsbook line 3.5 \u00b7 OVER -135 at betmgm \u00b7 model edge 6.6pp \u00b7 model/market 61.8%/55.2% \u00b7 model confidence A (75.6/100) \u00b7 PAPER \u2014 deployment guard active",
+      "html": "<p><em>INFO \u2014 did not qualify as a play; analysis shown for the model-leaning side.</em></p><h4>Model Summary</h4><p>Projection 4.20 Ks \u00b7 sportsbook line 3.5 \u00b7 OVER -135 at betmgm \u00b7 model edge 6.6pp \u00b7 model/market 61.8%/55.2% \u00b7 model confidence A (75.6/100) \u00b7 PAPER \u2014 deployment guard active</p><h4>Qualitative Confirmation</h4><p><em>No strong qualitative confirmation found beyond the model edge.</em></p><h4>Contradictory Evidence</h4><ul><li>Opponent has made contact at an above-average rate (L7 20.5%, L14 19.2%, L30 18.8%; league strikeout baseline about 22.2%).</li><li>In 9 games started by LHP this season, the opponent has struck out in only 20.3% of plate appearances (league 22.8%).</li><li>Chase Field has a strikeout park factor of 0.91, a meaningful suppressive environment for pitcher strikeouts.</li></ul><h4>Verdict</h4><p><span class=\"verdict\">Qualitative concerns</span> \u00b7 qualitative conviction <b>27/100</b></p><p class=\"coverage\">Coverage: 4 internal/verified areas checked. Not available and not inferred: confirmed lineup, injury/news, weather/roof, announced umpire, bullpen rest, pitch-type matchup. This sanity check does not alter the qualifying model signal or stake.</p>",
+      "is_play": false
+    },
+    {
+      "pitcher": "Framber Valdez",
+      "line": 4.5,
+      "signal": "UNDER",
+      "qualitative_score": 54,
+      "qual_score": 54,
+      "qual_flag": "MIXED",
+      "verdict": "Mixed signals",
+      "qual_verdict": "Mixed signals",
+      "support_points": 20,
+      "concern_points": 16,
+      "support": [
+        "The pitcher is working on only 4 days since his previous start, a modest fatigue/runway concern.",
+        "Average pitch velocity moved -1.4 mph over the last three starts versus the preceding sample, a material decline in current stuff.",
+        "Bat-missing indicators are weak over the last three starts (8.6% swinging strikes, 25.3% CSW)."
+      ],
+      "contradictory": [
+        "Opponent strikeout rate is consistently elevated (L7 24.9%, L14 24.7%, L30 22.4%; league baseline about 22.2%).",
+        "T-Mobile Park has a strikeout park factor of 1.11, a meaningful environment boost for pitcher strikeouts."
+      ],
+      "coverage": {
+        "label": "7 internal/verified areas checked",
+        "available": [
+          "opponent K/BB profile",
+          "opponent starter-handedness split",
+          "pitcher recent form",
+          "pitcher workload",
+          "Statcast pitcher trend",
+          "park strikeout factor",
+          "current market consensus"
+        ],
+        "unavailable_not_inferred": [
+          "confirmed lineup",
+          "injury/news",
+          "weather/roof",
+          "announced umpire",
+          "bullpen rest",
+          "pitch-type matchup"
+        ]
+      },
+      "model_summary": "Projection 4.57 Ks \u00b7 sportsbook line 4.5 \u00b7 UNDER +128 at fanduel \u00b7 model edge 6.1pp \u00b7 model/market 48.7%/42.5% \u00b7 model confidence A (70.5/100) \u00b7 PAPER \u2014 deployment guard active",
+      "html": "<p><em>INFO \u2014 did not qualify as a play; analysis shown for the model-leaning side.</em></p><h4>Model Summary</h4><p>Projection 4.57 Ks \u00b7 sportsbook line 4.5 \u00b7 UNDER +128 at fanduel \u00b7 model edge 6.1pp \u00b7 model/market 48.7%/42.5% \u00b7 model confidence A (70.5/100) \u00b7 PAPER \u2014 deployment guard active</p><h4>Qualitative Confirmation</h4><ul><li>The pitcher is working on only 4 days since his previous start, a modest fatigue/runway concern.</li><li>Average pitch velocity moved -1.4 mph over the last three starts versus the preceding sample, a material decline in current stuff.</li><li>Bat-missing indicators are weak over the last three starts (8.6% swinging strikes, 25.3% CSW).</li></ul><h4>Contradictory Evidence</h4><ul><li>Opponent strikeout rate is consistently elevated (L7 24.9%, L14 24.7%, L30 22.4%; league baseline about 22.2%).</li><li>T-Mobile Park has a strikeout park factor of 1.11, a meaningful environment boost for pitcher strikeouts.</li></ul><h4>Verdict</h4><p><span class=\"verdict\">Mixed signals</span> \u00b7 qualitative conviction <b>54/100</b></p><p class=\"coverage\">Coverage: 7 internal/verified areas checked. Not available and not inferred: confirmed lineup, injury/news, weather/roof, announced umpire, bullpen rest, pitch-type matchup. This sanity check does not alter the qualifying model signal or stake.</p>",
+      "is_play": false
+    },
+    {
+      "pitcher": "Michael Wacha",
+      "line": 4.5,
+      "signal": "OVER",
+      "qualitative_score": 56,
+      "qual_score": 56,
+      "qual_flag": "MIXED",
+      "verdict": "Mixed signals",
+      "qual_verdict": "Mixed signals",
+      "support_points": 18,
+      "concern_points": 12,
+      "support": [
+        "The pitcher finished on the over side of 4.5 strikeouts in 4 of his last 5 starts (7, 5, 5, 3, 7 Ks).",
+        "The starter has a durable recent leash: 97 pitches and 6.3 innings per start over his last 10, with only 1 start under five innings."
+      ],
+      "contradictory": [
+        "In 25 games started by RHP this season, the opponent has struck out in only 18.9% of plate appearances (league 22.3%).",
+        "Kauffman Stadium has a strikeout park factor of 0.88, a meaningful suppressive environment for pitcher strikeouts."
+      ],
+      "coverage": {
+        "label": "7 internal/verified areas checked",
+        "available": [
+          "opponent K/BB profile",
+          "opponent starter-handedness split",
+          "pitcher recent form",
+          "pitcher workload",
+          "Statcast pitcher trend",
+          "park strikeout factor",
+          "current market consensus"
+        ],
+        "unavailable_not_inferred": [
+          "confirmed lineup",
+          "injury/news",
+          "weather/roof",
+          "announced umpire",
+          "bullpen rest",
+          "pitch-type matchup"
+        ]
+      },
+      "model_summary": "Projection 4.96 Ks \u00b7 sportsbook line 4.5 \u00b7 OVER +100 at fanduel \u00b7 model edge 5.7pp \u00b7 model/market 53.3%/47.6% \u00b7 model confidence A (75.3/100) \u00b7 PAPER \u2014 deployment guard active",
+      "html": "<p><em>INFO \u2014 did not qualify as a play; analysis shown for the model-leaning side.</em></p><h4>Model Summary</h4><p>Projection 4.96 Ks \u00b7 sportsbook line 4.5 \u00b7 OVER +100 at fanduel \u00b7 model edge 5.7pp \u00b7 model/market 53.3%/47.6% \u00b7 model confidence A (75.3/100) \u00b7 PAPER \u2014 deployment guard active</p><h4>Qualitative Confirmation</h4><ul><li>The pitcher finished on the over side of 4.5 strikeouts in 4 of his last 5 starts (7, 5, 5, 3, 7 Ks).</li><li>The starter has a durable recent leash: 97 pitches and 6.3 innings per start over his last 10, with only 1 start under five innings.</li></ul><h4>Contradictory Evidence</h4><ul><li>In 25 games started by RHP this season, the opponent has struck out in only 18.9% of plate appearances (league 22.3%).</li><li>Kauffman Stadium has a strikeout park factor of 0.88, a meaningful suppressive environment for pitcher strikeouts.</li></ul><h4>Verdict</h4><p><span class=\"verdict\">Mixed signals</span> \u00b7 qualitative conviction <b>56/100</b></p><p class=\"coverage\">Coverage: 7 internal/verified areas checked. Not available and not inferred: confirmed lineup, injury/news, weather/roof, announced umpire, bullpen rest, pitch-type matchup. This sanity check does not alter the qualifying model signal or stake.</p>",
+      "is_play": false
+    },
+    {
+      "pitcher": "Mason Barnett",
+      "line": 4.5,
+      "signal": "UNDER",
+      "qualitative_score": 50,
+      "qual_score": 50,
+      "qual_flag": "MIXED",
+      "verdict": "Mixed signals",
+      "qual_verdict": "Mixed signals",
+      "support_points": 23,
+      "concern_points": 23,
+      "support": [
+        "Opponent's L14 walk rate is 10.2% versus a 8.4% league baseline, creating pitch-count pressure that can shorten the starter's runway.",
+        "Recent workload is limited: 84 pitches and 4.6 innings per start over his last 6, with 3 starts under five innings.",
+        "Bat-missing indicators are weak over the last three starts (7.5% swinging strikes, 24.4% CSW)."
+      ],
+      "contradictory": [
+        "Opponent strikeout rate is consistently elevated (L7 29.1%, L14 32.2%, L30 27.5%; league baseline about 22.2%).",
+        "In the opponent's current home split, its strikeout rate rises to 28.7% across 20 games (season 26.6%).",
+        "In 28 games started by RHP this season, the opponent has struck out in 26.8% of plate appearances (league 22.3%)."
+      ],
+      "coverage": {
+        "label": "7 internal/verified areas checked",
+        "available": [
+          "opponent K/BB profile",
+          "opponent starter-handedness split",
+          "pitcher recent form",
+          "pitcher workload",
+          "Statcast pitcher trend",
+          "park strikeout factor",
+          "current market consensus"
+        ],
+        "unavailable_not_inferred": [
+          "confirmed lineup",
+          "injury/news",
+          "weather/roof",
+          "announced umpire",
+          "bullpen rest",
+          "pitch-type matchup"
+        ]
+      },
+      "model_summary": "Projection 4.48 Ks \u00b7 sportsbook line 4.5 \u00b7 UNDER +100 at fanduel \u00b7 model edge 5.5pp \u00b7 model/market 53.9%/48.5% \u00b7 model confidence B (54.0/100) \u00b7 PAPER \u2014 deployment guard active",
+      "html": "<p><em>INFO \u2014 did not qualify as a play; analysis shown for the model-leaning side.</em></p><h4>Model Summary</h4><p>Projection 4.48 Ks \u00b7 sportsbook line 4.5 \u00b7 UNDER +100 at fanduel \u00b7 model edge 5.5pp \u00b7 model/market 53.9%/48.5% \u00b7 model confidence B (54.0/100) \u00b7 PAPER \u2014 deployment guard active</p><h4>Qualitative Confirmation</h4><ul><li>Opponent&#x27;s L14 walk rate is 10.2% versus a 8.4% league baseline, creating pitch-count pressure that can shorten the starter&#x27;s runway.</li><li>Recent workload is limited: 84 pitches and 4.6 innings per start over his last 6, with 3 starts under five innings.</li><li>Bat-missing indicators are weak over the last three starts (7.5% swinging strikes, 24.4% CSW).</li></ul><h4>Contradictory Evidence</h4><ul><li>Opponent strikeout rate is consistently elevated (L7 29.1%, L14 32.2%, L30 27.5%; league baseline about 22.2%).</li><li>In the opponent&#x27;s current home split, its strikeout rate rises to 28.7% across 20 games (season 26.6%).</li><li>In 28 games started by RHP this season, the opponent has struck out in 26.8% of plate appearances (league 22.3%).</li></ul><h4>Verdict</h4><p><span class=\"verdict\">Mixed signals</span> \u00b7 qualitative conviction <b>50/100</b></p><p class=\"coverage\">Coverage: 7 internal/verified areas checked. Not available and not inferred: confirmed lineup, injury/news, weather/roof, announced umpire, bullpen rest, pitch-type matchup. This sanity check does not alter the qualifying model signal or stake.</p>",
+      "is_play": false
+    },
+    {
+      "pitcher": "Bryce Miller",
+      "line": 5.5,
+      "signal": "UNDER",
+      "qualitative_score": 54,
+      "qual_score": 54,
+      "qual_flag": "MIXED",
+      "verdict": "Mixed signals",
+      "qual_verdict": "Mixed signals",
+      "support_points": 9,
+      "concern_points": 5,
+      "support": [
+        "Recent workload is limited: 85 pitches and 5.8 innings per start over his last 10, with 0 starts under five innings."
+      ],
+      "contradictory": [
+        "T-Mobile Park has a strikeout park factor of 1.11, a meaningful environment boost for pitcher strikeouts."
+      ],
+      "coverage": {
+        "label": "7 internal/verified areas checked",
+        "available": [
+          "opponent K/BB profile",
+          "opponent starter-handedness split",
+          "pitcher recent form",
+          "pitcher workload",
+          "Statcast pitcher trend",
+          "park strikeout factor",
+          "current market consensus"
+        ],
+        "unavailable_not_inferred": [
+          "confirmed lineup",
+          "injury/news",
+          "weather/roof",
+          "announced umpire",
+          "bullpen rest",
+          "pitch-type matchup"
+        ]
+      },
+      "model_summary": "Projection 5.20 Ks \u00b7 sportsbook line 5.5 \u00b7 UNDER -107 at draftkings \u00b7 model edge 4.0pp \u00b7 model/market 54.1%/50.2% \u00b7 model confidence B (63.5/100) \u00b7 PAPER \u2014 deployment guard active",
+      "html": "<p><em>INFO \u2014 did not qualify as a play; analysis shown for the model-leaning side.</em></p><h4>Model Summary</h4><p>Projection 5.20 Ks \u00b7 sportsbook line 5.5 \u00b7 UNDER -107 at draftkings \u00b7 model edge 4.0pp \u00b7 model/market 54.1%/50.2% \u00b7 model confidence B (63.5/100) \u00b7 PAPER \u2014 deployment guard active</p><h4>Qualitative Confirmation</h4><ul><li>Recent workload is limited: 85 pitches and 5.8 innings per start over his last 10, with 0 starts under five innings.</li></ul><h4>Contradictory Evidence</h4><ul><li>T-Mobile Park has a strikeout park factor of 1.11, a meaningful environment boost for pitcher strikeouts.</li></ul><h4>Verdict</h4><p><span class=\"verdict\">Mixed signals</span> \u00b7 qualitative conviction <b>54/100</b></p><p class=\"coverage\">Coverage: 7 internal/verified areas checked. Not available and not inferred: confirmed lineup, injury/news, weather/roof, announced umpire, bullpen rest, pitch-type matchup. This sanity check does not alter the qualifying model signal or stake.</p>",
+      "is_play": false
+    },
+    {
+      "pitcher": "Walker Buehler",
+      "line": 3.5,
+      "signal": "OVER",
+      "qualitative_score": 19,
+      "qual_score": 19,
+      "qual_flag": "CONCERN",
+      "verdict": "Qualitative concerns",
+      "qual_verdict": "Qualitative concerns",
+      "support_points": 5,
+      "concern_points": 36,
+      "support": [
+        "The pitcher's meaningful road split is 5.1 Ks/start across 10 starts versus 3.4 in the opposite split."
+      ],
+      "contradictory": [
+        "Opponent has made contact at an above-average rate (L7 14.2%, L14 14.7%, L30 18.0%; league strikeout baseline about 22.2%).",
+        "In 29 games started by RHP this season, the opponent has struck out in only 17.7% of plate appearances (league 22.3%).",
+        "Recent workload is limited: 84 pitches and 4.7 innings per start over his last 10, with 4 starts under five innings.",
+        "The pitcher is working on only 4 days since his previous start, a modest fatigue/runway concern.",
+        "Chase Field has a strikeout park factor of 0.91, a meaningful suppressive environment for pitcher strikeouts."
+      ],
+      "coverage": {
+        "label": "7 internal/verified areas checked",
+        "available": [
+          "opponent K/BB profile",
+          "opponent starter-handedness split",
+          "pitcher recent form",
+          "pitcher workload",
+          "Statcast pitcher trend",
+          "park strikeout factor",
+          "current market consensus"
+        ],
+        "unavailable_not_inferred": [
+          "confirmed lineup",
+          "injury/news",
+          "weather/roof",
+          "announced umpire",
+          "bullpen rest",
+          "pitch-type matchup"
+        ]
+      },
+      "model_summary": "Projection 4.07 Ks \u00b7 sportsbook line 3.5 \u00b7 OVER -120 at betmgm \u00b7 model edge 3.6pp \u00b7 model/market 56.8%/53.2% \u00b7 model confidence A (75.7/100) \u00b7 PAPER \u2014 deployment guard active",
+      "html": "<p><em>INFO \u2014 did not qualify as a play; analysis shown for the model-leaning side.</em></p><h4>Model Summary</h4><p>Projection 4.07 Ks \u00b7 sportsbook line 3.5 \u00b7 OVER -120 at betmgm \u00b7 model edge 3.6pp \u00b7 model/market 56.8%/53.2% \u00b7 model confidence A (75.7/100) \u00b7 PAPER \u2014 deployment guard active</p><h4>Qualitative Confirmation</h4><ul><li>The pitcher&#x27;s meaningful road split is 5.1 Ks/start across 10 starts versus 3.4 in the opposite split.</li></ul><h4>Contradictory Evidence</h4><ul><li>Opponent has made contact at an above-average rate (L7 14.2%, L14 14.7%, L30 18.0%; league strikeout baseline about 22.2%).</li><li>In 29 games started by RHP this season, the opponent has struck out in only 17.7% of plate appearances (league 22.3%).</li><li>Recent workload is limited: 84 pitches and 4.7 innings per start over his last 10, with 4 starts under five innings.</li><li>The pitcher is working on only 4 days since his previous start, a modest fatigue/runway concern.</li><li>Chase Field has a strikeout park factor of 0.91, a meaningful suppressive environment for pitcher strikeouts.</li></ul><h4>Verdict</h4><p><span class=\"verdict\">Qualitative concerns</span> \u00b7 qualitative conviction <b>19/100</b></p><p class=\"coverage\">Coverage: 7 internal/verified areas checked. Not available and not inferred: confirmed lineup, injury/news, weather/roof, announced umpire, bullpen rest, pitch-type matchup. This sanity check does not alter the qualifying model signal or stake.</p>",
+      "is_play": false
+    },
+    {
+      "pitcher": "Bailey Ober",
+      "line": 3.5,
+      "signal": "OVER",
+      "qualitative_score": 8,
+      "qual_score": 8,
+      "qual_flag": "CONCERN",
+      "verdict": "Qualitative concerns",
+      "qual_verdict": "Qualitative concerns",
+      "support_points": 0,
+      "concern_points": 42,
+      "support": [],
+      "contradictory": [
+        "Opponent has made contact at an above-average rate (L7 13.6%, L14 19.8%, L30 20.8%; league strikeout baseline about 22.2%).",
+        "In the opponent's current home split, its strikeout rate falls to 19.2% across 13 games (season 21.4%).",
+        "Recent workload is limited: 84 pitches and 5.5 innings per start over his last 10, with 2 starts under five innings.",
+        "The pitcher's meaningful road split is 3.1 Ks/start across 7 starts versus 4.6 in the opposite split.",
+        "Average pitch velocity moved -1.1 mph over the last three starts versus the preceding sample, a material decline in current stuff.",
+        "Kauffman Stadium has a strikeout park factor of 0.88, a meaningful suppressive environment for pitcher strikeouts."
+      ],
+      "coverage": {
+        "label": "7 internal/verified areas checked",
+        "available": [
+          "opponent K/BB profile",
+          "opponent starter-handedness split",
+          "pitcher recent form",
+          "pitcher workload",
+          "Statcast pitcher trend",
+          "park strikeout factor",
+          "current market consensus"
+        ],
+        "unavailable_not_inferred": [
+          "confirmed lineup",
+          "injury/news",
+          "weather/roof",
+          "announced umpire",
+          "bullpen rest",
+          "pitch-type matchup"
+        ]
+      },
+      "model_summary": "Projection 4.16 Ks \u00b7 sportsbook line 3.5 \u00b7 OVER -140 at fanatics \u00b7 model edge 3.2pp \u00b7 model/market 60.1%/56.9% \u00b7 model confidence A (80.3/100) \u00b7 PAPER \u2014 deployment guard active",
+      "html": "<p><em>INFO \u2014 did not qualify as a play; analysis shown for the model-leaning side.</em></p><h4>Model Summary</h4><p>Projection 4.16 Ks \u00b7 sportsbook line 3.5 \u00b7 OVER -140 at fanatics \u00b7 model edge 3.2pp \u00b7 model/market 60.1%/56.9% \u00b7 model confidence A (80.3/100) \u00b7 PAPER \u2014 deployment guard active</p><h4>Qualitative Confirmation</h4><p><em>No strong qualitative confirmation found beyond the model edge.</em></p><h4>Contradictory Evidence</h4><ul><li>Opponent has made contact at an above-average rate (L7 13.6%, L14 19.8%, L30 20.8%; league strikeout baseline about 22.2%).</li><li>In the opponent&#x27;s current home split, its strikeout rate falls to 19.2% across 13 games (season 21.4%).</li><li>Recent workload is limited: 84 pitches and 5.5 innings per start over his last 10, with 2 starts under five innings.</li><li>The pitcher&#x27;s meaningful road split is 3.1 Ks/start across 7 starts versus 4.6 in the opposite split.</li><li>Average pitch velocity moved -1.1 mph over the last three starts versus the preceding sample, a material decline in current stuff.</li><li>Kauffman Stadium has a strikeout park factor of 0.88, a meaningful suppressive environment for pitcher strikeouts.</li></ul><h4>Verdict</h4><p><span class=\"verdict\">Qualitative concerns</span> \u00b7 qualitative conviction <b>8/100</b></p><p class=\"coverage\">Coverage: 7 internal/verified areas checked. Not available and not inferred: confirmed lineup, injury/news, weather/roof, announced umpire, bullpen rest, pitch-type matchup. This sanity check does not alter the qualifying model signal or stake.</p>",
+      "is_play": false
+    },
+    {
+      "pitcher": "Janson Junk",
+      "line": 3.5,
+      "signal": "OVER",
+      "qualitative_score": 50,
+      "qual_score": 50,
+      "qual_flag": "MIXED",
+      "verdict": "Mixed signals",
+      "qual_verdict": "Mixed signals",
+      "support_points": 9,
+      "concern_points": 9,
+      "support": [
+        "Opponent's L14 walk rate is only 6.4% versus a 8.4% league baseline, helping the starter work efficiently and preserve strikeout opportunities.",
+        "Truist Park has a strikeout park factor of 1.05, a meaningful environment boost for pitcher strikeouts."
+      ],
+      "contradictory": [
+        "Bat-missing indicators are weak over the last three starts (5.1% swinging strikes, 23.6% CSW)."
+      ],
+      "coverage": {
+        "label": "7 internal/verified areas checked",
+        "available": [
+          "opponent K/BB profile",
+          "opponent starter-handedness split",
+          "pitcher recent form",
+          "pitcher workload",
+          "Statcast pitcher trend",
+          "park strikeout factor",
+          "current market consensus"
+        ],
+        "unavailable_not_inferred": [
+          "confirmed lineup",
+          "injury/news",
+          "weather/roof",
+          "announced umpire",
+          "bullpen rest",
+          "pitch-type matchup"
+        ]
+      },
+      "model_summary": "Projection 3.95 Ks \u00b7 sportsbook line 3.5 \u00b7 OVER -111 at fanduel \u00b7 model edge 2.5pp \u00b7 model/market 52.9%/50.4% \u00b7 model confidence A (70.4/100) \u00b7 PAPER \u2014 deployment guard active",
+      "html": "<p><em>INFO \u2014 did not qualify as a play; analysis shown for the model-leaning side.</em></p><h4>Model Summary</h4><p>Projection 3.95 Ks \u00b7 sportsbook line 3.5 \u00b7 OVER -111 at fanduel \u00b7 model edge 2.5pp \u00b7 model/market 52.9%/50.4% \u00b7 model confidence A (70.4/100) \u00b7 PAPER \u2014 deployment guard active</p><h4>Qualitative Confirmation</h4><ul><li>Opponent&#x27;s L14 walk rate is only 6.4% versus a 8.4% league baseline, helping the starter work efficiently and preserve strikeout opportunities.</li><li>Truist Park has a strikeout park factor of 1.05, a meaningful environment boost for pitcher strikeouts.</li></ul><h4>Contradictory Evidence</h4><ul><li>Bat-missing indicators are weak over the last three starts (5.1% swinging strikes, 23.6% CSW).</li></ul><h4>Verdict</h4><p><span class=\"verdict\">Mixed signals</span> \u00b7 qualitative conviction <b>50/100</b></p><p class=\"coverage\">Coverage: 7 internal/verified areas checked. Not available and not inferred: confirmed lineup, injury/news, weather/roof, announced umpire, bullpen rest, pitch-type matchup. This sanity check does not alter the qualifying model signal or stake.</p>",
+      "is_play": false
+    },
+    {
+      "pitcher": "Braxton Ashcraft",
+      "line": 5.5,
+      "signal": "UNDER",
+      "qualitative_score": 59,
+      "qual_score": 59,
+      "qual_flag": "SUPPORT",
+      "verdict": "Moderate qualitative confirmation",
+      "qual_verdict": "Moderate qualitative confirmation",
+      "support_points": 14,
+      "concern_points": 5,
+      "support": [
+        "Opponent's L14 walk rate is 10.4% versus a 8.4% league baseline, creating pitch-count pressure that can shorten the starter's runway.",
+        "Bat-missing indicators are weak over the last three starts (8.8% swinging strikes, 24.2% CSW)."
+      ],
+      "contradictory": [
+        "American Family Field has a strikeout park factor of 1.08, a meaningful environment boost for pitcher strikeouts."
+      ],
+      "coverage": {
+        "label": "7 internal/verified areas checked",
+        "available": [
+          "opponent K/BB profile",
+          "opponent starter-handedness split",
+          "pitcher recent form",
+          "pitcher workload",
+          "Statcast pitcher trend",
+          "park strikeout factor",
+          "current market consensus"
+        ],
+        "unavailable_not_inferred": [
+          "confirmed lineup",
+          "injury/news",
+          "weather/roof",
+          "announced umpire",
+          "bullpen rest",
+          "pitch-type matchup"
+        ]
+      },
+      "model_summary": "Projection 5.55 Ks \u00b7 sportsbook line 5.5 \u00b7 UNDER +112 at fanduel \u00b7 model edge 1.8pp \u00b7 model/market 48.4%/46.6% \u00b7 model confidence B (54.0/100) \u00b7 PAPER \u2014 deployment guard active",
+      "html": "<p><em>INFO \u2014 did not qualify as a play; analysis shown for the model-leaning side.</em></p><h4>Model Summary</h4><p>Projection 5.55 Ks \u00b7 sportsbook line 5.5 \u00b7 UNDER +112 at fanduel \u00b7 model edge 1.8pp \u00b7 model/market 48.4%/46.6% \u00b7 model confidence B (54.0/100) \u00b7 PAPER \u2014 deployment guard active</p><h4>Qualitative Confirmation</h4><ul><li>Opponent&#x27;s L14 walk rate is 10.4% versus a 8.4% league baseline, creating pitch-count pressure that can shorten the starter&#x27;s runway.</li><li>Bat-missing indicators are weak over the last three starts (8.8% swinging strikes, 24.2% CSW).</li></ul><h4>Contradictory Evidence</h4><ul><li>American Family Field has a strikeout park factor of 1.08, a meaningful environment boost for pitcher strikeouts.</li></ul><h4>Verdict</h4><p><span class=\"verdict\">Moderate qualitative confirmation</span> \u00b7 qualitative conviction <b>59/100</b></p><p class=\"coverage\">Coverage: 7 internal/verified areas checked. Not available and not inferred: confirmed lineup, injury/news, weather/roof, announced umpire, bullpen rest, pitch-type matchup. This sanity check does not alter the qualifying model signal or stake.</p>",
+      "is_play": false
+    },
+    {
+      "pitcher": "Nolan McLean",
+      "line": 5.5,
+      "signal": "OVER",
+      "qualitative_score": 70,
+      "qual_score": 70,
+      "qual_flag": "SUPPORT",
+      "verdict": "Strong qualitative confirmation",
+      "qual_verdict": "Strong qualitative confirmation",
+      "support_points": 25,
+      "concern_points": 5,
+      "support": [
+        "In 23 games started by RHP this season, the opponent has struck out in 25.5% of plate appearances (league 22.3%).",
+        "The pitcher finished on the over side of 5.5 strikeouts in 4 of his last 5 starts (5, 7, 10, 7, 6 Ks).",
+        "The starter has a durable recent leash: 97 pitches and 5.9 innings per start over his last 10, with only 1 start under five innings."
+      ],
+      "contradictory": [
+        "Opponent's L14 walk rate is 10.4% versus a 8.4% league baseline, creating pitch-count pressure that can shorten the starter's runway."
+      ],
+      "coverage": {
+        "label": "7 internal/verified areas checked",
+        "available": [
+          "opponent K/BB profile",
+          "opponent starter-handedness split",
+          "pitcher recent form",
+          "pitcher workload",
+          "Statcast pitcher trend",
+          "park strikeout factor",
+          "current market consensus"
+        ],
+        "unavailable_not_inferred": [
+          "confirmed lineup",
+          "injury/news",
+          "weather/roof",
+          "announced umpire",
+          "bullpen rest",
+          "pitch-type matchup"
+        ]
+      },
+      "model_summary": "Projection 5.98 Ks \u00b7 sportsbook line 5.5 \u00b7 OVER -120 at betmgm \u00b7 model edge 0.1pp \u00b7 model/market 54.5%/54.4% \u00b7 model confidence A (73.0/100) \u00b7 PAPER \u2014 deployment guard active",
+      "html": "<p><em>INFO \u2014 did not qualify as a play; analysis shown for the model-leaning side.</em></p><h4>Model Summary</h4><p>Projection 5.98 Ks \u00b7 sportsbook line 5.5 \u00b7 OVER -120 at betmgm \u00b7 model edge 0.1pp \u00b7 model/market 54.5%/54.4% \u00b7 model confidence A (73.0/100) \u00b7 PAPER \u2014 deployment guard active</p><h4>Qualitative Confirmation</h4><ul><li>In 23 games started by RHP this season, the opponent has struck out in 25.5% of plate appearances (league 22.3%).</li><li>The pitcher finished on the over side of 5.5 strikeouts in 4 of his last 5 starts (5, 7, 10, 7, 6 Ks).</li><li>The starter has a durable recent leash: 97 pitches and 5.9 innings per start over his last 10, with only 1 start under five innings.</li></ul><h4>Contradictory Evidence</h4><ul><li>Opponent&#x27;s L14 walk rate is 10.4% versus a 8.4% league baseline, creating pitch-count pressure that can shorten the starter&#x27;s runway.</li></ul><h4>Verdict</h4><p><span class=\"verdict\">Strong qualitative confirmation</span> \u00b7 qualitative conviction <b>70/100</b></p><p class=\"coverage\">Coverage: 7 internal/verified areas checked. Not available and not inferred: confirmed lineup, injury/news, weather/roof, announced umpire, bullpen rest, pitch-type matchup. This sanity check does not alter the qualifying model signal or stake.</p>",
+      "is_play": false
+    },
+    {
+      "pitcher": "Bailey Ober",
+      "line": 4.5,
+      "signal": "OVER",
+      "qualitative_score": 4,
+      "qual_score": 4,
+      "qual_flag": "CONCERN",
+      "verdict": "Qualitative concerns",
+      "qual_verdict": "Qualitative concerns",
+      "support_points": 0,
+      "concern_points": 46,
+      "support": [],
+      "contradictory": [
+        "Opponent has made contact at an above-average rate (L7 13.6%, L14 19.8%, L30 20.8%; league strikeout baseline about 22.2%).",
+        "In the opponent's current home split, its strikeout rate falls to 19.2% across 13 games (season 21.4%).",
+        "Recent workload is limited: 84 pitches and 5.5 innings per start over his last 10, with 2 starts under five innings.",
+        "The pitcher's meaningful road split is 3.1 Ks/start across 7 starts versus 4.6 in the opposite split.",
+        "Average pitch velocity moved -1.1 mph over the last three starts versus the preceding sample, a material decline in current stuff.",
+        "Kauffman Stadium has a strikeout park factor of 0.88, a meaningful suppressive environment for pitcher strikeouts.",
+        "Only 1 sportsbook is posting this number, so the consensus reference is thin."
+      ],
+      "coverage": {
+        "label": "7 internal/verified areas checked",
+        "available": [
+          "opponent K/BB profile",
+          "opponent starter-handedness split",
+          "pitcher recent form",
+          "pitcher workload",
+          "Statcast pitcher trend",
+          "park strikeout factor",
+          "current market consensus"
+        ],
+        "unavailable_not_inferred": [
+          "confirmed lineup",
+          "injury/news",
+          "weather/roof",
+          "announced umpire",
+          "bullpen rest",
+          "pitch-type matchup"
+        ]
+      },
+      "model_summary": "Projection 4.16 Ks \u00b7 sportsbook line 4.5 \u00b7 OVER +136 at betonlineag \u00b7 model edge 0.0pp \u00b7 model/market 39.8%/39.8% \u00b7 model confidence C (50.1/100) \u00b7 PAPER \u2014 deployment guard active",
+      "html": "<p><em>INFO \u2014 did not qualify as a play; analysis shown for the model-leaning side.</em></p><h4>Model Summary</h4><p>Projection 4.16 Ks \u00b7 sportsbook line 4.5 \u00b7 OVER +136 at betonlineag \u00b7 model edge 0.0pp \u00b7 model/market 39.8%/39.8% \u00b7 model confidence C (50.1/100) \u00b7 PAPER \u2014 deployment guard active</p><h4>Qualitative Confirmation</h4><p><em>No strong qualitative confirmation found beyond the model edge.</em></p><h4>Contradictory Evidence</h4><ul><li>Opponent has made contact at an above-average rate (L7 13.6%, L14 19.8%, L30 20.8%; league strikeout baseline about 22.2%).</li><li>In the opponent&#x27;s current home split, its strikeout rate falls to 19.2% across 13 games (season 21.4%).</li><li>Recent workload is limited: 84 pitches and 5.5 innings per start over his last 10, with 2 starts under five innings.</li><li>The pitcher&#x27;s meaningful road split is 3.1 Ks/start across 7 starts versus 4.6 in the opposite split.</li><li>Average pitch velocity moved -1.1 mph over the last three starts versus the preceding sample, a material decline in current stuff.</li><li>Kauffman Stadium has a strikeout park factor of 0.88, a meaningful suppressive environment for pitcher strikeouts.</li><li>Only 1 sportsbook is posting this number, so the consensus reference is thin.</li></ul><h4>Verdict</h4><p><span class=\"verdict\">Qualitative concerns</span> \u00b7 qualitative conviction <b>4/100</b></p><p class=\"coverage\">Coverage: 7 internal/verified areas checked. Not available and not inferred: confirmed lineup, injury/news, weather/roof, announced umpire, bullpen rest, pitch-type matchup. This sanity check does not alter the qualifying model signal or stake.</p>",
+      "is_play": false
+    },
+    {
+      "pitcher": "Mart\u00edn P\u00e9rez",
+      "line": 3.5,
+      "signal": "OVER",
+      "qualitative_score": 42,
+      "qual_score": 42,
+      "qual_flag": "CONCERN",
+      "verdict": "Qualitative concerns",
+      "qual_verdict": "Qualitative concerns",
+      "support_points": 12,
+      "concern_points": 20,
+      "support": [
+        "Average pitch velocity moved +1.0 mph over the last three starts versus the preceding sample, a material uptick in current stuff.",
+        "Truist Park has a strikeout park factor of 1.05, a meaningful environment boost for pitcher strikeouts."
+      ],
+      "contradictory": [
+        "Opponent has made contact at an above-average rate (L7 18.8%, L14 20.0%, L30 22.1%; league strikeout baseline about 22.2%).",
+        "Recent workload is limited: 80 pitches and 5.1 innings per start over his last 10, with 3 starts under five innings."
+      ],
+      "coverage": {
+        "label": "7 internal/verified areas checked",
+        "available": [
+          "opponent K/BB profile",
+          "opponent starter-handedness split",
+          "pitcher recent form",
+          "pitcher workload",
+          "Statcast pitcher trend",
+          "park strikeout factor",
+          "current market consensus"
+        ],
+        "unavailable_not_inferred": [
+          "confirmed lineup",
+          "injury/news",
+          "weather/roof",
+          "announced umpire",
+          "bullpen rest",
+          "pitch-type matchup"
+        ]
+      },
+      "model_summary": "Projection 4.04 Ks \u00b7 sportsbook line 3.5 \u00b7 OVER -150 at betmgm \u00b7 model edge 0.0pp \u00b7 model/market 57.3%/57.3% \u00b7 model confidence A (72.7/100) \u00b7 PAPER \u2014 deployment guard active",
+      "html": "<p><em>INFO \u2014 did not qualify as a play; analysis shown for the model-leaning side.</em></p><h4>Model Summary</h4><p>Projection 4.04 Ks \u00b7 sportsbook line 3.5 \u00b7 OVER -150 at betmgm \u00b7 model edge 0.0pp \u00b7 model/market 57.3%/57.3% \u00b7 model confidence A (72.7/100) \u00b7 PAPER \u2014 deployment guard active</p><h4>Qualitative Confirmation</h4><ul><li>Average pitch velocity moved +1.0 mph over the last three starts versus the preceding sample, a material uptick in current stuff.</li><li>Truist Park has a strikeout park factor of 1.05, a meaningful environment boost for pitcher strikeouts.</li></ul><h4>Contradictory Evidence</h4><ul><li>Opponent has made contact at an above-average rate (L7 18.8%, L14 20.0%, L30 22.1%; league strikeout baseline about 22.2%).</li><li>Recent workload is limited: 80 pitches and 5.1 innings per start over his last 10, with 3 starts under five innings.</li></ul><h4>Verdict</h4><p><span class=\"verdict\">Qualitative concerns</span> \u00b7 qualitative conviction <b>42/100</b></p><p class=\"coverage\">Coverage: 7 internal/verified areas checked. Not available and not inferred: confirmed lineup, injury/news, weather/roof, announced umpire, bullpen rest, pitch-type matchup. This sanity check does not alter the qualifying model signal or stake.</p>",
+      "is_play": false
+    }
+  ]
+}
